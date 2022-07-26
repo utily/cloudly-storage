@@ -23,34 +23,34 @@ export class InMemory<
 	async get(key: string): Promise<{ value: V; meta?: M } | undefined> {
 		let result = this.data[key]
 		if (result != undefined)
-			if (!result.expires || result.expires >= isoly.DateTime.now())
+			if (result.expires && result.expires < isoly.DateTime.now())
 				result = undefined
-			else
-				delete result.expires
-		return result
+		return result && (({ expires: disregard, ...item }) => item)(result)
 	}
 	async list(options?: string | ListOptions): Promise<{
 		data: ListItem<V, M>[]
 		cursor?: string
 	}> {
-		const prefix = typeof options == "string" ? options : options?.prefix
+		const o = ListOptions.get(options)
 		const now = isoly.DateTime.now()
 		return {
-			data: Object.entries(this.data)
-				.filter(([key, data]) => data && (!prefix || key.startsWith(prefix)) && (!data.expires || data.expires >= now))
-				.map<ListItem<V, M>>(
-					([key, data]) =>
-						Object.defineProperty({ key, ...data }, "value", async () => data?.value) as unknown as ListItem<V, M>
-				),
+			data: (
+				Object.entries(this.data).filter(
+					([key, item]) => item && (!o.prefix || key.startsWith(o.prefix)) && (!item.expires || item.expires >= now)
+				) as unknown as [string, Item<V, M>][]
+			).map<ListItem<V, M>>(
+				o.values ? ([key, item]) => ({ key, ...item }) : ([key, { value: disregard, ...item }]) => ({ key, ...item })
+			),
 		}
 	}
 	private static opened: Record<string, InMemory> = {}
-	static open<V extends string | ArrayBuffer | ReadableStream = string | ArrayBuffer | ReadableStream>(
-		namespace?: string
-	): InMemory<V> {
+	static open<
+		V extends string | ArrayBuffer | ReadableStream = string | ArrayBuffer | ReadableStream,
+		M extends Record<string, unknown> = Record<string, unknown>
+	>(namespace?: string): InMemory<V, M> {
 		return namespace
-			? (this.opened[namespace] as InMemory<V>) ?? (this.opened[namespace] = this.open())
-			: new InMemory<V>()
+			? (this.opened[namespace] as InMemory<V, M>) ?? (this.opened[namespace] = this.open())
+			: new InMemory<V, M>()
 	}
 	static exists(namespace?: string): boolean {
 		return !!(namespace && this.opened[namespace])

@@ -5,11 +5,14 @@ import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
 
 export class FromPlatform<
-	V extends string | ArrayBuffer | ReadableStream = string | ArrayBuffer | ReadableStream,
+	V extends string | ArrayBuffer | ReadableStream = string,
 	M extends Record<string, unknown> = Record<string, unknown>
 > implements KeyValueStore<V, M>
 {
-	constructor(private readonly backend: platform.KVNamespace) {}
+	constructor(
+		private readonly backend: platform.KVNamespace,
+		private readonly type: "text" | "arrayBuffer" | "stream"
+	) {}
 	async set(key: string, value: V, options: { expires?: isoly.DateTime; meta?: M }): Promise<void> {
 		await this.backend.put(
 			key,
@@ -26,7 +29,7 @@ export class FromPlatform<
 		)
 	}
 	async get(key: string): Promise<{ value: V; meta: M } | undefined> {
-		const data = await this.backend.getWithMetadata(key)
+		const data = await this.backend.getWithMetadata(key, { type: this.type as any })
 		return data.value != null
 			? {
 					value: data.value as V,
@@ -38,21 +41,25 @@ export class FromPlatform<
 		data: ListItem<V, M>[]
 		cursor?: string
 	}> {
-		if (typeof options == "string")
-			options = { prefix: options }
-		const result = await this.backend.list({ prefix: options?.prefix, limit: options?.limit, cursor: options?.cursor })
+		const o = ListOptions.get(options)
+		const result = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
 		return {
-			data: result.keys.map(
-				item =>
-					Object.defineProperty(
-						{
-							key: item.name,
-							expires: item.expiration ? isoly.DateTime.create(item.expiration) : undefined,
-							meta: item.metadata as M,
-						},
-						"value",
-						{ get: () => this.get(item.name) }
-					) as ListItem<V, M>
+			data: await Promise.all(
+				result.keys
+					.map(async item => ({
+						key: item.name,
+						expires: item.expiration ? isoly.DateTime.create(item.expiration) : undefined,
+						meta: item.metadata as M,
+					}))
+					.map(
+						o.values
+							? i =>
+									i.then(async item => ({
+										...item,
+										value: await this.backend.get(item.key, { type: this.type as any }),
+									}))
+							: i => i
+					)
 			),
 			cursor: result.list_complete ? result.cursor : undefined,
 		}

@@ -26,22 +26,31 @@ export namespace KeyValueStore {
 			list: async (options?: string | ListOptions): Promise<{ data: ListItem<V, M>[]; cursor?: string }> => {
 				const result = await backend.list(options)
 				return {
+					...result,
 					data: await Promise.all(
-						result.data.map(
-							async item =>
-								Object.defineProperty(item, "value", {
-									get: async () => await from((await item.value) as B),
-								}) as ListItem<V, M>
-						)
+						result.data.map(async item => ({ ...item, value: item.value && (await from(item.value)) }))
 					),
 				}
 			},
 		}
 	}
-	export function open<V extends string | ArrayBuffer | ReadableStream = string | ArrayBuffer | ReadableStream>(
-		namespace?: string | platform.KVNamespace
-	): Interface<V> {
-		return typeof namespace != "object" ? InMemory.open<V>(namespace) : new FromPlatform<V>(namespace)
+	export function open<V extends string = string, M extends Record<string, unknown> = Record<string, unknown>>(
+		namespace?: string | platform.KVNamespace,
+		type?: "text"
+	): Interface<V, M>
+	export function open<
+		V extends ArrayBuffer = ArrayBuffer,
+		M extends Record<string, unknown> = Record<string, unknown>
+	>(namespace: string | platform.KVNamespace | undefined, type: "arrayBuffer"): Interface<V, M>
+	export function open<
+		V extends ReadableStream = ReadableStream,
+		M extends Record<string, unknown> = Record<string, unknown>
+	>(namespace: string | platform.KVNamespace | undefined, type: "stream"): Interface<V, M>
+	export function open<
+		V extends string | ArrayBuffer | ReadableStream = string,
+		M extends Record<string, unknown> = Record<string, unknown>
+	>(namespace?: string | platform.KVNamespace, type: "text" | "arrayBuffer" | "stream" = "text"): Interface<V, M> {
+		return typeof namespace != "object" ? InMemory.open<V, M>(namespace) : new FromPlatform<V, M>(namespace, type)
 	}
 	export function exists(namespace?: string | platform.KVNamespace): boolean {
 		return typeof namespace != "object" && InMemory.exists(namespace)
