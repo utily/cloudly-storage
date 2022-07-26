@@ -1,12 +1,13 @@
 import * as gracely from "gracely"
 import * as http from "cloudly-http"
+import * as platform from "../platform"
 
 export class Client {
 	onError?: (request: http.Request, response: http.Response) => Promise<boolean>
 	get id(): string {
 		return this.stub.id.toString()
 	}
-	private constructor(private readonly stub: DurableObjectStub) {}
+	private constructor(private readonly stub: platform.DurableObjectStub) {}
 
 	private async fetch<R>(
 		path: string,
@@ -42,10 +43,10 @@ export class Client {
 		return await this.fetch<R>(path, "PUT", request, header)
 	}
 
-	static open(namespace: DurableObjectNamespace, name: string): Client {
+	static open(namespace: platform.DurableObjectNamespace, name: string): Client {
 		return new Client(namespace.get(namespace.idFromName(name)))
 	}
-	static load(namespace: DurableObjectNamespace, id: string): Client {
+	static load(namespace: platform.DurableObjectNamespace, id: string): Client {
 		return new Client(namespace.get(namespace.idFromString(id)))
 	}
 }
