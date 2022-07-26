@@ -1,16 +1,19 @@
 import * as isoly from "isoly"
 import * as platform from "../platform"
 import { KeyValueStore } from "./KeyValueStore"
+import { ListItem } from "./ListItem"
+import { ListOptions } from "./ListOptions"
 
-export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = string | ArrayBuffer | ReadableStream>
-	implements KeyValueStore<V>
+export class FromPlatform<
+	V extends string | ArrayBuffer | ReadableStream = string,
+	M extends Record<string, unknown> = Record<string, unknown>
+> implements KeyValueStore<V, M>
 {
-	constructor(private readonly backend: platform.KeyValueStore) {}
-	async set(
-		key: string,
-		value: V,
-		options: { expires?: isoly.DateTime; meta?: Record<string, unknown> }
-	): Promise<void> {
+	constructor(
+		private readonly backend: platform.KVNamespace,
+		private readonly type: "text" | "arrayBuffer" | "stream"
+	) {}
+	async set(key: string, value: V, options: { expires?: isoly.DateTime; meta?: M }): Promise<void> {
 		await this.backend.put(
 			key,
 			value,
@@ -25,38 +28,39 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 			)
 		)
 	}
-	async get(key: string): Promise<{ value: V; expires?: isoly.DateTime; meta: Record<string, unknown> } | undefined> {
-		const data = await this.backend.getWithMetadata(key)
+	async get(key: string): Promise<{ value: V; meta: M } | undefined> {
+		const data = await this.backend.getWithMetadata(key, { type: this.type as any })
 		return data.value != null
 			? {
 					value: data.value as V,
-					expires: data.expiration != null ? isoly.DateTime.create(data.expiration) : undefined,
-					meta: data.metadata ?? {},
+					meta: (data.metadata ?? {}) as M,
 			  }
 			: undefined
 	}
-	async list(prefix: string): Promise<{
-		data: {
-			key: string
-			value: V
-			expires?: isoly.DateTime
-			meta?: Record<string, unknown>
-		}[]
+	async list(options?: string | ListOptions): Promise<{
+		data: ListItem<V, M>[]
 		cursor?: string
 	}> {
-		const result = await this.backend.list({ prefix })
+		const o = ListOptions.get(options)
+		const result = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
 		return {
-			data: result.keys.map<{
-				key: string
-				value: V
-				expires?: isoly.DateTime
-				meta?: Record<string, unknown>
-			}>(item => ({
-				key: item.name,
-				value: item.value as V,
-				expires: item.expiration ? isoly.DateTime.create(item.expiration) : undefined,
-				meta: item.metadata,
-			})),
+			data: await Promise.all(
+				result.keys
+					.map(async item => ({
+						key: item.name,
+						expires: item.expiration ? isoly.DateTime.create(item.expiration) : undefined,
+						meta: item.metadata as M,
+					}))
+					.map(
+						o.values
+							? i =>
+									i.then(async item => ({
+										...item,
+										value: await this.backend.get(item.key, { type: this.type as any }),
+									}))
+							: i => i
+					)
+			),
 			cursor: result.list_complete ? result.cursor : undefined,
 		}
 	}
