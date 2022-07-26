@@ -15,18 +15,13 @@ export class Client {
 		body?: any,
 		header?: http.Request.Header
 	): Promise<R | gracely.Error> {
-		const request = http.Request.create({ url: `https://base${path}`, method, header, body })
-		const response = http.Response.from(
-			await this.stub.fetch(`https://base${path}`, {
-				method: method,
-				headers: header
-					? { ...http.Request.Header.to(header), "Content-Type": "application/json" }
-					: { "Content-Type": "application/json" },
-				body: JSON.stringify(body),
-			})
-		)
-
-		http.Request.to(http.Request.create({ url: `https://base${path}`, method, header, body }))
+		const request = http.Request.create({
+			url: `https://origin${path}`,
+			method: method,
+			header: header ?? { contentType: "application/json" },
+			body,
+		})
+		const response = http.Response.from(await this.stub.fetch(request.url.toString(), await http.Request.to(request)))
 		return response.status >= 300 && this.onError && (await this.onError(request, response))
 			? await this.fetch<R>(path, method, body, header)
 			: ((await response.body) as R | gracely.Error)
