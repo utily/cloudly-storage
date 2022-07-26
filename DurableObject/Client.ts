@@ -7,7 +7,7 @@ export class Client {
 	get id(): string {
 		return this.stub.id.toString()
 	}
-	private constructor(private readonly stub: platform.DurableObjectStub) {}
+	constructor(private readonly stub: platform.DurableObjectStub) {}
 
 	private async fetch<R>(
 		path: string,
@@ -46,12 +46,5 @@ export class Client {
 	}
 	async put<R>(path: string, request: any, header?: http.Request.Header): Promise<R | gracely.Error> {
 		return await this.fetch<R>(path, "PUT", request, header)
-	}
-
-	static open(namespace: platform.DurableObjectNamespace, name: string): Client {
-		return new Client(namespace.get(namespace.idFromName(name)))
-	}
-	static load(namespace: platform.DurableObjectNamespace, id: string): Client {
-		return new Client(namespace.get(namespace.idFromString(id)))
 	}
 }
