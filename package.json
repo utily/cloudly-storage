@@ -69,7 +69,7 @@
 	"dependencies": {
 		"cloudly-http": "^0.0.50",
 		"cryptly": "^2.1.0",
-		"gracely": "^2.0.2",
-		"isoly": "^0.0.47"
+		"gracely": "^2.0.3",
+		"isoly": "^2.0.4"
 	}
 }
