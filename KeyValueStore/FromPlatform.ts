@@ -1,16 +1,16 @@
 import * as isoly from "isoly"
 import * as platform from "../platform"
 import { KeyValueStore } from "./KeyValueStore"
+import { ListItem } from "./ListItem"
+import { ListOptions } from "./ListOptions"
 
-export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = string | ArrayBuffer | ReadableStream>
-	implements KeyValueStore<V>
+export class FromPlatform<
+	V extends string | ArrayBuffer | ReadableStream = string | ArrayBuffer | ReadableStream,
+	M extends Record<string, unknown> = Record<string, unknown>
+> implements KeyValueStore<V, M>
 {
-	constructor(private readonly backend: platform.KeyValueStore) {}
-	async set(
-		key: string,
-		value: V,
-		options: { expires?: isoly.DateTime; meta?: Record<string, unknown> }
-	): Promise<void> {
+	constructor(private readonly backend: platform.KVNamespace) {}
+	async set(key: string, value: V, options: { expires?: isoly.DateTime; meta?: M }): Promise<void> {
 		await this.backend.put(
 			key,
 			value,
@@ -25,38 +25,35 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 			)
 		)
 	}
-	async get(key: string): Promise<{ value: V; expires?: isoly.DateTime; meta: Record<string, unknown> } | undefined> {
+	async get(key: string): Promise<{ value: V; meta: M } | undefined> {
 		const data = await this.backend.getWithMetadata(key)
 		return data.value != null
 			? {
 					value: data.value as V,
-					expires: data.expiration != null ? isoly.DateTime.create(data.expiration) : undefined,
-					meta: data.metadata ?? {},
+					meta: (data.metadata ?? {}) as M,
 			  }
 			: undefined
 	}
-	async list(prefix: string): Promise<{
-		data: {
-			key: string
-			value: V
-			expires?: isoly.DateTime
-			meta?: Record<string, unknown>
-		}[]
+	async list(options?: string | ListOptions): Promise<{
+		data: ListItem<V, M>[]
 		cursor?: string
 	}> {
-		const result = await this.backend.list({ prefix })
+		if (typeof options == "string")
+			options = { prefix: options }
+		const result = await this.backend.list({ prefix: options?.prefix, limit: options?.limit, cursor: options?.cursor })
 		return {
-			data: result.keys.map<{
-				key: string
-				value: V
-				expires?: isoly.DateTime
-				meta?: Record<string, unknown>
-			}>(item => ({
-				key: item.name,
-				value: item.value as V,
-				expires: item.expiration ? isoly.DateTime.create(item.expiration) : undefined,
-				meta: item.metadata,
-			})),
+			data: result.keys.map(
+				item =>
+					Object.defineProperty(
+						{
+							key: item.name,
+							expires: item.expiration ? isoly.DateTime.create(item.expiration) : undefined,
+							meta: item.metadata as M,
+						},
+						"value",
+						{ get: () => this.get(item.name) }
+					) as ListItem<V, M>
+			),
 			cursor: result.list_complete ? result.cursor : undefined,
 		}
 	}

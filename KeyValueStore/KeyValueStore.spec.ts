@@ -9,6 +9,7 @@ describe("common.KeyValueStore", () => {
 		await store.set("alpha", "1")
 		expect(await store.get("alpha")).toEqual({ value: "1" })
 		expect(await store.list()).toEqual({ data: [{ key: "alpha", value: "1" }] })
+		console.log(await store.list())
 	})
 	it("expires", async () => {
 		const now = isoly.DateTime.now()
