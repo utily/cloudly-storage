@@ -46,7 +46,7 @@
 		"testMatch": null
 	},
 	"scripts": {
-		"lint": "eslint '**/*.{ts,tsx}'",
+		"lint": "eslint --max-warnings=0 '**/*.{ts,tsx}'",
 		"fix": "eslint '**/*.{ts,tsx}' --fix",
 		"build": "tsc -p .",
 		"test": "jest --maxWorkers=2",
