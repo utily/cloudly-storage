@@ -1,5 +1,5 @@
 import * as storage from "../index"
-
+import * as platform from "../platform"
 interface Item {
 	value: number
 }
@@ -11,10 +11,10 @@ describe("Database", () => {
 		}
 		const database = storage.Database.create<{ items: Item }>(
 			configuration,
-			storage.DurableObject.Namespace.open(),
-			storage.KeyValueStore.Json.create()
+			{} as platform.DurableObjectNamespace,
+			{} as platform.KVNamespace
 		)
-		const db = database.partition("axb001")
-		expect(await db.items.put({ id: "abcd", value: 42 })).toEqual({ id: "abcd", value: 42 })
+		const db = database?.partition("axb001")
+		expect(await db?.items.store({ id: "abcd", value: 42 })).toEqual({ id: "abcd", value: 42 })
 	})
 })

@@ -1,37 +1,54 @@
+import * as DurableObject from "../DurableObject"
+import { KeyValueStore } from "../KeyValueStore"
+import * as platform from "../platform"
 import { Buffer } from "./Buffer"
 import { Collection as DBCollection } from "./Collection"
 import { Configuration as DBConfiguration } from "./Configuration"
 import { Document as DBDocument } from "./Document"
 import { Identifier as DBIdentifier } from "./Identifier"
-import { Storage } from "./Storage"
+import { Store } from "./Store"
 
 export type Database<T extends Record<string, any>> = DatabaseImplementation<T> & { [C in keyof T]: DBCollection<T[C]> }
 
 class DatabaseImplementation<T extends Record<string, any>> {
 	constructor(
-		private readonly configuration: DBConfiguration,
+		private readonly configuration: Database.Configuration,
 		private readonly buffer: Buffer,
-		private readonly storage: Storage
+		private readonly store: Store
 	) {}
 	partition<S extends T>(prefix: string): Database<S> {
-		return Database.create(this.configuration, this.buffer.partition(prefix), this.storage.partition(prefix))
+		return DatabaseImplementation.create(
+			this.configuration,
+			this.buffer.partition(prefix),
+			this.store.partition(prefix)
+		)
+	}
+	static create<T extends Record<string, any>>(
+		configuration: Database.Configuration,
+		buffer: Buffer,
+		store: Store
+	): Database<T> {
+		const result = new DatabaseImplementation(configuration, buffer, store)
+		const collections: Record<string, Database.Collection<any> | undefined> = {}
+		Object.entries(configuration).forEach(([name, configuration]) =>
+			Object.defineProperty(result, name, {
+				get: () =>
+					collections[name] ?? (collections[name] = new Database.Collection(name, buffer, store, configuration)),
+			})
+		)
+		return result as Database<T>
 	}
 }
 
 export namespace Database {
 	export function create<T extends Record<string, any>>(
 		configuration: Configuration,
-		buffer: Buffer,
-		storage: Storage
-	): Database<T> {
-		const result = new DatabaseImplementation(configuration, buffer, storage)
-		const collections: Record<string, Collection<any> | undefined> = {}
-		Object.entries(configuration).forEach(([name, configuration]) =>
-			Object.defineProperty(result, name, {
-				get: () => collections[name] ?? (collections[name] = new Collection(name, buffer, storage, configuration)),
-			})
-		)
-		return result as Database<T>
+		buffer: platform.DurableObjectNamespace | undefined,
+		store: platform.KVNamespace | undefined
+	): Database<T> | undefined {
+		const b = Buffer.open(DurableObject.Namespace.open(buffer))
+		const s = Store.open(KeyValueStore.Json.create<Document & any>(store))
+		return b && s && DatabaseImplementation.create<T>(configuration, b, s)
 	}
 	export type Collection<T> = DBCollection<T>
 	export const Collection = DBCollection

@@ -1,0 +1,21 @@
+compatibility_date = "2022-07-27"
+type = "javascript"
+name = "cloudly-storage-test-worker"
+account_id = "abcdefg01234567890"
+zone_id = "abcdefg01234567890"
+workers_dev = true
+routes = ["https://example.com/item*"]
+vars = { }
+
+[build]
+command = "npm install && npm run build"
+[build.upload]
+format = "modules"
+main = "./index.mjs"
+
+[env.development]
+	workers_dev = true
+	account_id = "abcdefg01234567890"
+	vars = {  }
+[dev]
+	port = 8999

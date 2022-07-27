@@ -3,7 +3,7 @@ import { Buffer } from "../Buffer"
 import { Configuration } from "../Configuration"
 import { Document } from "../Document"
 import { Identifier } from "../Identifier"
-import { Storage } from "../Storage"
+import { Store } from "../Store"
 
 type Selection =
 	| {
@@ -21,7 +21,7 @@ export class Collection<T> {
 	constructor(
 		readonly name: string,
 		readonly buffer: Buffer,
-		readonly storage: Storage,
+		readonly storage: Store,
 		readonly configuration: Configuration.Collection
 	) {}
 	async load(id: Identifier): Promise<(T & Document) | undefined>

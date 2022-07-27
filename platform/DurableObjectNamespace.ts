@@ -1,11 +1,12 @@
 import { DurableObjectId } from "./DurableObjectId"
+import { DurableObjectNamespaceNewUniqueIdOptions } from "./DurableObjectNamespaceNewUniqueIdOptions"
 import { DurableObjectStub } from "./DurableObjectStub"
 
 export interface DurableObjectNamespace {
-	newUniqueId: () => DurableObjectId
-	idFromName: (name: string) => DurableObjectId
-	idFromString: (hexId: string) => DurableObjectId
-	get: (id: DurableObjectId) => DurableObjectStub
+	newUniqueId(options?: DurableObjectNamespaceNewUniqueIdOptions): DurableObjectId
+	idFromName(name: string): DurableObjectId
+	idFromString(id: string): DurableObjectId
+	get(id: DurableObjectId): DurableObjectStub
 }
 
 export namespace DurableObjectNamespace {

@@ -1,5 +1,6 @@
 export { DurableObjectId } from "./DurableObjectId"
 export { DurableObjectNamespace } from "./DurableObjectNamespace"
+export { DurableObjectNamespaceNewUniqueIdOptions } from "./DurableObjectNamespaceNewUniqueIdOptions"
 export { DurableObjectStub } from "./DurableObjectStub"
 export { KVNamespaceGetOptions } from "./KVNamespaceGetOptions"
 export { KVNamespaceGetWithMetadataResult } from "./KVNamespaceGetWithMetadataResult"

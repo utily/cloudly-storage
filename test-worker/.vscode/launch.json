@@ -5,7 +5,7 @@
 			"type": "node",
 			"request": "launch",
 			"runtimeExecutable": "npm",
-			"runtimeArgs": ["--prefix", "./test-worker", "run", "start"], 
+			"runtimeArgs": ["run", "start:local"], 
 			"skipFiles": ["<node_internals>/**"]
 		}
 	]
