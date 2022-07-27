@@ -42,6 +42,34 @@ export namespace KeyValueStore {
 			},
 		}
 	}
+	export function partition<B = unknown, V extends B = B, M extends Record<string, unknown> = Record<string, unknown>>(
+		backend: Interface<B, M>,
+		prefix: string
+	): Interface<V, M> {
+		const prefixLength = prefix.length
+		return {
+			set: async (key: string, value: V, options: { expires?: isoly.DateTime; meta?: M }): Promise<void> => {
+				await backend.set(prefix + key, value, options)
+			},
+			get: async (key: string): Promise<{ value: V; expires?: isoly.DateTime; meta?: M } | undefined> => {
+				const result = await backend.get(prefix + key)
+				return result as { value: V; expires?: isoly.DateTime; meta?: M } | undefined
+			},
+			list: async (options?: string | ListOptions): Promise<{ data: ListItem<V, M>[]; cursor?: string }> => {
+				const result = await backend.list(
+					typeof options == "object"
+						? { ...options, prefix: prefix + (options.prefix ?? "") }
+						: prefix + (options ?? "")
+				)
+				return {
+					...result,
+					data: await Promise.all(
+						result.data.map(async item => ({ ...item, key: item.key.slice(prefixLength) } as ListItem<V, M>))
+					),
+				}
+			},
+		}
+	}
 	export function open<V extends string = string, M extends Record<string, unknown> = Record<string, unknown>>(
 		namespace?: string | platform.KVNamespace,
 		type?: "text"
