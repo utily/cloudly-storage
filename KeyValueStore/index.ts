@@ -24,21 +24,21 @@ export namespace KeyValueStore {
 		from: (value: B) => Promise<V>
 	): Interface<V, M> {
 		return {
-			set: async (key: string, value: V, options: { expires?: isoly.DateTime; meta?: M }): Promise<void> => {
-				await backend.set(key, await to(value), options)
+			set: async (key: string, value?: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void> => {
+				await (value == undefined ? backend.set(key) : backend.set(key, await to(value), options))
 			},
 			get: async (key: string): Promise<{ value: V; expires?: isoly.DateTime; meta?: M } | undefined> => {
 				const result = await backend.get(key)
 				return result && { ...result, value: await from(result.value) }
 			},
-			list: async (options?: string | ListOptions): Promise<{ data: ListItem<V, M>[]; cursor?: string }> => {
-				const result = await backend.list(options)
-				return {
-					...result,
-					data: await Promise.all(
-						result.data.map(async item => ({ ...item, value: item.value && (await from(item.value)) }))
-					),
-				}
+			list: async (options?: string | ListOptions): Promise<ListItem<V, M>[] & { cursor?: string }> => {
+				const response = await backend.list(options)
+				const result: ListItem<V, M>[] & { cursor?: string } = await Promise.all(
+					response.map(async item => ({ ...item, value: item.value && (await from(item.value)) }))
+				)
+				if (response.cursor)
+					result.cursor = response.cursor
+				return result
 			},
 		}
 	}
@@ -48,25 +48,25 @@ export namespace KeyValueStore {
 	): Interface<V, M> {
 		const prefixLength = prefix.length
 		return {
-			set: async (key: string, value: V, options: { expires?: isoly.DateTime; meta?: M }): Promise<void> => {
-				await backend.set(prefix + key, value, options)
+			set: async (key: string, value?: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void> => {
+				await (value == undefined ? backend.set(prefix + key) : backend.set(prefix + key, value, options))
 			},
 			get: async (key: string): Promise<{ value: V; expires?: isoly.DateTime; meta?: M } | undefined> => {
 				const result = await backend.get(prefix + key)
 				return result as { value: V; expires?: isoly.DateTime; meta?: M } | undefined
 			},
-			list: async (options?: string | ListOptions): Promise<{ data: ListItem<V, M>[]; cursor?: string }> => {
-				const result = await backend.list(
+			list: async (options?: string | ListOptions): Promise<ListItem<V, M>[] & { cursor?: string }> => {
+				const response = await backend.list(
 					typeof options == "object"
 						? { ...options, prefix: prefix + (options.prefix ?? "") }
 						: prefix + (options ?? "")
 				)
-				return {
-					...result,
-					data: await Promise.all(
-						result.data.map(async item => ({ ...item, key: item.key.slice(prefixLength) } as ListItem<V, M>))
-					),
-				}
+				const result: ListItem<V, M>[] & { cursor?: string } = await Promise.all(
+					response.map(async item => ({ ...item, key: item.key.slice(prefixLength) } as ListItem<V, M>))
+				)
+				if (response.cursor)
+					result.cursor = response.cursor
+				return result
 			},
 		}
 	}
