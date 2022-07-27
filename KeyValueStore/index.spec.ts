@@ -1,7 +1,7 @@
 import * as isoly from "isoly"
 import * as worker from "../index"
 
-describe("common.KeyValueStore", () => {
+describe("KeyValueStore", () => {
 	it("set get list", async () => {
 		const store = worker.KeyValueStore.open(undefined, "text")
 		expect(await store.list()).toEqual({ data: [] })
@@ -35,5 +35,13 @@ describe("common.KeyValueStore", () => {
 		expect(await store.list({ values: false })).toEqual({
 			data: [{ key: "alpha" }, { key: "beta" }],
 		})
+	})
+	it("json set get list", async () => {
+		const store = worker.KeyValueStore.Json.create<{ property: number }>()
+		expect(await store.list()).toEqual({ data: [] })
+		expect(await store.get("alpha")).toEqual(undefined)
+		await store.set("alpha", { property: 42 })
+		expect(await store.get("alpha")).toEqual({ value: { property: 42 } })
+		expect(await store.list()).toEqual({ data: [{ key: "alpha", value: { property: 42 } }] })
 	})
 })
