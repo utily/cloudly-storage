@@ -10,7 +10,15 @@ import { ListOptions } from "./ListOptions"
 export type KeyValueStore<V = unknown, M extends Record<string, unknown> = Record<string, unknown>> = Interface<V, M>
 
 export namespace KeyValueStore {
-	export function create<V, B, M extends Record<string, unknown> = Record<string, unknown>>(
+	export function is(value: KeyValueStore | any): value is KeyValueStore {
+		return (
+			typeof value == "object" &&
+			typeof value.set == "function" &&
+			typeof value.get == "function" &&
+			typeof value.list == "function"
+		)
+	}
+	export function create<B, V, M extends Record<string, unknown> = Record<string, unknown>>(
 		backend: Interface<B, M>,
 		to: (value: V) => Promise<B>,
 		from: (value: B) => Promise<V>
@@ -56,17 +64,28 @@ export namespace KeyValueStore {
 		return typeof namespace != "object" && InMemory.exists(namespace)
 	}
 	export namespace Encrypted {
-		export function create(storage: KeyValueStore<string>, algorithms?: cryptly.Algorithms): KeyValueStore<string> {
+		export function create(
+			storage: KeyValueStore<string> | string | platform.KVNamespace,
+			algorithms?: cryptly.Algorithms
+		): KeyValueStore<string> {
+			if (!is(storage))
+				storage = open(storage)
 			return algorithms
 				? KeyValueStore.create(
-						storage,
-						async (value: string) => JSON.stringify(await algorithms.current.encrypt(value)),
-						async (value: string) => {
-							const encrypted = JSON.parse(value) as cryptly.Encrypted
-							return await algorithms[encrypted.key ?? "current"].decrypt(encrypted)
-						}
+						Json.create<cryptly.Encrypted>(storage),
+						async (value: string) => await algorithms.current.encrypt(value),
+						async (value: cryptly.Encrypted) => await algorithms[value.key ?? "current"].decrypt(value)
 				  )
 				: storage
+		}
+	}
+	export namespace Json {
+		export function create<T = any>(storage?: KeyValueStore<string> | string | platform.KVNamespace): KeyValueStore<T> {
+			return KeyValueStore.create(
+				is(storage) ? storage : open(storage),
+				async (value: T) => JSON.stringify(value),
+				async (value: string) => JSON.parse(value) as T
+			)
 		}
 	}
 }
