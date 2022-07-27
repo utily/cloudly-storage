@@ -24,7 +24,7 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/package-lock.json') }}
+          key: node_modules-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
       - name: "Version Bump"
         id: version-bump
         uses: "phips28/gh-action-bump-version@master"
