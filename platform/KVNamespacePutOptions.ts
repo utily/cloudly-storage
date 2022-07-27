@@ -1,5 +1,5 @@
 export interface KVNamespacePutOptions {
 	expiration?: number
-	expirationTtl?: number;
+	expirationTtl?: number
 	metadata?: any | null
 }
