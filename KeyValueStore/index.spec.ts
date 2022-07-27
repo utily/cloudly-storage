@@ -44,4 +44,20 @@ describe("KeyValueStore", () => {
 		expect(await store.get("alpha")).toEqual({ value: { property: 42 } })
 		expect(await store.list()).toEqual({ data: [{ key: "alpha", value: { property: 42 } }] })
 	})
+	it("partition set get list", async () => {
+		const backend = worker.KeyValueStore.Json.create<{ property: number }>()
+		backend.set("outside", { property: 1337 })
+		const store = worker.KeyValueStore.partition(backend, "partition-")
+		expect(await store.list()).toEqual({ data: [] })
+		expect(await store.get("alpha")).toEqual(undefined)
+		await store.set("alpha", { property: 42 })
+		expect(await store.get("alpha")).toEqual({ value: { property: 42 } })
+		expect(await store.list()).toEqual({ data: [{ key: "alpha", value: { property: 42 } }] })
+		expect(await backend.list()).toEqual({
+			data: [
+				{ key: "outside", value: { property: 1337 } },
+				{ key: "partition-alpha", value: { property: 42 } },
+			],
+		})
+	})
 })
