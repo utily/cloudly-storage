@@ -1,6 +1,6 @@
 {
 	"name": "cloudly-worker",
-	"version": "0.0.6",
+	"version": "0.0.7",
 	"description": "Library to simplify usage of Cloudflare Workers.",
 	"author": "Simon Mika",
 	"license": "MIT",
