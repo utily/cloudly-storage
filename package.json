@@ -1,12 +1,12 @@
 {
-	"name": "cloudly-worker",
+	"name": "cloudly-storage",
 	"version": "0.0.12",
-	"description": "Library to simplify usage of Cloudflare Workers.",
+	"description": "Library to simplify usage of Cloudflare Workers Storage.",
 	"author": "Simon Mika",
 	"license": "MIT",
-	"repository": "https://github.com/utily/cloudly-worker",
+	"repository": "https://github.com/utily/cloudly-storage",
 	"bugs": {
-		"url": "https://github.com/utily/cloudly-worker/issues"
+		"url": "https://github.com/utily/cloudly-storage/issues"
 	},
 	"homepage": "https://github.com/utily",
 	"private": false,
