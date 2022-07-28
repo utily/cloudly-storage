@@ -18,4 +18,4 @@ export async function change(request: http.Request, context: Context): Promise<h
 		result = { ...item, id }
 	return result
 }
-router.add("PATCH", "db/item/:id", change)
+router.add("PATCH", "/db/item/:id", change)

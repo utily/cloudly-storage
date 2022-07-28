@@ -7,6 +7,7 @@ import { router } from "../../router"
 export async function fetch(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: model.Item | gracely.Error
 	const database = context.database
+	console.log("Hello, me getting here")
 	const id = request.parameter.id
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
@@ -22,4 +23,4 @@ export async function fetch(request: http.Request, context: Context): Promise<ht
 	}
 	return result
 }
-router.add("GET", "kv/item/:id", fetch)
+router.add("GET", "/kv/item/:id", fetch)

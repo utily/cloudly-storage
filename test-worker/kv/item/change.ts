@@ -6,6 +6,7 @@ import { router } from "../../router"
 
 export async function change(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: model.Item | gracely.Error
+	console.log("Hello, dsadsadsadsadsad worker here")
 	const id = request.parameter.id
 	const item = await request.body
 	if (!request.header.authorization)
@@ -18,4 +19,4 @@ export async function change(request: http.Request, context: Context): Promise<h
 		result = { ...item, id }
 	return result
 }
-router.add("PATCH", "kv/item/:id", change)
+router.add("PATCH", "/kv/item/:id", change)

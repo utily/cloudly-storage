@@ -20,4 +20,4 @@ export async function create(request: http.Request, context: Context): Promise<h
 	}
 	return result
 }
-router.add("POST", "do/item", create)
+router.add("POST", "/do/item", create)

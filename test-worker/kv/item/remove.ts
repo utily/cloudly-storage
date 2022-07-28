@@ -6,6 +6,7 @@ import { router } from "../../router"
 
 export async function remove(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: model.Item | gracely.Error
+	console.log("Hello, dsadsadsadsadsad worker here")
 	const id = request.parameter.id
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
@@ -15,4 +16,4 @@ export async function remove(request: http.Request, context: Context): Promise<h
 		result = { id, number: id.charCodeAt(0) - "a".charCodeAt(65) }
 	return result
 }
-router.add("DELETE", "kv/item/:id", remove)
+router.add("DELETE", "/kv/item/:id", remove)

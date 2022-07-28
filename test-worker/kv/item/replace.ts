@@ -6,6 +6,7 @@ import { router } from "../../router"
 
 export async function replace(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: model.Item | gracely.Error
+	console.log("Hello, dsadsadsadsadsad worker here")
 	const id = request.parameter.id
 	const item = await request.body
 	if (!request.header.authorization)
@@ -18,4 +19,4 @@ export async function replace(request: http.Request, context: Context): Promise<
 		result = item
 	return result
 }
-router.add("PUT", "kv/item/:id", replace)
+router.add("PUT", "/kv/item/:id", replace)

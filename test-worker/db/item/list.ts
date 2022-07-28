@@ -13,4 +13,4 @@ export async function list(request: http.Request, context: Context): Promise<htt
 		result = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"].map((id, number) => ({ id, number }))
 	return result
 }
-router.add("GET", "db/item", list)
+router.add("GET", "/db/item", list)
