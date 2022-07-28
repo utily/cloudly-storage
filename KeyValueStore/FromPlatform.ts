@@ -68,7 +68,7 @@ export class FromPlatform<
 						: i => i
 				)
 		)
-		if (!data.list_complete)
+		if (!data.list_complete && data.cursor)
 			result.cursor = data.cursor
 		return result
 	}

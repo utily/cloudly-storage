@@ -4,4 +4,5 @@ export interface Environment
 	databaseBuffer?: DurableObjectNamespace
 	databaseStore?: KVNamespace
 	state?: DurableObjectState
+	kvStore?: KVNamespace
 }

@@ -5,6 +5,9 @@ account_id = "abcdefg01234567890"
 zone_id = "abcdefg01234567890"
 workers_dev = true
 routes = ["https://example.com/item*"]
+kv_namespaces = [
+  { binding = "kvStore", id = "<ignored>", preview_id = "<ignored>" }
+]
 vars = { }
 
 [build]
@@ -20,10 +23,6 @@ bindings = [
 format = "modules"
 main = "./_worker.js"
 
-[env.development]
-	workers_dev = true
-	account_id = "abcdefg01234567890"
-	vars = {  }
 [dev]
 	port = 8999
 
