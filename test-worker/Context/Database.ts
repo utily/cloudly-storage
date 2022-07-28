@@ -11,9 +11,7 @@ export type Database = storage.Database<CollectionTypes>
 
 export namespace Database {
 	export function create(environment: Environment): Database | gracely.Error {
-		return !environment.databaseBuffer
-			? gracely.server.misconfigured("databaseBuffer", "Missing environment variable to open database.")
-			: !environment.databaseStore
+		return !environment.databaseStore
 			? gracely.server.misconfigured("databaseStore", "Missing environment variable to open database.")
 			: storage.Database.create<CollectionTypes>(
 					{ items: { identifierLength: 4 } },

@@ -22,9 +22,9 @@ export class Context {
 	get kv(): storage.KeyValueStore<model.Item> | gracely.Error {
 		return (
 			this.#kv ??
-			(this.#kv = this.environment.databaseStore
-				? storage.KeyValueStore.Json.create(this.environment.databaseStore)
-				: gracely.server.misconfigured("databaseStore", "KeyValueNamespace missing."))
+			(this.#kv =
+				storage.KeyValueStore.Json.create(this.environment.databaseStore) ??
+				gracely.server.misconfigured("databaseStore", "KeyValueNamespace missing."))
 		)
 	}
 	#database?: Database | gracely.Error
