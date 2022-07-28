@@ -9,9 +9,10 @@ vars = { }
 
 [build]
 command = "npm install && npm run build"
+
 [build.upload]
 format = "modules"
-main = "./index.mjs"
+main = "./_worker.js"
 
 [env.development]
 	workers_dev = true
@@ -19,3 +20,8 @@ main = "./index.mjs"
 	vars = {  }
 [dev]
 	port = 8999
+
+[env.development.durable_objects]
+bindings = [
+	{ name = "Storage", class_name = "Storage" }
+]

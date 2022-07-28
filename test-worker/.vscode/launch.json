@@ -1,12 +1,33 @@
 {
 	"configurations": [
 		{
-			"name": "Miniflare (npm)",
+			"name": "Miniflare (launch)",
 			"type": "node",
 			"request": "launch",
-			"runtimeExecutable": "npm",
-			"runtimeArgs": ["run", "start:local"], 
-			"skipFiles": ["<node_internals>/**"]
+			"runtimeExecutable": "node",
+			"runtimeArgs": [
+				"--experimental-vm-modules",
+				"--inspect",
+				"./node_modules/miniflare/dist/src/cli.js",
+				"dist/_worker.js",
+				"--wrangler-env",
+				"miniflare",
+				"--watch",
+				"-B",
+				""
+			],
+			"skipFiles": [
+				"<node_internals>/**"
+			],
+			"preLaunchTask": "TypeScript watcher"
+		},
+		{
+			"name": "Miniflare (attach)",
+			"type": "node",
+			"request": "attach",
+			"skipFiles": [
+				"<node_internals>/**"
+			],
 		}
 	]
 }

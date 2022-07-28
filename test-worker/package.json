@@ -10,7 +10,7 @@
     "url": "https://github.com/utily/cloudly-storage/issues"
   },
   "homepage": "https://github.com/utily",
-  "main": "dist/index.mjs",
+  "main": "dist/_worker.js",
   "typings": "dist/index.d.ts",
   "type": "module",
   "git": {
@@ -49,10 +49,14 @@
     "lint": "eslint --max-warnings=0 '**/*.{ts,tsx}'",
     "fix": "eslint '**/*.{ts,tsx}' --fix",
     "build": "rollup -c",
+    "build:local": "rollup --config rollup.dev.config.js",
     "dev": "NODE_ENV=development npm run build",
     "test": "jest",
     "transpile": "tsc --project tsconfig.test.json",
-    "start": "rollup -c --watch & miniflare dist/index.mjs --watch --live-reload -B \"\" && kill $!",
+    "deploy": "wrangler login && wrangler publish; wrangler logout",
+    "login": "wrangler login",
+    "start": "node --experimental-vm-modules --inspect ./node_modules/miniflare/dist/src/cli.js dist/_worker.js --wrangler-env miniflare --watch --live-reload",
+    "start:wrangler": "wrangler dev --env wrangler",
     "clean": "rimraf dist node_modules coverage"
   },
   "devDependencies": {
