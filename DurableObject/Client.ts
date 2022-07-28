@@ -33,7 +33,6 @@ export class Client {
 		return await this.fetch<R>(path, "POST", request, header)
 	}
 	async delete<R>(path: string, header?: http.Request.Header): Promise<R | gracely.Error> {
-		this.stub.fetch
 		return await this.fetch<R>(path, "DELETE", undefined, header)
 	}
 	async patch<R>(path: string, request: any, header?: http.Request.Header): Promise<R | gracely.Error> {

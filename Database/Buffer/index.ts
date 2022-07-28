@@ -1,4 +1,4 @@
-import * as DurableObject from "../DurableObject"
+import * as DurableObject from "../../DurableObject"
 // import { Configuration } from "../Configuration"
 
 export class Buffer {
@@ -16,6 +16,9 @@ export class Buffer {
 	// list(name: string): Buffer {
 	// 	this.backend.open(name)
 	// }
+
+	// load
+	// store
 
 	partition(prefix: string): Buffer {
 		return this

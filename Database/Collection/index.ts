@@ -10,7 +10,7 @@ type Selection =
 			changed: isoly.TimeRange
 	  }
 	| {
-			continue: string
+			cursor: string
 	  }
 	| {
 			created: isoly.TimeRange
@@ -20,8 +20,8 @@ type Selection =
 export class Collection<T> {
 	constructor(
 		readonly name: string,
-		readonly buffer: Buffer,
-		readonly storage: Store,
+		private readonly buffer: Buffer,
+		private readonly storage: Store,
 		readonly configuration: Configuration.Collection
 	) {}
 	async load(id: Identifier): Promise<(T & Document) | undefined>
@@ -35,7 +35,7 @@ export class Collection<T> {
 				result = undefined // not found
 				break
 			case "object":
-				result = "changed" in selection ? [] : "continue" in selection ? [] : "created" in selection ? [] : []
+				result = "changed" in selection ? [] : "cursor" in selection ? [] : "created" in selection ? [] : []
 				break
 			case "undefined":
 				result = []

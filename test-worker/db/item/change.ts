@@ -1,10 +1,10 @@
 import * as gracely from "gracely"
 import * as http from "cloudly-http"
-import { Context } from "../Context"
-import * as model from "../model"
-import { router } from "../router"
+import { Context } from "../../Context"
+import * as model from "../../model"
+import { router } from "../../router"
 
-export async function replace(request: http.Request, context: Context): Promise<http.Response.Like | any> {
+export async function change(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: model.Item | gracely.Error
 	const id = request.parameter.id
 	const item = await request.body
@@ -15,7 +15,7 @@ export async function replace(request: http.Request, context: Context): Promise<
 	else if (!model.Item.is(item))
 		result = gracely.client.invalidContent("Item", "Body is not a valid item.")
 	else
-		result = item
+		result = { ...item, id }
 	return result
 }
-router.add("PUT", "item/:id", replace)
+router.add("PATCH", "db/item/:id", change)

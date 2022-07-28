@@ -1,10 +1,30 @@
 import * as gracely from "gracely"
 import * as http from "cloudly-http"
+import * as storage from "cloudly-storage"
 import { Environment } from "../Environment"
+import * as model from "../model"
 import { router } from "../router"
 import { Database } from "./Database"
 
 export class Context {
+	#do?: storage.DurableObject.Namespace | gracely.Error
+	get do(): storage.DurableObject.Namespace | gracely.Error {
+		return (
+			this.#do ??
+			(this.#do =
+				storage.DurableObject.Namespace.open(this.environment.databaseBuffer) ??
+				gracely.server.misconfigured("databaseBuffer", "DurableObjectNamespace missing."))
+		)
+	}
+	#kv?: storage.KeyValueStore<model.Item> | gracely.Error
+	get kv(): storage.KeyValueStore<model.Item> | gracely.Error {
+		return (
+			this.#kv ??
+			(this.#kv = this.environment.databaseStore
+				? storage.KeyValueStore.Json.create(this.environment.databaseStore)
+				: gracely.server.misconfigured("databaseStore", "KeyValueNamespace missing."))
+		)
+	}
 	#database?: Database | gracely.Error
 	get database(): Database | gracely.Error {
 		return this.#database ?? (this.#database = Database.create(this.environment))

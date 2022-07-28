@@ -16,5 +16,6 @@ describe("Database", () => {
 		)
 		const db = database?.partition("axb001")
 		expect(await db?.items.store({ id: "abcd", value: 42 })).toEqual({ id: "abcd", value: 42 })
+		expect(await db?.items.load("abcd")).toEqual({ id: "abcd", value: 42 })
 	})
 })
