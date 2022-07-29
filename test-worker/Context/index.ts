@@ -5,15 +5,17 @@ import { Environment } from "../Environment"
 import * as model from "../model"
 import { router } from "../router"
 import { Database } from "./Database"
+export { Do } from "./Do"
 
 export class Context {
 	#do?: storage.DurableObject.Namespace | gracely.Error
 	get do(): storage.DurableObject.Namespace | gracely.Error {
+		console.log("this.environment", Object.keys(this.environment))
 		return (
 			this.#do ??
 			(this.#do =
-				storage.DurableObject.Namespace.open(this.environment.databaseBuffer) ??
-				gracely.server.misconfigured("databaseBuffer", "DurableObjectNamespace missing."))
+				storage.DurableObject.Namespace.open(this.environment.Do) ??
+				gracely.server.misconfigured("do", "DurableObjectNamespace missing."))
 		)
 	}
 	#kv?: storage.KeyValueStore<model.Item> | gracely.Error

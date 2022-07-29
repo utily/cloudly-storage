@@ -10,6 +10,12 @@ vars = { }
 [build]
 command = "npm install && npm run build"
 
+[durable_objects]
+bindings = [
+	{ name = "Do", class_name = "Do" }
+]
+
+
 [build.upload]
 format = "modules"
 main = "./_worker.js"
@@ -21,7 +27,3 @@ main = "./_worker.js"
 [dev]
 	port = 8999
 
-[env.development.durable_objects]
-bindings = [
-	{ name = "Storage", class_name = "Storage" }
-]

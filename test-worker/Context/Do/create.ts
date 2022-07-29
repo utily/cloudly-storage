@@ -13,7 +13,7 @@ export async function create(request: http.Request, context: Context): Promise<h
 		result = state
 	else {
 		try {
-			await state.storage.put(item)
+			await state.storage.put(item.id, item)
 			result = gracely.success.created(item)
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
