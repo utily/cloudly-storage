@@ -1,13 +1,16 @@
 compatibility_date = "2022-07-27"
 type = "javascript"
 name = "cloudly-storage-test-worker"
-account_id = "abcdefg01234567890"
-zone_id = "abcdefg01234567890"
+account_id = "f86ca9874dda1e291a86b8c1c48186e2"
+zone_id = "55e42f9e4cf20c081726c799a7a41f22"
 workers_dev = true
 routes = ["https://example.com/item*"]
+
 kv_namespaces = [
-  { binding = "kvStore", id = "<ignored>", preview_id = "<ignored>" }
+  { binding = "kvStore", id = "f783c34180ed4dbe852fc706f10f0c9d", preview_id = "f783c34180ed4dbe852fc706f10f0c9d" },
 ]
+
+
 vars = { }
 
 [build]
@@ -24,5 +27,11 @@ format = "modules"
 main = "./_worker.js"
 
 [dev]
-	port = 8999
+port = 7212
 
+[env.development]
+workers_dev = true
+account_id = "f86ca9874dda1e291a86b8c1c48186e2"
+kv_namespaces = [
+  { binding = "kvStore", id = "f783c34180ed4dbe852fc706f10f0c9d", preview_id = "f783c34180ed4dbe852fc706f10f0c9d" }
+]

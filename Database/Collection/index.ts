@@ -1,9 +1,9 @@
 import * as isoly from "isoly"
+import { Archive } from "../Archive"
 import { Buffer } from "../Buffer"
 import { Configuration } from "../Configuration"
 import { Document } from "../Document"
 import { Identifier } from "../Identifier"
-import { Store } from "../Store"
 
 type Selection =
 	| {
@@ -21,7 +21,7 @@ export class Collection<T> {
 	constructor(
 		readonly name: string,
 		private readonly buffer: Buffer,
-		private readonly storage: Store,
+		private readonly storage: Archive<T>,
 		readonly configuration: Configuration.Collection
 	) {}
 	async load(id: Identifier): Promise<(T & Document) | undefined>
@@ -44,19 +44,19 @@ export class Collection<T> {
 		}
 		return result
 	}
-	async store(value: T & Partial<Document>): Promise<(T & Document) | undefined>
-	async store(values: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
+	async store(document: T & Partial<Document>): Promise<(T & Document) | undefined>
+	async store(documents: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
 	async store(
-		value: (T & Partial<Document>) | (T & Partial<Document>)[]
+		document: (T & Partial<Document>) | (T & Partial<Document>)[]
 	): Promise<(T & Partial<Document>) | undefined | ((T & Document) | undefined)[]> {
-		return !Array.isArray(value)
+		return !Array.isArray(document)
 			? {
-					...value,
-					id: value.id ?? Identifier.generate(),
-					created: value.created ?? isoly.DateTime.now(),
+					...document,
+					id: document.id ?? Identifier.generate(),
+					created: document.created ?? isoly.DateTime.now(),
 					changed: isoly.DateTime.now(),
 			  }
-			: Promise.all(value.map(v => this.store(v)))
+			: Promise.all(document.map(v => this.store(v)))
 	}
 	async remove(id: Identifier): Promise<boolean>
 	async remove(id: Identifier[]): Promise<boolean[]>

@@ -3,16 +3,14 @@ import { KeyValueStore } from "./KeyValueStore"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
 
-interface Item<V = unknown, M extends Record<string, unknown> = Record<string, unknown>> {
+interface Item<V = any, M = Record<string, any>> {
 	value: V
 	expires?: isoly.DateTime
 	meta?: M
 }
 
-export class InMemory<
-	V extends string | ArrayBuffer | ReadableStream = string | ArrayBuffer | ReadableStream,
-	M extends Record<string, unknown> = Record<string, unknown>
-> implements KeyValueStore<V>
+export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, M = Record<string, any>>
+	implements KeyValueStore<V>
 {
 	private readonly data: Record<string, Item<V, M> | undefined> = {}
 	// eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -49,10 +47,9 @@ export class InMemory<
 		return result
 	}
 	private static opened: Record<string, InMemory> = {}
-	static open<
-		V extends string | ArrayBuffer | ReadableStream = string | ArrayBuffer | ReadableStream,
-		M extends Record<string, unknown> = Record<string, unknown>
-	>(namespace?: string): InMemory<V, M> {
+	static open<V extends string | ArrayBuffer | ReadableStream = string, M = Record<string, any>>(
+		namespace?: string
+	): InMemory<V, M> {
 		return namespace
 			? (this.opened[namespace] as InMemory<V, M>) ?? (this.opened[namespace] = this.open())
 			: new InMemory<V, M>()

@@ -1,6 +1,6 @@
 import * as isoly from "isoly"
 
-export interface ListItem<V = unknown, M extends Record<string, unknown> = Record<string, unknown>> {
+export interface ListItem<V = any, M = Record<string, any>> {
 	key: string
 	value?: V
 	expires?: isoly.DateTime
