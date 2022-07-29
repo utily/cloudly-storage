@@ -4,10 +4,8 @@ import { KeyValueStore } from "./KeyValueStore"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
 
-export class FromPlatform<
-	V extends string | ArrayBuffer | ReadableStream = string,
-	M extends Record<string, unknown> = Record<string, unknown>
-> implements KeyValueStore<V, M>
+export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = string, M = Record<string, any>>
+	implements KeyValueStore<V, M>
 {
 	constructor(
 		private readonly backend: platform.KVNamespace,
@@ -33,12 +31,12 @@ export class FromPlatform<
 				)
 			)
 	}
-	async get(key: string): Promise<{ value: V; meta: M } | undefined> {
+	async get(key: string): Promise<{ value: V; meta?: M } | undefined> {
 		const data = await this.backend.getWithMetadata(key, { type: this.type as any })
 		return data.value != null
 			? {
 					value: data.value as V,
-					meta: (data.metadata ?? {}) as M,
+					meta: data.metadata as M,
 			  }
 			: undefined
 	}
@@ -68,7 +66,7 @@ export class FromPlatform<
 						: i => i
 				)
 		)
-		if (!data.list_complete)
+		if (!data.list_complete && data.cursor)
 			result.cursor = data.cursor
 		return result
 	}

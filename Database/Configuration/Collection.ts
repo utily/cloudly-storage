@@ -5,7 +5,7 @@ import { Identifier } from "../Identifier"
 type ShardCount = 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256
 
 export interface Collection {
-	identifierLength?: Identifier.Length
+	idLength?: Identifier.Length
 	shards?: ShardCount
 	retention?: isoly.DateSpan
 }
@@ -14,7 +14,7 @@ export namespace Collection {
 	export const standard: Required<Collection> = {
 		shards: 4,
 		retention: {},
-		identifierLength: Identifier.Length.standard,
+		idLength: Identifier.Length.standard,
 	}
 	export function get(configuration: Collection): string[]
 	export function get(configuration: Collection, id: string): string

@@ -1,12 +1,12 @@
 import * as DurableObject from "../DurableObject"
 import { KeyValueStore } from "../KeyValueStore"
 import * as platform from "../platform"
+import { Archive } from "./Archive"
 import { Buffer } from "./Buffer"
 import { Collection as DBCollection } from "./Collection"
 import { Configuration as DBConfiguration } from "./Configuration"
 import { Document as DBDocument } from "./Document"
 import { Identifier as DBIdentifier } from "./Identifier"
-import { Store } from "./Store"
 
 export type Database<T extends Record<string, any>> = DatabaseImplementation<T> & { [C in keyof T]: DBCollection<T[C]> }
 
@@ -14,7 +14,7 @@ class DatabaseImplementation<T extends Record<string, any>> {
 	constructor(
 		private readonly configuration: Database.Configuration,
 		private readonly buffer: Buffer,
-		private readonly store: Store
+		private readonly store: Archive<T>
 	) {}
 	partition<S extends T>(prefix: string): Database<S> {
 		return DatabaseImplementation.create(
@@ -26,7 +26,7 @@ class DatabaseImplementation<T extends Record<string, any>> {
 	static create<T extends Record<string, any>>(
 		configuration: Database.Configuration,
 		buffer: Buffer,
-		store: Store
+		store: Archive<T>
 	): Database<T> {
 		const result = new DatabaseImplementation(configuration, buffer, store)
 		const collections: Record<string, Database.Collection<any> | undefined> = {}
@@ -47,7 +47,7 @@ export namespace Database {
 		store: platform.KVNamespace | undefined
 	): Database<T> | undefined {
 		const b = Buffer.open(DurableObject.Namespace.open(buffer))
-		const s = Store.open(KeyValueStore.Json.create<Document & any>(store))
+		const s = Archive.open(KeyValueStore.Json.create<Document & any>(store))
 		return b && s && DatabaseImplementation.create<T>(configuration, b, s)
 	}
 	export type Collection<T> = DBCollection<T>
@@ -58,3 +58,4 @@ export namespace Database {
 	export const Identifier = DBIdentifier
 	export type Document = DBDocument
 }
+Database.create()

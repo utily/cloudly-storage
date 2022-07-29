@@ -7,7 +7,7 @@ import { KeyValueStore as Interface } from "./KeyValueStore"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
 
-export type KeyValueStore<V = unknown, M extends Record<string, unknown> = Record<string, unknown>> = Interface<V, M>
+export type KeyValueStore<V = any, M = Record<string, any>> = Interface<V, M>
 
 export namespace KeyValueStore {
 	export function is(value: KeyValueStore | any): value is KeyValueStore {
@@ -18,7 +18,7 @@ export namespace KeyValueStore {
 			typeof value.list == "function"
 		)
 	}
-	export function create<B, V, M extends Record<string, unknown> = Record<string, unknown>>(
+	export function create<B, V, M = Record<string, any>>(
 		backend: Interface<B, M>,
 		to: (value: V) => Promise<B>,
 		from: (value: B) => Promise<V>
@@ -42,10 +42,7 @@ export namespace KeyValueStore {
 			},
 		}
 	}
-	export function partition<B = unknown, V extends B = B, M extends Record<string, unknown> = Record<string, unknown>>(
-		backend: Interface<B, M>,
-		prefix: string
-	): Interface<V, M> {
+	export function partition<V, M = Record<string, any>>(backend: Interface<any>, prefix: string): Interface<V, M> {
 		const prefixLength = prefix.length
 		return {
 			set: async (key: string, value?: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void> => {
@@ -70,22 +67,22 @@ export namespace KeyValueStore {
 			},
 		}
 	}
-	export function open<V extends string = string, M extends Record<string, unknown> = Record<string, unknown>>(
+	export function open<V extends string = string, M = Record<string, any>>(
 		namespace?: string | platform.KVNamespace,
 		type?: "text"
 	): Interface<V, M>
-	export function open<
-		V extends ArrayBuffer = ArrayBuffer,
-		M extends Record<string, unknown> = Record<string, unknown>
-	>(namespace: string | platform.KVNamespace | undefined, type: "arrayBuffer"): Interface<V, M>
-	export function open<
-		V extends ReadableStream = ReadableStream,
-		M extends Record<string, unknown> = Record<string, unknown>
-	>(namespace: string | platform.KVNamespace | undefined, type: "stream"): Interface<V, M>
-	export function open<
-		V extends string | ArrayBuffer | ReadableStream = string,
-		M extends Record<string, unknown> = Record<string, unknown>
-	>(namespace?: string | platform.KVNamespace, type: "text" | "arrayBuffer" | "stream" = "text"): Interface<V, M> {
+	export function open<V extends ArrayBuffer = ArrayBuffer, M = Record<string, any>>(
+		namespace: string | platform.KVNamespace | undefined,
+		type: "arrayBuffer"
+	): Interface<V, M>
+	export function open<V extends ReadableStream = ReadableStream, M = Record<string, any>>(
+		namespace: string | platform.KVNamespace | undefined,
+		type: "stream"
+	): Interface<V, M>
+	export function open<V extends string | ArrayBuffer | ReadableStream = string, M = Record<string, any>>(
+		namespace?: string | platform.KVNamespace,
+		type: "text" | "arrayBuffer" | "stream" = "text"
+	): Interface<V, M> {
 		return typeof namespace != "object" ? InMemory.open<V, M>(namespace) : new FromPlatform<V, M>(namespace, type)
 	}
 	export function exists(namespace?: string | platform.KVNamespace): boolean {

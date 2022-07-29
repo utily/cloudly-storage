@@ -5,18 +5,27 @@ import * as model from "../../model"
 import { router } from "../../router"
 
 export async function replace(request: http.Request, context: Context): Promise<http.Response.Like | any> {
-	let result: model.Item | gracely.Error
-	console.log("Hello, dsadsadsadsadsad worker here")
-	const id = request.parameter.id
+	let result: gracely.Result
+	const kv = context.kv
+	const key = request.parameter.key
 	const item = await request.body
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
-	else if (!id || id.length != 1 || id < "a" || id > "f")
-		result = gracely.client.invalidPathArgument("item/:id", "id", "string", "A valid identifier is required.")
 	else if (!model.Item.is(item))
 		result = gracely.client.invalidContent("Item", "Body is not a valid item.")
-	else
-		result = item
+	else if (gracely.Error.is(kv))
+		result = kv
+	else if (!key)
+		result = gracely.client.invalidPathArgument(
+			"item/:key",
+			"key",
+			"string",
+			"Unable to find item with that identifier."
+		)
+	else {
+		await kv.set(key, item)
+		result = gracely.success.created(item)
+	}
 	return result
 }
-router.add("PUT", "/kv/item/:id", replace)
+router.add("PUT", "/kv/item/:key", replace)
