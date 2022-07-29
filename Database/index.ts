@@ -73,3 +73,4 @@ export namespace Database {
 	export const Identifier = DBIdentifier
 	export type Document = DBDocument
 }
+Database.create()
