@@ -20,12 +20,12 @@ export namespace KeyValueStore {
 	}
 	export function create<B, V, M = Record<string, any>>(
 		backend: Interface<B, M>,
-		to: (value: V) => Promise<B>,
+		to: (value: V | undefined) => Promise<B>,
 		from: (value: B) => Promise<V>
 	): Interface<V, M> {
 		return {
 			set: async (key: string, value?: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void> => {
-				await (value == undefined ? backend.set(key) : backend.set(key, await to(value), options))
+				await (value == undefined && !options ? backend.set(key) : backend.set(key, await to(value), options))
 			},
 			get: async (key: string): Promise<{ value: V; expires?: isoly.DateTime; meta?: M } | undefined> => {
 				const result = await backend.get(key)
@@ -46,7 +46,7 @@ export namespace KeyValueStore {
 		const prefixLength = prefix.length
 		return {
 			set: async (key: string, value?: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void> => {
-				await (value == undefined ? backend.set(prefix + key) : backend.set(prefix + key, value, options))
+				await (value == undefined && !options ? backend.set(prefix + key) : backend.set(prefix + key, value, options))
 			},
 			get: async (key: string): Promise<{ value: V; expires?: isoly.DateTime; meta?: M } | undefined> => {
 				const result = await backend.get(prefix + key)

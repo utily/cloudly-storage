@@ -1,20 +1,16 @@
 import * as cryptly from "cryptly"
-import * as isoly from "isoly"
-import { Identifier } from "../Identifier"
+import { Archive } from "./Archive"
 
 type ShardCount = 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256
 
-export interface Collection {
-	idLength?: Identifier.Length
+export interface Collection extends Archive {
 	shards?: ShardCount
-	retention?: isoly.DateSpan
 }
 
 export namespace Collection {
 	export const standard: Required<Collection> = {
+		...Archive.standard,
 		shards: 4,
-		retention: {},
-		idLength: Identifier.Length.standard,
 	}
 	export function get(configuration: Collection): string[]
 	export function get(configuration: Collection, id: string): string
