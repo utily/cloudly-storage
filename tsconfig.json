@@ -10,6 +10,6 @@
 		"types": []
 	},
 	"files": [
-		"index.ts", "./platform/DurableObjectNamespaceNewUniqueIdOptions.ts"
+		"index.ts", "./platform/DurableObjectNamespaceNewUniqueIdOptions.ts", "Database/Selection.ts"
 	]
 }

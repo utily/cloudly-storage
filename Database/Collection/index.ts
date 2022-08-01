@@ -4,18 +4,7 @@ import { Buffer } from "../Buffer"
 import { Configuration } from "../Configuration"
 import { Document } from "../Document"
 import { Identifier } from "../Identifier"
-
-type Selection =
-	| {
-			changed: isoly.TimeRange
-	  }
-	| {
-			cursor: string
-	  }
-	| {
-			created: isoly.TimeRange
-	  }
-	| undefined
+import { Selection } from "../Selection"
 
 export class Collection<T> {
 	constructor(

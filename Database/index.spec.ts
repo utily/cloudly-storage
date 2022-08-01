@@ -1,5 +1,5 @@
 import * as storage from "../index"
-import * as platform from "../platform"
+
 interface Item {
 	value: number
 }
@@ -7,15 +7,13 @@ interface Item {
 describe("Database", () => {
 	it("create", async () => {
 		const configuration: storage.Database.Configuration = {
-			items: { shards: 8 },
+			silos: { items: { type: "archive", idLength: 4, retainChanged: true } },
 		}
-		const database = storage.Database.create<{ items: Item }>(
-			configuration,
-			{} as platform.DurableObjectNamespace,
-			{} as platform.KVNamespace
-		)
+		const database = storage.Database.create<{ archive: { items: Item } }>(configuration)
 		const db = database?.partition("axb001")
-		expect(await db?.items.store({ id: "abcd", value: 42 })).toEqual({ id: "abcd", value: 42 })
-		expect(await db?.items.load("abcd")).toEqual({ id: "abcd", value: 42 })
+		const item = { id: "abcd", created: "2022-07-30T00:17:55.730Z", changed: "2022-07-30T00:22:45.450Z", value: 42 }
+		expect(await db?.items.store(item)).toEqual(item)
+		expect(await db?.items.load("abcd")).toEqual(item)
+		// expect(await db?.items.load()).toEqual([item])
 	})
 })
