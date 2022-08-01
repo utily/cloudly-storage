@@ -12,7 +12,7 @@ interface Item<V = any, M = Record<string, any>> {
 export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, M = Record<string, any>>
 	implements KeyValueStore<V>
 {
-	private readonly data: Record<string, Item<V, M> | undefined> = {}
+	private readonly data: Record<string, Item<V, string> | undefined> = {}
 	// eslint-disable-next-line @typescript-eslint/no-empty-function
 	private constructor() {}
 	async set(key: string, value?: undefined): Promise<void>
@@ -21,14 +21,14 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 		if (value == undefined)
 			delete this.data[key]
 		else
-			this.data[key] = { value, ...options }
+			this.data[key] = { value, ...options, meta: options?.meta && JSON.stringify(options.meta) }
 	}
 	async get(key: string): Promise<{ value: V; meta?: M } | undefined> {
 		let result = this.data[key]
 		if (result != undefined)
 			if (result.expires && result.expires < isoly.DateTime.now())
 				result = undefined
-		return result && (({ expires: disregard, ...item }) => item)(result)
+		return result && (({ expires: disregard, meta, ...item }) => ({ ...item, meta: meta && JSON.parse(meta) }))(result)
 	}
 	async list(options?: string | ListOptions): Promise<
 		ListItem<V, M>[] & {
@@ -40,10 +40,14 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 		const result = (
 			Object.entries(this.data).filter(
 				([key, item]) => item && (!o.prefix || key.startsWith(o.prefix)) && (!item.expires || item.expires >= now)
-			) as unknown as [string, Item<V, M>][]
-		).map<ListItem<V, M>>(
-			o.values ? ([key, item]) => ({ key, ...item }) : ([key, { value: disregard, ...item }]) => ({ key, ...item })
+			) as unknown as [string, Item<V, string>][]
 		)
+			.map<ListItem<V, M>>(([key, item]) => ({
+				key,
+				...item,
+				meta: item.meta ? (JSON.parse(item.meta) as M) : undefined,
+			}))
+			.map<ListItem<V, M>>(o.values ? item => item : ({ value: disregard, ...item }) => item)
 		return result
 	}
 	private static opened: Record<string, InMemory> = {}

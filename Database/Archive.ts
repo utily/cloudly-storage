@@ -10,7 +10,10 @@ type Key = `${string}${isoly.DateTime}/${Identifier}`
 
 export class Archive<T = any> extends Silo<T, Archive<T>> {
 	private constructor(
-		private readonly backend: { doc: KeyValueStore<T, Document>; id: KeyValueStore<"", { key: Key }> },
+		private readonly backend: {
+			doc: KeyValueStore<T & Document>
+			id: KeyValueStore<string>
+		},
 		private readonly configuration: Required<Configuration.Archive>,
 		private readonly partitions: string = ""
 	) {
@@ -20,7 +23,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		return `${this.partitions}${document.created}/${document.id}`
 	}
 	private async getKey(id: string) {
-		return (await this.backend.id.get(id))?.meta?.key
+		return (await this.backend.id.get(id))?.value
 	}
 	async allocateId(document?: Identifier | Partial<Document>): Promise<Document | undefined> {
 		if (typeof document != "object")
@@ -40,7 +43,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 						changed: document.changed,
 				  }
 		if (result && !(await this.backend.id.get(result.id)))
-			await this.backend.id.set(result.id, "", { meta: { key: this.generateKey(result) } })
+			await this.backend.id.set(result.id, this.generateKey(result))
 		else
 			result = document.id == undefined ? await this.allocateId(document) : undefined
 		return result
@@ -51,15 +54,26 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	async load(
 		selection: Identifier | Identifier[] | Selection
 	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })> {
-		let result: Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })
+		let result: (T & Document) | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })
 		if (typeof selection == "string") {
 			const key = await this.getKey(selection)
-			const response = key && (await this.backend.doc.get(key))
-			result = response && response.meta ? { ...response.meta, ...response.value } : undefined
+			result = key ? (await this.backend.doc.get(key))?.value : undefined
 		} else if (Array.isArray(selection))
 			result = await Promise.all(selection.map(id => this.load(id)))
 		else {
-			result = [] // TODO: implement loading selections
+			const response = !selection
+				? []
+				: "changed" in selection
+				? []
+				: "cursor" in selection
+				? await this.backend.doc.list({ cursor: selection.cursor })
+				: "created" in selection
+				? []
+				: []
+			const r: (Document & T)[] & { cursor?: string } = [] //response.map(item => ({ ...item.value, ...item.meta }))
+			if (response.cursor)
+				r.cursor = response.cursor
+			result = r
 		}
 		return result
 	}
@@ -76,21 +90,25 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				!Document.is(documents) || (await this.getKey(documents.id)) != this.generateKey(documents)
 					? { ...documents, ...(await this.allocateId(documents)) }
 					: undefined
-			if (Document.is(document, this.configuration.idLength)) {
-				const [meta, value] = Document.split(document)
-				this.backend.doc.set(this.generateKey(meta), value, { meta })
-				result = document
-			} else
+			if (Document.is(document, this.configuration.idLength))
+				this.backend.doc.set(this.generateKey(document), (result = document))
+			else
 				result = undefined
 		} else
 			await Promise.all(documents.map(this.store.bind(this)))
 		return result
 	}
 	remove(id: string): Promise<boolean>
-	remove(id: string[]): Promise<boolean[]>
-	remove(id: string | string[]): Promise<boolean> | Promise<boolean[]> {
-		// TODO: implement
-		throw new Error("Method not implemented.")
+	remove(ids: string[]): Promise<boolean[]>
+	async remove(ids: string | string[]): Promise<boolean | boolean[]> {
+		let result: boolean | boolean[]
+		if (typeof ids == "string") {
+			const key = await this.getKey(ids)
+			if ((result = !!key))
+				await this.backend.doc.set(key)
+		} else
+			result = await Promise.all(ids.map(id => this.remove(id)))
+		return result
 	}
 	partition(...partition: string[]): Archive<T> {
 		return new Archive<T>(this.backend, this.configuration, this.partitions + partition.join("/") + "/")
@@ -98,21 +116,27 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	static reconfigure<T>(archive: Archive<T>, configuration: Configuration.Archive): Archive<T> {
 		return new Archive<T>(archive.backend, { ...archive.configuration, ...configuration }, archive.partitions)
 	}
-	static open<T = any>(backend: KeyValueStore, configuration: Required<Configuration.Archive>): Archive<T>
-	static open<T = any>(
-		backend: KeyValueStore | undefined,
+	static open<T extends object = any>(
+		backend: KeyValueStore<string, any>,
+		configuration: Required<Configuration.Archive>
+	): Archive<T>
+	static open<T extends object = any>(
+		backend: KeyValueStore<string, any> | undefined,
 		configuration: Required<Configuration.Archive>
 	): Archive<T> | undefined
-	static open<T = any>(
-		backend: KeyValueStore | undefined,
+	static open<T extends object = any>(
+		backend: KeyValueStore<string, any> | undefined,
 		configuration: Required<Configuration.Archive> = Configuration.Archive.standard
 	): Archive<T> | undefined {
 		return (
 			backend &&
 			new Archive<T>(
 				{
-					doc: KeyValueStore.partition<T, Document>(KeyValueStore.Json.create(backend), "doc/"), // retention expires
-					id: KeyValueStore.partition<"", { key: Key }>(backend, "id/"), // retention expires
+					doc: KeyValueStore.partition(
+						KeyValueStore.InMeta.create<T, Document>(Document.split, KeyValueStore.Json.create(backend)),
+						"doc/"
+					), // retention expires
+					id: KeyValueStore.partition(KeyValueStore.OnlyMeta.create<string>(backend), "id/"), // retention expires
 				},
 				configuration
 			)

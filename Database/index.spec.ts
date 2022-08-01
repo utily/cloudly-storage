@@ -10,7 +10,7 @@ describe("Database", () => {
 			silos: { items: { type: "archive", idLength: 4, retainChanged: true } },
 		}
 		const database = storage.Database.create<{ archive: { items: Item } }>(configuration)
-		const db = database // ?.partition("axb001")
+		const db = database?.partition("axb001")
 		const item = { id: "abcd", created: "2022-07-30T00:17:55.730Z", changed: "2022-07-30T00:22:45.450Z", value: 42 }
 		expect(await db?.items.store(item)).toEqual(item)
 		expect(await db?.items.load("abcd")).toEqual(item)

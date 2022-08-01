@@ -17,10 +17,10 @@ export namespace Document {
 			(value.purged == undefined || isoly.DateTime.is(value.purged))
 		)
 	}
-	export function split(document: Document): [Document, any]
-	export function split(document: Partial<Document>): [Partial<Document>, any]
-	export function split(document: Partial<Document>): [Partial<Document>, any] {
+	export function split<T>(document: Document): [Document, T]
+	export function split<T>(document: Partial<Document>): [Partial<Document>, T]
+	export function split<T>(document: Partial<Document>): [Partial<Document>, T] {
 		const { id, created, changed, purged: purged, ...remainder } = document
-		return [{ id, created, changed, purged }, remainder]
+		return [{ id, created, changed, purged }, remainder as T]
 	}
 }
