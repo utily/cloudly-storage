@@ -28,7 +28,7 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 		if (result != undefined)
 			if (result.expires && result.expires < isoly.DateTime.now())
 				result = undefined
-		return result && (({ expires: disregard, meta, ..User}) => ({ ...user, meta: meta && JSON.parse(meta) }))(result)
+		return result && (({ expires: disregard, meta, ...user }) => ({ ...user, meta: meta && JSON.parse(meta) }))(result)
 	}
 	async list(options?: string | ListOptions): Promise<
 		ListUser<V, M>[] & {
@@ -47,7 +47,7 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 				...user,
 				meta: user.meta ? (JSON.parse(user.meta) as M) : undefined,
 			}))
-			.map<ListUser<V, M>>(o.values ? user => user : ({ value: disregard, ..User}) => user)
+			.map<ListUser<V, M>>(o.values ? user => user : ({ value: disregard, ...user }) => user)
 		return result
 	}
 	private static opened: Record<string, InMemory> = {}

@@ -13,7 +13,7 @@ export async function list(request: http.Request, context: Context): Promise<htt
 	else if (gracely.Error.is(userClient))
 		result = userClient
 	else {
-		result = await userClient.list()
+		result = gracely.server.unavailable("Not implemented yet.")
 	}
 	return result
 }
