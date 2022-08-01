@@ -1,9 +1,9 @@
 import * as isoly from "isoly"
 import { KeyValueStore } from "./KeyValueStore"
-import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
+import { ListUser } from "./ListUser"
 
-interface Item<V = any, M = Record<string, any>> {
+interface user<V = any, M = Record<string, any>> {
 	value: V
 	expires?: isoly.DateTime
 	meta?: M
@@ -12,7 +12,7 @@ interface Item<V = any, M = Record<string, any>> {
 export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, M = Record<string, any>>
 	implements KeyValueStore<V>
 {
-	private readonly data: Record<string, Item<V, string> | undefined> = {}
+	private readonly data: Record<string, user<V, string> | undefined> = {}
 	// eslint-disable-next-line @typescript-eslint/no-empty-function
 	private constructor() {}
 	async set(key: string, value?: undefined): Promise<void>
@@ -28,10 +28,10 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 		if (result != undefined)
 			if (result.expires && result.expires < isoly.DateTime.now())
 				result = undefined
-		return result && (({ expires: disregard, meta, ...item }) => ({ ...item, meta: meta && JSON.parse(meta) }))(result)
+		return result && (({ expires: disregard, meta, ..User}) => ({ ...user, meta: meta && JSON.parse(meta) }))(result)
 	}
 	async list(options?: string | ListOptions): Promise<
-		ListItem<V, M>[] & {
+		ListUser<V, M>[] & {
 			cursor?: string
 		}
 	> {
@@ -39,15 +39,15 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 		const now = isoly.DateTime.now()
 		const result = (
 			Object.entries(this.data).filter(
-				([key, item]) => item && (!o.prefix || key.startsWith(o.prefix)) && (!item.expires || item.expires >= now)
-			) as unknown as [string, Item<V, string>][]
+				([key, user]) => user && (!o.prefix || key.startsWith(o.prefix)) && (!user.expires || user.expires >= now)
+			) as unknown as [string, user<V, string>][]
 		)
-			.map<ListItem<V, M>>(([key, item]) => ({
+			.map<ListUser<V, M>>(([key, user]) => ({
 				key,
-				...item,
-				meta: item.meta ? (JSON.parse(item.meta) as M) : undefined,
+				...user,
+				meta: user.meta ? (JSON.parse(user.meta) as M) : undefined,
 			}))
-			.map<ListItem<V, M>>(o.values ? item => item : ({ value: disregard, ...item }) => item)
+			.map<ListUser<V, M>>(o.values ? user => user : ({ value: disregard, ..User}) => user)
 		return result
 	}
 	private static opened: Record<string, InMemory> = {}

@@ -1,23 +1,23 @@
 import * as gracely from "gracely"
 import * as http from "cloudly-http"
-import { Context } from "../../Context"
+import { Context, User } from "../../Context"
 import * as model from "../../model"
 import { router } from "../../router"
 
 export async function create(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: gracely.Result
-	const durableObject = context.do
-	const item = await request.body
+	const durableObject: User = context.do
+	const user = await request.body
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
-	else if (!model.Item.is(item))
-		result = gracely.client.invalidContent("Item", "Body is not a valid item.")
+	else if (!model.User.is(user))
+		result = gracely.client.invalidContent("User", "Body is not a valid user.")
 	else if (gracely.Error.is(durableObject))
 		result = durableObject
 	else {
-		const response = await durableObject.open("test").post("/do/item", item)
+		const response = userClient.create(user)// await durableObject.open("test").post("/do/user", user)
 		result = response ? gracely.success.created(response) : gracely.server.databaseFailure()
 	}
 	return result
 }
-router.add("POST", "/do/item", create)
+router.add("POST", "/do/user", create)

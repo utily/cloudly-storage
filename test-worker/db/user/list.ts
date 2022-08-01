@@ -5,12 +5,12 @@ import * as model from "../../model"
 import { router } from "../../router"
 
 export async function list(request: http.Request, context: Context): Promise<http.Response.Like | any> {
-	let result: model.Item[] | gracely.Error
+	let result: model.User[] | gracely.Error
 	const authorization = request.header.authorization
 	if (!authorization)
 		result = gracely.client.unauthorized()
 	else
-		result = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"].map((id, number) => ({ id, number }))
+		result = gracely.server.backendFailure("Not implemented yet.")
 	return result
 }
-router.add("GET", "/db/item", list)
+router.add("GET", "/db/user", list)

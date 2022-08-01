@@ -13,10 +13,10 @@ export async function remove(request: http.Request, context: Context): Promise<h
 		result = kv
 	else if (!key)
 		result = gracely.client.invalidPathArgument(
-			"item/:key",
+			"user/:key",
 			"key",
 			"string",
-			"Key of item to delete is missing from path."
+			"Key of user to delete is missing from path."
 		)
 	else {
 		await kv.set(key)
@@ -24,4 +24,4 @@ export async function remove(request: http.Request, context: Context): Promise<h
 	}
 	return result
 }
-router.add("DELETE", "/kv/item/:key", remove)
+router.add("DELETE", "/kv/user/:key", remove)

@@ -4,7 +4,7 @@ import { Selection } from "./Selection"
 
 export abstract class Silo<T = any, S extends Silo<T, S> = Silo<T, any>> {
 	abstract load(id: Identifier): Promise<(T & Document) | undefined>
-	abstract load(ids: Identifier[]): Promise<((Document & T) | undefined)[] & { cursor?: string }>
+	abstract load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
 	abstract load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
 
 	abstract store(document: T & Partial<Document>): Promise<(T & Document) | undefined>

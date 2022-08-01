@@ -5,13 +5,13 @@ import * as model from "../../model"
 import { router } from "../../router"
 
 export async function fetch(request: http.Request, context: Context): Promise<http.Response.Like | any> {
-	let result: model.Item | string | gracely.Error
+	let result: model.User | string | gracely.Error
 	const durbaleObject = context.do
 	const id = request.parameter.id
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
 	else if (!id || id.length != 1 || id < "a" || id > "f")
-		result = gracely.client.invalidPathArgument("item/:id", "id", "string", "A valid identifier is required.")
+		result = gracely.client.invalidPathArgument("user/:id", "id", "string", "A valid identifier is required.")
 	else if (gracely.Error.is(durbaleObject))
 		result = durbaleObject
 	else {
@@ -20,8 +20,8 @@ export async function fetch(request: http.Request, context: Context): Promise<ht
 		const response = await client.get<string>(id)
 		result =
 			response ??
-			gracely.client.invalidPathArgument("item/:id", "id", "string", "Unable to find item with that identifier.")
+			gracely.client.invalidPathArgument("user/:id", "id", "string", "Unable to find user with that identifier.")
 	}
 	return result
 }
-router.add("GET", "/do/item/:id", fetch)
+router.add("GET", "/do/user/:id", fetch)

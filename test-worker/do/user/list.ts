@@ -5,16 +5,16 @@ import * as model from "../../model"
 import { router } from "../../router"
 
 export async function list(request: http.Request, context: Context): Promise<http.Response.Like | any> {
-	let result: model.Item[] | gracely.Error
+	let result: model.User[] | gracely.Error
 	const authorization = request.header.authorization
-	const durableObject = context.do
+	const userClient = context.user
 	if (!authorization)
 		result = gracely.client.unauthorized()
-	else if (gracely.Error.is(durableObject))
-		result = durableObject
+	else if (gracely.Error.is(userClient))
+		result = userClient
 	else {
-		result = await durableObject.open("test").get("/do/item")
+		result = await userClient.list()
 	}
 	return result
 }
-router.add("GET", "/do/item", list)
+router.add("GET", "/do/user", list)
