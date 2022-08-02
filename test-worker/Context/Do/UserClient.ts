@@ -15,6 +15,11 @@ export class UserClient {
 		return await client.get<model.User[]>("/user")
 	}
 
+	async load(id: string): Promise<model.User | gracely.Error> {
+		const client = this.backend.open("test")
+		return await client.get<model.User>("/user/" + id)
+	}
+
 	static open(backend?: storage.DurableObject.Namespace): UserClient | undefined {
 		return backend ? new UserClient(backend) : undefined
 	}
