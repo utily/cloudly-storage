@@ -8,24 +8,24 @@ export async function replace(request: http.Request, context: Context): Promise<
 	let result: gracely.Result
 	const kv = context.kv
 	const key = request.parameter.key
-	const item = await request.body
+	const user = await request.body
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
-	else if (!model.Item.is(item))
-		result = gracely.client.invalidContent("Item", "Body is not a valid item.")
+	else if (!model.User.is(user))
+		result = gracely.client.invalidContent("User", "Body is not a valid user.")
 	else if (gracely.Error.is(kv))
 		result = kv
 	else if (!key)
 		result = gracely.client.invalidPathArgument(
-			"item/:key",
+			"user/:key",
 			"key",
 			"string",
-			"Unable to find item with that identifier."
+			"Unable to find user with that identifier."
 		)
 	else {
-		await kv.set(key, item)
-		result = gracely.success.created(item)
+		await kv.set(key, user)
+		result = gracely.success.created(user)
 	}
 	return result
 }
-router.add("PUT", "/kv/item/:key", replace)
+router.add("PUT", "/kv/user/:key", replace)

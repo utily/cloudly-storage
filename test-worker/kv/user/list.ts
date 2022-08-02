@@ -19,4 +19,4 @@ export async function list(request: http.Request, context: Context): Promise<htt
 	}
 	return result
 }
-router.add("GET", "/kv/item", list)
+router.add("GET", "/kv/user", list)

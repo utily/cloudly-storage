@@ -6,18 +6,18 @@ import { router } from "../../router"
 
 export async function create(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: gracely.Result
-	const durableObject = context.do
-	const item = await request.body
+	const database = context.database
+	const user = await request.body
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
-	else if (!model.Item.is(item))
-		result = gracely.client.invalidContent("Item", "Body is not a valid item.")
-	else if (gracely.Error.is(durableObject))
-		result = durableObject
+	else if (!model.User.is(user))
+		result = gracely.client.invalidContent("user", "Body is not a valid user.")
+	else if (gracely.Error.is(database))
+		result = database
 	else {
-		const response = await durableObject.open("test").post("/do/item", item)
+		const response = await database.users.store(user)
 		result = response ? gracely.success.created(response) : gracely.server.databaseFailure()
 	}
 	return result
 }
-router.add("POST", "/do/item", create)
+router.add("POST", "/db/user", create)

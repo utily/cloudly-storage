@@ -5,21 +5,21 @@ import { Environment } from "../Environment"
 import * as model from "../model"
 import { router } from "../router"
 import { Database } from "./Database"
-export { Do } from "./Do"
+import { Do, User } from "./Do"
+export { Do }
 
 export class Context {
-	#do?: storage.DurableObject.Namespace | gracely.Error
-	get do(): storage.DurableObject.Namespace | gracely.Error {
-		console.log("this.environment", Object.keys(this.environment))
+	#do?: User | gracely.Error
+	get do(): User | gracely.Error {
 		return (
 			this.#do ??
 			(this.#do =
-				storage.DurableObject.Namespace.open(this.environment.Do) ??
-				gracely.server.misconfigured("do", "DurableObjectNamespace missing."))
+				User.open(storage.DurableObject.Namespace.open(this.environment.Do)) ??
+				gracely.server.misconfigured("Do", "DurableObjectNamespace missing."))
 		)
 	}
-	#kv?: storage.KeyValueStore<model.Item> | gracely.Error
-	get kv(): storage.KeyValueStore<model.Item> | gracely.Error {
+	#kv?: storage.KeyValueStore<model.User> | gracely.Error
+	get kv(): storage.KeyValueStore<model.User> | gracely.Error {
 		return (
 			this.#kv ??
 			(this.#kv = this.environment.kvStore

@@ -7,18 +7,18 @@ export async function fetch(request: http.Request, context: Context): Promise<ht
 	let result: any
 	const kv = context.kv
 	const key = request.parameter.key
-	if (!request.header.authorization)
+	if (!context.authenticate(request))
 		result = gracely.client.unauthorized()
 	else if (!key)
-		result = gracely.client.invalidPathArgument("kv/item/:key", "key", "string", "A key identifier is required.")
+		result = gracely.client.invalidPathArgument("kv/user/:key", "key", "string", "A key identifier is required.")
 	else if (gracely.Error.is(kv))
 		result = kv
 	else {
 		const response = await kv.get(key)
 		result =
 			response ??
-			gracely.client.invalidPathArgument("kv/item/:key", "key", "string", "Unable to find item with that identifier.")
+			gracely.client.invalidPathArgument("kv/user/:key", "key", "string", "Unable to find user with that identifier.")
 	}
 	return result
 }
-router.add("GET", "/kv/item/:key", fetch)
+router.add("GET", "/kv/user/:key", fetch)

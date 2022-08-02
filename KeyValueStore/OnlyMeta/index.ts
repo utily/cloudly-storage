@@ -1,7 +1,7 @@
 import * as isoly from "isoly"
 import { KeyValueStore } from "../KeyValueStore"
-import { ListItem } from "../ListItem"
 import { ListOptions } from "../ListOptions"
+import { ListUser } from "../ListUser"
 import { open as kvOpen } from "../open"
 
 export namespace OnlyMeta {
@@ -19,12 +19,12 @@ export namespace OnlyMeta {
 					}
 				)
 			},
-			list: async (options?: string | ListOptions): Promise<ListItem<V, undefined>[] & { cursor?: string }> => {
+			list: async (options?: string | ListOptions): Promise<ListUser<V, undefined>[] & { cursor?: string }> => {
 				const response = await backend.list(options)
-				const result: ListItem<V, undefined>[] & { cursor?: string } = await Promise.all(
-					response.map(async item => ({
-						...(({ meta: discard, ...r }) => r)(item),
-						value: { ...item.meta } as V,
+				const result: ListUser<V, undefined>[] & { cursor?: string } = await Promise.all(
+					response.map(async user => ({
+						...(({ meta: discard, ...r }) => r)(user),
+						value: { ...user.meta } as V,
 					}))
 				)
 				if (response.cursor)
