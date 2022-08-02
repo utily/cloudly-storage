@@ -8,7 +8,6 @@ export async function create(request: http.Request, context: Context): Promise<h
 	let result: gracely.Result
 	const userClient = context.do
 	const user = await request.body
-	console.log("hej")
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
 	else if (!model.User.is(user))
