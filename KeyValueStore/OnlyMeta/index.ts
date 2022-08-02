@@ -15,7 +15,7 @@ export namespace OnlyMeta {
 				return (
 					response &&
 					response?.meta && {
-						value: { ...response.meta },
+						value: typeof response.meta == "string" ? response.meta : { ...response.meta },
 					}
 				)
 			},
