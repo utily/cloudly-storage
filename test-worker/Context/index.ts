@@ -9,11 +9,11 @@ import { Do, User } from "./Do"
 export { Do }
 
 export class Context {
-	#user?: User | gracely.Error
-	get user(): User | gracely.Error {
+	#do?: User | gracely.Error
+	get do(): User | gracely.Error {
 		return (
-			this.#user ??
-			(this.#user =
+			this.#do ??
+			(this.#do =
 				User.open(storage.DurableObject.Namespace.open(this.environment.Do)) ??
 				gracely.server.misconfigured("Do", "DurableObjectNamespace missing."))
 		)
