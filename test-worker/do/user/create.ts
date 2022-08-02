@@ -1,6 +1,6 @@
 import * as gracely from "gracely"
 import * as http from "cloudly-http"
-import { Context, User } from "../../Context"
+import { Context } from "../../Context"
 import * as model from "../../model"
 import { router } from "../../router"
 

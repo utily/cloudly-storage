@@ -5,16 +5,16 @@ import { Environment } from "../Environment"
 import * as model from "../model"
 import { router } from "../router"
 import { Database } from "./Database"
-import { Do, User } from "./Do"
+import { Do, UserClient } from "./Do"
 export { Do }
 
 export class Context {
-	#do?: User | gracely.Error
-	get do(): User | gracely.Error {
+	#do?: UserClient | gracely.Error
+	get do(): UserClient | gracely.Error {
 		return (
 			this.#do ??
 			(this.#do =
-				User.open(storage.DurableObject.Namespace.open(this.environment.Do)) ??
+				UserClient.open(storage.DurableObject.Namespace.open(this.environment.Do)) ??
 				gracely.server.misconfigured("Do", "DurableObjectNamespace missing."))
 		)
 	}
