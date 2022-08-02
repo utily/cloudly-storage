@@ -1,10 +1,10 @@
 import * as gracely from "gracely"
 import * as http from "cloudly-http"
-import * as model from "../../model"
-import { Context } from "./Context"
-import { router } from "./router"
+import * as model from "../../../model"
+import { Context } from "../Context"
+import { router } from "../router"
 
-export async function list(request: http.Request, context: Context): Promise<http.Response.Like | any> {
+export async function load(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: model.User[] | gracely.Error
 	const state = context.state
 	if (gracely.Error.is(state))
@@ -19,4 +19,4 @@ export async function list(request: http.Request, context: Context): Promise<htt
 	}
 	return result
 }
-router.add("GET", "/do/user", list)
+router.add("GET", "/user", load)

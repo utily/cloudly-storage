@@ -4,7 +4,7 @@ import { Context } from "../../Context"
 import * as model from "../../model"
 import { router } from "../../router"
 
-export async function list(request: http.Request, context: Context): Promise<http.Response.Like | any> {
+export async function loadAll(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: model.User[] | gracely.Error
 	const authorization = request.header.authorization
 	const userClient = context.do
@@ -13,8 +13,8 @@ export async function list(request: http.Request, context: Context): Promise<htt
 	else if (gracely.Error.is(userClient))
 		result = userClient
 	else {
-		result = gracely.server.unavailable("Not implemented yet.")
+		result = await userClient.loadAll()
 	}
 	return result
 }
-router.add("GET", "/do/user", list)
+router.add("GET", "/do/user", loadAll)

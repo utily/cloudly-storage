@@ -1,9 +1,8 @@
 import { Environment } from "../../Environment"
 import { Context } from "./Context"
-export { User } from "./User"
+export { UserClient } from "./UserClient"
 
-import "./create"
-import "./list"
+import "./user"
 
 export class Do {
 	private constructor(private readonly state: DurableObjectState) {}
