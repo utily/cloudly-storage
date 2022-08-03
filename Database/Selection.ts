@@ -2,12 +2,11 @@ import * as isoly from "isoly"
 
 export type Selection =
 	| {
-			changed: isoly.TimeRange
+			changed: isoly.DateRange
 	  }
 	| {
 			cursor: string
 	  }
 	| {
-			created: isoly.TimeRange
+			created: isoly.DateRange
 	  }
-	| undefined

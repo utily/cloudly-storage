@@ -52,7 +52,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
 	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
 	async load(
-		selection: Identifier | Identifier[] | Selection
+		selection?: Identifier | Identifier[] | Selection
 	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })> {
 		let result: (T & Document) | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })
 		if (typeof selection == "string") {
@@ -62,21 +62,22 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			result = await Promise.all(selection.map(id => this.load(id)))
 		else {
 			const response = !selection
-				? []
-				: "changed" in selection
-				? []
+				? await this.backend.doc.list({ limit: 100 }) //logic to list the first 100
+				: // : "changed" in selection
+				// ? await this.backend.doc.list({ prefix: selection.changed })
+				"created" in selection
+				? await this.backend.doc.list({ prefix: "authorization/merchantID/doc/" + selection.created + "/id" })
 				: "cursor" in selection
 				? await this.backend.doc.list({ cursor: selection.cursor })
-				: "created" in selection
-				? []
-				: []
-			const r: (Document & T)[] & { cursor?: string } = [] //response.map(user => ({ ...user.value, ...user.meta }))
+				: undefined
+			const r: (Document & T)[] & { cursor?: string } = [] //response.map(item => ({ ...item.value, ...item.meta }))
 			if (response.cursor)
 				r.cursor = response.cursor
 			result = r
 		}
 		return result
 	}
+
 	store(document: T & Partial<Document>): Promise<(T & Document) | undefined>
 	store(documents: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
 	async store(

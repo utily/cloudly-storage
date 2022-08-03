@@ -24,9 +24,3 @@ export namespace Document {
 		return [{ id, created, changed, purged }, remainder as T]
 	}
 }
-export namespace Document {
-	export function split(document: Document): [Document, any] {
-		const { id, created, changed, retained, ...remainder } = document
-		return [{ id, created, changed, retained }, remainder]
-	}
-}
