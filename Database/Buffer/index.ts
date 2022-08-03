@@ -1,30 +1,45 @@
+import * as gracely from "gracely"
+import * as isoly from "isoly"
 import * as DurableObject from "../../DurableObject"
-// import { Configuration } from "../Configuration"
+import { Configuration } from "../Configuration"
+import { Document } from "../Document"
+import { Identifier } from "../Identifier"
 
-export class Buffer {
-	private constructor(private readonly backend: DurableObject.Namespace) {}
+type Key = `${string}${isoly.DateTime}/${Identifier}`
 
-	// put(name: string): Buffer {
-	// 	this.backend.open(name).get()
-	// }
-	// get(name: string): Buffer {
-	// 	const name = this.name + Configuration.Collection.get( this.configuration, id)
-	// 	this.#buffers[name] = this.#buffers[name] ?? worker.DurableObject.Namespace.open(this.buffer)?.open(name)
-	// 	return await this.#buffers[name].get("/get", { test: "test" })
-	// 	this.backend.open(name)
-	// }
-	// list(name: string): Buffer {
-	// 	this.backend.open(name)
-	// }
-
-	// load
-	// store
-
-	partition(prefix: string): Buffer {
-		return this
+export class Buffer<T = any> {
+	private constructor(
+		private readonly backend: DurableObject.Namespace,
+		private readonly configuration: Configuration.Buffer,
+		private readonly partitions = ""
+	) {}
+	partition(...partition: string[]): Buffer<T> {
+		return new Buffer<T>(this.backend, this.configuration, this.partitions + partition.join("/") + "/")
 	}
-
-	static open(backend: DurableObject.Namespace | undefined): Buffer | undefined {
-		return backend && new Buffer(backend)
+	private generateKey(document: Pick<Document, "id" | "created">): Key {
+		return `${this.partitions}${document.created}/${document.id}`
+	}
+	async load(id: string): Promise<T | gracely.Error> {
+		return await this.backend.open(this.partitions).get<T>(`doc/${id}`)
+	}
+	store(document: T): T {
+		return document
+	}
+	remove(id: T): any {
+		return id
+	}
+	static open<T extends object = any>(
+		backend: DurableObject.Namespace,
+		configuration: Required<Configuration.Buffer>
+	): Buffer<T>
+	static open<T extends object = any>(
+		backend: DurableObject.Namespace | undefined,
+		configuration: Required<Configuration.Buffer>
+	): Buffer<T> | undefined
+	static open<T extends object = any>(
+		backend: DurableObject.Namespace | undefined,
+		configuration: Required<Configuration.Buffer> = Configuration.Buffer.standard
+	): Buffer<T> | undefined {
+		return backend && new Buffer<T>(backend, configuration)
 	}
 }

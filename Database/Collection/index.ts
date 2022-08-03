@@ -5,23 +5,29 @@ import { Configuration } from "../Configuration"
 import { Document } from "../Document"
 import { Identifier } from "../Identifier"
 import { Selection } from "../Selection"
-
-export class Collection<T> {
-	constructor(
-		readonly name: string,
-		private readonly buffer: Buffer,
-		private readonly storage: Archive<T>,
-		readonly configuration: Configuration.Collection
-	) {}
-	async load(id: Identifier): Promise<(T & Document) | undefined>
-	async load(selection?: Selection): Promise<((Document & T)[] & { cursor?: string }) | undefined>
+import { Silo } from "../Silo"
+export class Collection<T = any> extends Silo<T, Collection<T>> {
+	private constructor(
+		private readonly archive: Archive<T>,
+		private readonly buffer: Buffer<T>,
+		readonly configuration: Configuration.Collection,
+		private partitions = ""
+	) {
+		super()
+	}
+	partition(...partition: string[]): Collection<T> {
+		return new Collection(this.archive, this.buffer, this.configuration, this.partitions + partition.join("/") + "/")
+	}
+	load(id: Identifier): Promise<(T & Document) | undefined>
+	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
+	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
 	async load(
-		selection?: Selection | Identifier
-	): Promise<((T & Document) | undefined) | ((Document & T)[] & { cursor?: string }) | undefined> {
+		selection: Identifier | Identifier[] | Selection
+	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })> {
 		let result: ((T & Document) | undefined) | ((Document & T)[] & { cursor?: string }) | undefined
 		switch (typeof selection) {
 			case "string":
-				result = undefined // not found
+				result = Object.values({ ...(await this.buffer.load(selection)), ...(await this.archive.load(selection)) })
 				break
 			case "object":
 				result = "changed" in selection ? [] : "cursor" in selection ? [] : "created" in selection ? [] : []
@@ -45,11 +51,28 @@ export class Collection<T> {
 					created: document.created ?? isoly.DateTime.now(),
 					changed: isoly.DateTime.now(),
 			  }
-			: Promise.all(document.map(v => this.store(v)))
+			: await Promise.all(document.map(v => this.store(v)))
 	}
 	async remove(id: Identifier): Promise<boolean>
 	async remove(id: Identifier[]): Promise<boolean[]>
 	async remove(id: Identifier | Identifier[]): Promise<boolean | boolean[]> {
 		return !Array.isArray(id) ? false : Promise.all(id.map(i => this.remove(i)))
+	}
+	static open<T extends object = any>(
+		archive: Archive<T>,
+		buffer: Buffer<T>,
+		configuration: Required<Configuration.Archive>
+	): Collection<T>
+	static open<T extends object = any>(
+		archive: Archive<T> | undefined,
+		buffer: Buffer<T> | undefined,
+		configuration: Required<Configuration.Archive>
+	): Collection<T> | undefined
+	static open<T extends object = any>(
+		archive: Archive<T> | undefined,
+		buffer: Buffer<T> | undefined,
+		configuration: Required<Configuration.Archive> = Configuration.Archive.standard
+	): Collection<T> | undefined {
+		return archive && buffer && new Collection<T>(archive, buffer, configuration)
 	}
 }
