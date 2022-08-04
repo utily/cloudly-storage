@@ -3,37 +3,25 @@ import * as http from "cloudly-http"
 import { Context } from "../../Context"
 import { router } from "../../router"
 
-// interface Group {
-// 	group: string
-// }
-
-// function isGroup(value: any): value is Group {
-// 	return typeof value == "object" && value && typeof value.group == "string"
-// }
-
 export async function addGroup(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: gracely.Result
 	const userClient = context.do
+	const body = await request.body
 	const id = request.parameter.id
-	const newGroups = await request.body
-	const newGroup = request.parameter.group
-	console.log(newGroup)
-	console.log(newGroups)
+
+	const newGroups = body || (request.parameter.group ? [request.parameter.group] : undefined)
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
 	else if (!id || id == "")
 		result = gracely.client.invalidPathArgument("/do/user/:id", "id", "string", "id is required.")
-	else if (!newGroups == !newGroup)
-		result = gracely.client.invalidContent("string", "Please specify body or path argument, not both.")
-	else if ((Array.isArray(newGroups) ? newGroups : [newGroup]).some((e: any) => typeof e != "string"))
-		result = gracely.client.invalidContent("string", "Please specify groups that are strings or a single string.")
+	else if (body && request.parameter.group)
+		result = gracely.client.invalidContent("string", "Please specify body OR path argument")
+	else if (!Array.isArray(newGroups) || newGroups.some((e: any) => typeof e != "string"))
+		result = gracely.client.invalidContent("string", "Please specify valid group(s) string(s).")
 	else if (gracely.Error.is(userClient))
 		result = userClient
 	else {
-		console.log("there!")
-		const response = await userClient.addGroup(id, newGroups ?? newGroup)
-		console.log("id", id)
-		console.log("response", response)
+		const response = await userClient.addGroup(id, newGroups)
 		result = response
 			? gracely.success.created(response)
 			: gracely.server.databaseFailure("Error adding group to User's groups.")

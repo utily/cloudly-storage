@@ -20,6 +20,11 @@ export class UserClient {
 		return await client.get<model.User>("/user/" + id)
 	}
 
+	async addGroup(id: string, group: string[]): Promise<model.User | gracely.Error> {
+		const client = this.backend.open("test")
+		return await client.patch<model.User>("/user/" + id + "/groups", group)
+	}
+
 	static open(backend?: storage.DurableObject.Namespace): UserClient | undefined {
 		return backend ? new UserClient(backend) : undefined
 	}
