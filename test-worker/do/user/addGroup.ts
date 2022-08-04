@@ -9,19 +9,19 @@ export async function addGroup(request: http.Request, context: Context): Promise
 	const body: string[] | undefined = await request.body
 	const id = request.parameter.id
 
-	const newGroups = body || (request.parameter.group ? [request.parameter.group] : undefined)
+	const groups = body || (request.parameter.group ? [request.parameter.group] : undefined)
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
 	else if (!id || id == "")
 		result = gracely.client.invalidPathArgument("/do/user/:id", "id", "string", "id is required.")
 	else if (body && request.parameter.group)
 		result = gracely.client.invalidContent("string", "Please specify body OR path argument (not both)")
-	else if (!Array.isArray(newGroups) || newGroups.some((e: any) => typeof e != "string"))
+	else if (!Array.isArray(groups) || groups.some((e: any) => typeof e != "string"))
 		result = gracely.client.invalidContent("string", "Please specify valid group(s) string(s).")
 	else if (gracely.Error.is(userClient))
 		result = userClient
 	else {
-		const response = await userClient.addGroup(id, newGroups)
+		const response = await userClient.addGroup(id, groups)
 		result = response
 			? gracely.success.created(response)
 			: gracely.server.databaseFailure("Error adding group to User's groups.")
