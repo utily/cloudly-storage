@@ -18,7 +18,7 @@ command = "npm install && npm run build"
 
 [durable_objects]
 bindings = [
-	{ name = "Do", class_name = "Do" }
+	{ name = "DatabaseBuffer", class_name = "Backend" },
 ]
 
 

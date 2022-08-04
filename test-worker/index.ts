@@ -1,6 +1,6 @@
 import { Context } from "./Context"
 import { Environment } from "./Environment"
-export { Do } from "./Context"
+export { Backend } from "cloudly-storage"
 
 import "./db"
 import "./do"

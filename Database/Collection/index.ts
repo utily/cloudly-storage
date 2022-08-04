@@ -6,6 +6,7 @@ import { Document } from "../Document"
 import { Identifier } from "../Identifier"
 import { Selection } from "../Selection"
 import { Silo } from "../Silo"
+
 export class Collection<T = any> extends Silo<T, Collection<T>> {
 	private constructor(
 		private readonly archive: Archive<T>,
@@ -27,14 +28,14 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		let result: ((T & Document) | undefined) | ((Document & T)[] & { cursor?: string }) | undefined
 		switch (typeof selection) {
 			case "string":
-				result = Object.values({ ...(await this.buffer.load(selection)), ...(await this.archive.load(selection)) })
+				result = (await this.buffer.load(selection)) ?? (await this.archive.load(selection))
 				break
 			case "object":
 				result = "changed" in selection ? [] : "cursor" in selection ? [] : "created" in selection ? [] : []
 				break
 			case "undefined":
-				result = []
-				result.cursor = "cont"
+				result = await this.buffer.load()
+				// result.cursor = "cont"
 				break
 		}
 		return result

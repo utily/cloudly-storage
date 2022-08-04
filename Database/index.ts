@@ -9,6 +9,8 @@ import { Document as DBDocument } from "./Document"
 import { Identifier as DBIdentifier } from "./Identifier"
 import { Silo as DBSilo } from "./Silo"
 
+export { Backend } from "./Buffer"
+
 export type Database<T extends { archive?: Record<string, any>; collection?: Record<string, any> }> =
 	DatabaseImplementation<T> &
 		{ [A in keyof T["archive"]]: DBArchive<T["archive"][A]> } &

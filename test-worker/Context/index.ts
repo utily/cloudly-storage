@@ -29,7 +29,10 @@ export class Context {
 	}
 	#database?: Database | gracely.Error
 	get database(): Database | gracely.Error {
-		return this.#database ?? (this.#database = Database.create(this.environment))
+		return (
+			this.#database ??
+			(this.#database = Database.create(this.environment) ?? gracely.server.databaseFailure("Failed to open database."))
+		)
 	}
 	constructor(public readonly environment: Environment) {}
 	async authenticate(request: http.Request): Promise<"admin" | undefined> {

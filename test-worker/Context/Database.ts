@@ -3,22 +3,20 @@ import * as storage from "cloudly-storage"
 import { Environment } from "../Environment"
 import * as model from "../model"
 
-type SiloTypes = {
-	archive: {
-		users: model.User
-	}
-}
+type Layout = { collection: { users: model.User } }
 
-export type Database = storage.Database<SiloTypes>
+export type Database = storage.Database<Layout>
 
 export namespace Database {
 	export function create(environment: Environment): Database | gracely.Error {
-		return !environment.databaseStore
-			? gracely.server.misconfigured("databaseStore", "Missing environment variable to open database.")
-			: storage.Database.create<SiloTypes>(
-					{ silos: { users: { type: "archive", idLength: 4 } } }
-					// environment.databaseBuffer,
-					// environment.databaseStore
-			  ) ?? gracely.server.misconfigured("databaseBuffer", "Missing environment variable to open database.")
+		return (
+			storage.Database.create<Layout>(
+				{
+					silos: { users: { type: "collection", idLength: 4, retainChanged: true } },
+				},
+				environment.kvStore,
+				environment.DatabaseBuffer
+			) ?? gracely.server.misconfigured("databaseBuffer", "Missing environment variable to open database.")
+		)
 	}
 }
