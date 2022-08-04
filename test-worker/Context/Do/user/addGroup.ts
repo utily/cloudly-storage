@@ -8,13 +8,13 @@ export async function addGroup(request: http.Request, context: Context): Promise
 	let result: gracely.Result | gracely.Error
 	const state = context.state
 	const id = request.parameter.id
-	const newGroups: number[] = await request.body
+	const newGroups: string[] | undefined = await request.body
 
 	if (gracely.Error.is(state))
 		result = state
 	else if (!id)
 		result = gracely.server.backendFailure("id missing in database query.")
-	else if (newGroups != undefined && !Array.isArray(newGroups))
+	else if (newGroups == undefined || !Array.isArray(newGroups))
 		result = gracely.client.invalidContent("string", "Body does not contain a valid group")
 	else if (request.body && request.parameter.group)
 		result = gracely.client.invalidContent("string", "Please specify body or path argument, not both.")
@@ -26,7 +26,7 @@ export async function addGroup(request: http.Request, context: Context): Promise
 			if (!user)
 				result = gracely.client.notFound("User not found in database.")
 			else {
-				newGroups.forEach((e: any) => user.groups.push(e))
+				newGroups.forEach(e => !user.groups.includes(e) && user.groups.push(e))
 				await state.storage.put(id, user)
 				result = gracely.success.ok(user)
 			}

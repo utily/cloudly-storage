@@ -6,7 +6,7 @@ import { router } from "../../router"
 export async function addGroup(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: gracely.Result
 	const userClient = context.do
-	const body = await request.body
+	const body: string[] | undefined = await request.body
 	const id = request.parameter.id
 
 	const newGroups = body || (request.parameter.group ? [request.parameter.group] : undefined)
@@ -15,7 +15,7 @@ export async function addGroup(request: http.Request, context: Context): Promise
 	else if (!id || id == "")
 		result = gracely.client.invalidPathArgument("/do/user/:id", "id", "string", "id is required.")
 	else if (body && request.parameter.group)
-		result = gracely.client.invalidContent("string", "Please specify body OR path argument")
+		result = gracely.client.invalidContent("string", "Please specify body OR path argument (not both)")
 	else if (!Array.isArray(newGroups) || newGroups.some((e: any) => typeof e != "string"))
 		result = gracely.client.invalidContent("string", "Please specify valid group(s) string(s).")
 	else if (gracely.Error.is(userClient))
