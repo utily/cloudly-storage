@@ -25,6 +25,11 @@ export class UserClient {
 		return await client.patch<model.User>("/user/" + id + "/groups", group)
 	}
 
+	async modifyLevel(id: string, value: number): Promise<model.User | gracely.Error> {
+		const client = this.backend.open("test")
+		return await client.patch<model.User>("/user/" + id + "/level", value)
+	}
+
 	static open(backend?: storage.DurableObject.Namespace): UserClient | undefined {
 		return backend ? new UserClient(backend) : undefined
 	}
