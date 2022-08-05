@@ -2,7 +2,7 @@ import { Context } from "./Context"
 import { Environment } from "./Environment"
 export { Backend } from "cloudly-storage"
 
-import "./db/collection"
+import "./db"
 import "./do"
 import "./kv"
 import "./version"

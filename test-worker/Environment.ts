@@ -5,5 +5,6 @@ export interface Environment
 	databaseStore?: KVNamespace
 	state?: DurableObjectState
 	kvStore?: KVNamespace
+	archive?: KVNamespace
 	Do?: DurableObjectNamespace
 }
