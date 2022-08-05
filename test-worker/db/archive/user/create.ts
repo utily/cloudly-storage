@@ -1,12 +1,12 @@
 import * as gracely from "gracely"
 import * as http from "cloudly-http"
-import { Context } from "../../Context"
-import * as model from "../../model"
-import { router } from "../../router"
+import { Context } from "../../../Context"
+import * as model from "../../../model"
+import { router } from "../../../router"
 
 export async function create(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: gracely.Result
-	const database = context.database
+	const database = context.archive
 	const user = await request.body
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
@@ -20,4 +20,4 @@ export async function create(request: http.Request, context: Context): Promise<h
 	}
 	return result
 }
-router.add("POST", "/db/user", create)
+router.add("POST", "/db/archive/user", create)

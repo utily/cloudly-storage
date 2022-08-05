@@ -1,8 +1,8 @@
 import * as gracely from "gracely"
 import * as http from "cloudly-http"
-import { Context } from "../../Context"
-import * as model from "../../model"
-import { router } from "../../router"
+import { Context } from "../../../Context"
+import * as model from "../../../model"
+import { router } from "../../../router"
 
 export async function remove(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: model.User | gracely.Error
@@ -15,4 +15,4 @@ export async function remove(request: http.Request, context: Context): Promise<h
 		result = gracely.server.backendFailure("Not implemented yet.")
 	return result
 }
-router.add("DELETE", "/db/user/:id", remove)
+router.add("DELETE", "/db/collection/user/:id", remove)
