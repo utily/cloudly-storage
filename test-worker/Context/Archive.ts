@@ -3,16 +3,16 @@ import * as storage from "cloudly-storage"
 import { Environment } from "../Environment"
 import * as model from "../model"
 
-type Layout = { collection: { users: model.User } }
+type Layout = { archive: { users: model.User } }
 
-export type Database = storage.Database<Layout>
+export type Archive = storage.Database<Layout>
 
-export namespace Database {
-	export function create(environment: Environment): Database | gracely.Error {
+export namespace Archive {
+	export function create(environment: Environment): Archive | gracely.Error {
 		return (
 			storage.Database.create<Layout>(
 				{
-					silos: { users: { type: "collection", idLength: 4, retainChanged: true } },
+					silos: { users: { type: "archive", idLength: 4, retainChanged: true } },
 				},
 				environment.kvStore,
 				environment.DatabaseBuffer

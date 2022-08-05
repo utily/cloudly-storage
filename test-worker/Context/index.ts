@@ -4,7 +4,8 @@ import * as storage from "cloudly-storage"
 import { Environment } from "../Environment"
 import * as model from "../model"
 import { router } from "../router"
-import { Database } from "./Database"
+import { Archive } from "./Archive"
+import { Collection } from "./Collection"
 import { Do, UserClient } from "./Do"
 export { Do }
 
@@ -27,11 +28,19 @@ export class Context {
 				: gracely.server.misconfigured("kvStore", "KeyValueNamespace missing."))
 		)
 	}
-	#database?: Database | gracely.Error
-	get database(): Database | gracely.Error {
+	#collection?: Collection | gracely.Error
+	get collection(): Collection | gracely.Error {
 		return (
-			this.#database ??
-			(this.#database = Database.create(this.environment) ?? gracely.server.databaseFailure("Failed to open database."))
+			this.#collection ??
+			(this.#collection =
+				Collection.create(this.environment) ?? gracely.server.databaseFailure("Failed to open collection."))
+		)
+	}
+	#archive?: Archive | gracely.Error
+	get archive(): Archive | gracely.Error {
+		return (
+			this.#archive ??
+			(this.#archive = Archive.create(this.environment) ?? gracely.server.databaseFailure("Failed to open archive."))
 		)
 	}
 	constructor(public readonly environment: Environment) {}
