@@ -47,11 +47,12 @@
 	},
 	"scripts": {
 		"lint": "eslint --max-warnings=0 '**/*.{ts,tsx}'",
-		"fix": "eslint '**/*.{ts,tsx}' --fix",
+		"fix": "eslint '**/*.{ts,tsx}' --yfix",
 		"build": "rollup -c",
 		"build:local": "rollup --config rollup.dev.config.js",
 		"dev": "NODE_ENV=development npm run build",
 		"test": "jest",
+		"forge": "cd .. && npm run clean && npm i && npm run build && cd test-worker/ && npm run build",
 		"transpile": "tsc --project tsconfig.test.json",
 		"deploy": "wrangler login && wrangler publish; wrangler logout",
 		"login": "wrangler login",
