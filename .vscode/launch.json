@@ -1,12 +1,12 @@
 {
-	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "Miniflare (npm)",
 			"type": "node",
 			"request": "launch",
-			"name": "Launch Program",
-			"program": "${workspaceFolder}/dist/index.js",
-			"preLaunchTask": "build"
+			"runtimeExecutable": "npm",
+			"runtimeArgs": ["--prefix", "./test-worker", "run", "start"], 
+			"skipFiles": ["<node_internals>/**"]
 		}
 	]
 }

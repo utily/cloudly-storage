@@ -1,13 +1,11 @@
 import * as isoly from "isoly"
 import * as platform from "../platform"
 import { KeyValueStore } from "./KeyValueStore"
-import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
+import { ListUser } from "./ListUser"
 
-export class FromPlatform<
-	V extends string | ArrayBuffer | ReadableStream = string,
-	M extends Record<string, unknown> = Record<string, unknown>
-> implements KeyValueStore<V, M>
+export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = string, M = Record<string, any>>
+	implements KeyValueStore<V, M>
 {
 	constructor(
 		private readonly backend: platform.KVNamespace,
@@ -33,42 +31,42 @@ export class FromPlatform<
 				)
 			)
 	}
-	async get(key: string): Promise<{ value: V; meta: M } | undefined> {
+	async get(key: string): Promise<{ value: V; meta?: M } | undefined> {
 		const data = await this.backend.getWithMetadata(key, { type: this.type as any })
 		return data.value != null
 			? {
 					value: data.value as V,
-					meta: (data.metadata ?? {}) as M,
+					meta: data.metadata as M,
 			  }
 			: undefined
 	}
 	async list(options?: string | ListOptions): Promise<
-		ListItem<V, M>[] & {
+		ListUser<V, M>[] & {
 			cursor?: string
 		}
 	> {
 		const o = ListOptions.get(options)
 		const data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
-		const result: ListItem<V, M>[] & {
+		const result: ListUser<V, M>[] & {
 			cursor?: string
 		} = await Promise.all(
 			data.keys
-				.map(async item => ({
-					key: item.name,
-					expires: item.expiration ? isoly.DateTime.create(item.expiration) : undefined,
-					meta: item.metadata as M,
+				.map(async user => ({
+					key: user.name,
+					expires: user.expiration ? isoly.DateTime.create(user.expiration) : undefined,
+					meta: user.metadata as M,
 				}))
 				.map(
 					o.values
 						? i =>
-								i.then(async item => ({
-									...item,
-									value: await this.backend.get(item.key, { type: this.type as any }),
+								i.then(async user => ({
+									...user,
+									value: await this.backend.get(user.key, { type: this.type as any }),
 								}))
 						: i => i
 				)
 		)
-		if (!data.list_complete)
+		if (!data.list_complete && data.cursor)
 			result.cursor = data.cursor
 		return result
 	}

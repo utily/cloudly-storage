@@ -51,7 +51,8 @@
 		"build": "tsc -p .",
 		"test": "jest",
 		"prepare": "npm run build",
-		"clean": "rimraf dist node_modules coverage"
+		"clean": "rimraf dist node_modules coverage",
+		"start": "npm --prefix test-worker run start"
 	},
 	"devDependencies": {
 		"@types/jest": "^28.1.6",
@@ -68,6 +69,7 @@
 	},
 	"dependencies": {
 		"cloudly-http": "^0.0.50",
+		"cloudly-router": "^0.0.24",
 		"cryptly": "^3.0.1",
 		"gracely": "^2.0.3",
 		"isoly": "^2.0.4"

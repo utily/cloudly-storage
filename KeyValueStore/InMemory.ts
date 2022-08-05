@@ -1,20 +1,18 @@
 import * as isoly from "isoly"
 import { KeyValueStore } from "./KeyValueStore"
-import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
+import { ListUser } from "./ListUser"
 
-interface Item<V = unknown, M extends Record<string, unknown> = Record<string, unknown>> {
+interface user<V = any, M = Record<string, any>> {
 	value: V
 	expires?: isoly.DateTime
 	meta?: M
 }
 
-export class InMemory<
-	V extends string | ArrayBuffer | ReadableStream = string | ArrayBuffer | ReadableStream,
-	M extends Record<string, unknown> = Record<string, unknown>
-> implements KeyValueStore<V>
+export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, M = Record<string, any>>
+	implements KeyValueStore<V>
 {
-	private readonly data: Record<string, Item<V, M> | undefined> = {}
+	private readonly data: Record<string, user<V, string> | undefined> = {}
 	// eslint-disable-next-line @typescript-eslint/no-empty-function
 	private constructor() {}
 	async set(key: string, value?: undefined): Promise<void>
@@ -23,17 +21,17 @@ export class InMemory<
 		if (value == undefined)
 			delete this.data[key]
 		else
-			this.data[key] = { value, ...options }
+			this.data[key] = { value, ...options, meta: options?.meta && JSON.stringify(options.meta) }
 	}
 	async get(key: string): Promise<{ value: V; meta?: M } | undefined> {
 		let result = this.data[key]
 		if (result != undefined)
 			if (result.expires && result.expires < isoly.DateTime.now())
 				result = undefined
-		return result && (({ expires: disregard, ...item }) => item)(result)
+		return result && (({ expires: disregard, meta, ...user }) => ({ ...user, meta: meta && JSON.parse(meta) }))(result)
 	}
 	async list(options?: string | ListOptions): Promise<
-		ListItem<V, M>[] & {
+		ListUser<V, M>[] & {
 			cursor?: string
 		}
 	> {
@@ -41,18 +39,21 @@ export class InMemory<
 		const now = isoly.DateTime.now()
 		const result = (
 			Object.entries(this.data).filter(
-				([key, item]) => item && (!o.prefix || key.startsWith(o.prefix)) && (!item.expires || item.expires >= now)
-			) as unknown as [string, Item<V, M>][]
-		).map<ListItem<V, M>>(
-			o.values ? ([key, item]) => ({ key, ...item }) : ([key, { value: disregard, ...item }]) => ({ key, ...item })
+				([key, user]) => user && (!o.prefix || key.startsWith(o.prefix)) && (!user.expires || user.expires >= now)
+			) as unknown as [string, user<V, string>][]
 		)
+			.map<ListUser<V, M>>(([key, user]) => ({
+				key,
+				...user,
+				meta: user.meta ? (JSON.parse(user.meta) as M) : undefined,
+			}))
+			.map<ListUser<V, M>>(o.values ? user => user : ({ value: disregard, ...user }) => user)
 		return result
 	}
 	private static opened: Record<string, InMemory> = {}
-	static open<
-		V extends string | ArrayBuffer | ReadableStream = string | ArrayBuffer | ReadableStream,
-		M extends Record<string, unknown> = Record<string, unknown>
-	>(namespace?: string): InMemory<V, M> {
+	static open<V extends string | ArrayBuffer | ReadableStream = string, M = Record<string, any>>(
+		namespace?: string
+	): InMemory<V, M> {
 		return namespace
 			? (this.opened[namespace] as InMemory<V, M>) ?? (this.opened[namespace] = this.open())
 			: new InMemory<V, M>()
