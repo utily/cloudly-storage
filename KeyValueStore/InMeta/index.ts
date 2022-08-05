@@ -2,8 +2,8 @@ import { methodNotAllowed } from "gracely/dist/client"
 import * as isoly from "isoly"
 import { Json } from "../Json"
 import { KeyValueStore } from "../KeyValueStore"
+import { ListItem } from "../ListItem"
 import { ListOptions } from "../ListOptions"
-import { ListUser } from "../ListUser"
 
 export namespace InMeta {
 	export function create<V extends object, M extends object>(
@@ -30,7 +30,7 @@ export namespace InMeta {
 					}
 				)
 			},
-			list: async (options?: string | ListOptions): Promise<ListUser<V & M, undefined>[] & { cursor?: string }> => {
+			list: async (options?: string | ListOptions): Promise<ListItem<V & M, undefined>[] & { cursor?: string }> => {
 				const response = await backend.list(options)
 				const result = (await Promise.all(
 					response
@@ -44,7 +44,7 @@ export namespace InMeta {
 								}))(user)
 						)
 						.filter(async user => user)
-				)) as ListUser<V & M, undefined>[] & { cursor?: string }
+				)) as ListItem<V & M, undefined>[] & { cursor?: string }
 				if (response.cursor)
 					result.cursor = response.cursor
 				return result

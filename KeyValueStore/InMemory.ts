@@ -1,7 +1,7 @@
 import * as isoly from "isoly"
 import { KeyValueStore } from "./KeyValueStore"
+import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
-import { ListUser } from "./ListUser"
 
 interface user<V = any, M = Record<string, any>> {
 	value: V
@@ -31,7 +31,7 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 		return result && (({ expires: disregard, meta, ...user }) => ({ ...user, meta: meta && JSON.parse(meta) }))(result)
 	}
 	async list(options?: string | ListOptions): Promise<
-		ListUser<V, M>[] & {
+		ListItem<V, M>[] & {
 			cursor?: string
 		}
 	> {
@@ -42,12 +42,12 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 				([key, user]) => user && (!o.prefix || key.startsWith(o.prefix)) && (!user.expires || user.expires >= now)
 			) as unknown as [string, user<V, string>][]
 		)
-			.map<ListUser<V, M>>(([key, user]) => ({
+			.map<ListItem<V, M>>(([key, user]) => ({
 				key,
 				...user,
 				meta: user.meta ? (JSON.parse(user.meta) as M) : undefined,
 			}))
-			.map<ListUser<V, M>>(o.values ? user => user : ({ value: disregard, ...user }) => user)
+			.map<ListItem<V, M>>(o.values ? user => user : ({ value: disregard, ...user }) => user)
 		return result
 	}
 	private static opened: Record<string, InMemory> = {}

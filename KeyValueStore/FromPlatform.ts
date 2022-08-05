@@ -1,8 +1,8 @@
 import * as isoly from "isoly"
 import * as platform from "../platform"
 import { KeyValueStore } from "./KeyValueStore"
+import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
-import { ListUser } from "./ListUser"
 
 export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = string, M = Record<string, any>>
 	implements KeyValueStore<V, M>
@@ -41,13 +41,13 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 			: undefined
 	}
 	async list(options?: string | ListOptions): Promise<
-		ListUser<V, M>[] & {
+		ListItem<V, M>[] & {
 			cursor?: string
 		}
 	> {
 		const o = ListOptions.get(options)
 		const data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
-		const result: ListUser<V, M>[] & {
+		const result: ListItem<V, M>[] & {
 			cursor?: string
 		} = await Promise.all(
 			data.keys
