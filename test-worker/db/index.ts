@@ -1,1 +1,2 @@
-import "./user"
+import "./archive"
+import "./collection"
