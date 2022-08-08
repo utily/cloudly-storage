@@ -18,7 +18,7 @@ export async function remove(request: http.Request, context: Context): Promise<h
 		try {
 			const response = await database.users.remove(id)
 			result = response
-				? gracely.success.ok(`User with ID ${id} or summing successfully removed`)
+				? gracely.success.ok(`User with ID ${id} successfully removed`)
 				: gracely.client.notFound(`Could not remove user with id ${id}`)
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
