@@ -11,7 +11,7 @@ export async function create(request: http.Request, context: Context): Promise<h
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
 	else if (!model.User.is(user))
-		result = gracely.client.invalidContent("user", "Body is not a valid user.")
+		result = gracely.client.invalidContent("User", "Please provide a valid user.")
 	else if (gracely.Error.is(database))
 		result = database
 	else {
