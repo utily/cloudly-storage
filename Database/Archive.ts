@@ -70,7 +70,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				: "created" in selection
 				? []
 				: []
-			const r: (Document & T)[] & { cursor?: string } = [] //response.map(user => ({ ...user.value, ...user.meta }))
+			const r: (Document & T)[] & { cursor?: string } = [] //response.map(item => ({ ...item.value, ...item.meta }))
 			if (response.cursor)
 				r.cursor = response.cursor
 			result = r
