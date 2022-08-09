@@ -5,7 +5,6 @@ import * as model from "../../../model"
 import { router } from "../../../router"
 
 export async function create(request: http.Request, context: Context): Promise<http.Response.Like | any> {
-	console.log("dawdaw")
 	let result: gracely.Result
 	const database = context.collection
 	const user = await request.body
@@ -16,9 +15,7 @@ export async function create(request: http.Request, context: Context): Promise<h
 	else if (gracely.Error.is(database))
 		result = database
 	else {
-		console.log("dawdaw")
-		const response = { d: "Dadw" } //await database.users.store(user)
-		console.log("dawdaw")
+		const response = await database.users.store(user)
 		result = response ? gracely.success.created(response) : gracely.server.databaseFailure()
 	}
 	return result

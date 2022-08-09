@@ -1,6 +1,6 @@
-import "./change"
+import "./addGroup"
 import "./create"
-import "./fetch"
+import "./load"
 import "./list"
 import "./remove"
 import "./replace"
