@@ -1,4 +1,4 @@
-import { Namespace as DoNamespace } from "../DurableObject"
+import { Namespace as DONamespace } from "../DurableObject"
 import { KeyValueStore } from "../KeyValueStore"
 import * as platform from "../platform"
 import { Archive as DBArchive } from "./Archive"
@@ -34,7 +34,7 @@ class DatabaseImplementation<T extends Record<string, any>> {
 	static create<T>(
 		configuration: Required<Database.Configuration>,
 		archive: KeyValueStore<string>,
-		buffer?: DoNamespace
+		buffer?: DONamespace
 	): Database<T> {
 		const result = new DatabaseImplementation(configuration)
 		const silos: Record<string, Database.Silo | undefined> = {}
@@ -48,7 +48,7 @@ class DatabaseImplementation<T extends Record<string, any>> {
 							: c.type == "collection"
 							? DBCollection.open(
 									DBArchive.open(KeyValueStore.partition(archive, name + "/"), { ...configuration, ...c }),
-									DBBuffer.open(DoNamespace.open(buffer, name + "/"), { ...configuration, ...c }),
+									DBBuffer.open(buffer?.partition(name + "/"), { ...configuration, ...c }),
 									{ ...configuration, ...c }
 							  )
 							: undefined),
@@ -70,7 +70,7 @@ export namespace Database {
 			DatabaseImplementation.create<T>(
 				{ ...Configuration.Collection.standard, ...configuration },
 				a,
-				DoNamespace.open(buffer)
+				DONamespace.open(buffer)
 			)
 		)
 	}

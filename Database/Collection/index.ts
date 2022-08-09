@@ -20,7 +20,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		return new Collection(this.archive, this.buffer, this.configuration, this.partitions + partition.join("/") + "/")
 	}
 	load(id: Identifier): Promise<(T & Document) | undefined>
-	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
+	load(ids?: Identifier[]): Promise<((Document & T) | undefined)[]>
 	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
 	async load(
 		selection: Identifier | Identifier[] | Selection
@@ -46,12 +46,12 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		document: (T & Partial<Document>) | (T & Partial<Document>)[]
 	): Promise<(T & Partial<Document>) | undefined | ((T & Document) | undefined)[]> {
 		return !Array.isArray(document)
-			? {
+			? await this.buffer.store({
 					...document,
 					id: document.id ?? Identifier.generate(),
 					created: document.created ?? isoly.DateTime.now(),
 					changed: isoly.DateTime.now(),
-			  }
+			  })
 			: await Promise.all(document.map(v => this.store(v)))
 	}
 	async remove(id: Identifier): Promise<boolean>

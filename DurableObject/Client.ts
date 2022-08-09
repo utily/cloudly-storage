@@ -18,7 +18,7 @@ export class Client {
 		const request = http.Request.create({
 			url: `https://origin${path}`,
 			method: method,
-			header: header ?? { contentType: "application/json" },
+			header: { ...(body ? { contentType: "application/json" } : {}), ...(header ? header : {}) },
 			body,
 		})
 		const response = http.Response.from(await this.stub.fetch(request.url.toString(), await http.Request.to(request)))
