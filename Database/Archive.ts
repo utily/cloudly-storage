@@ -61,22 +61,36 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		} else if (Array.isArray(selection))
 			result = await Promise.all(selection.map(id => this.load(id)))
 		else {
-			const response = !selection
-				? []
-				: "changed" in selection
-				? []
-				: "cursor" in selection
-				? await this.backend.doc.list({ cursor: selection.cursor })
-				: "created" in selection
-				? []
-				: []
-			const r: (Document & T)[] & { cursor?: string } = [] //response.map(item => ({ ...item.value, ...item.meta }))
-			if (response.cursor)
-				r.cursor = response.cursor
-			result = r
+			result = await this.list(selection)
 		}
 		return result
 	}
+	private async list(selection: Selection): Promise<(Document & T)[] & { cursor?: string }> {
+		const dates: isoly.Date[] = []
+		if (selection && "created" in selection && selection.created.start <= selection.created.end) {
+			dates.push(selection.created.start)
+			while (dates.slice(-1)[0] < selection.created.end) {
+				dates.push(isoly.Date.next(selection.created.end))
+			}
+		}
+		const limit = selection?.limit ?? 1000
+		const reponseList = []
+		let cursor
+		for (const date of dates) {
+			const response = await this.backend.doc.list({ prefix: this.partitions + date, limit: selection?.limit ?? limit })
+			reponseList.push(...response)
+			if ((cursor = response.cursor))
+				break
+		}
+		const result: (Document & T)[] & { cursor?: string } = reponseList.map(item => ({
+			...item.value,
+			...(item.meta ?? {}),
+		})) as (Document & T)[] & { cursor?: string }
+		if (cursor)
+			result.cursor = cursor
+		return result
+	}
+
 	store(document: T & Partial<Document>): Promise<(T & Document) | undefined>
 	store(documents: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
 	async store(
