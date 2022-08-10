@@ -25,7 +25,7 @@ class DatabaseImplementation<T extends Record<string, any>> {
 			Object.defineProperty(result, name, {
 				get: () =>
 					silos[name] ??
-					(silos[name] = (this as any as Database<T>)[name] as any as Database.Silo).partition(...partition),
+					(silos[name] = ((this as any as Database<T>)[name] as any as Database.Silo).partition(...partition)),
 			})
 		)
 		return result as Database<S>
