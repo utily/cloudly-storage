@@ -1,5 +1,5 @@
 # Database
-The technology used in this database are Durable Objects and Key Value stores, there exists a low level abstraction aroung these technologies in the DurableObject and KeyValueStore folders respectively.
+The technology used in this database are Durable Objects and Key Value stores, there exists a low level abstraction around these technologies in the DurableObject and KeyValueStore folders respectively.
 
 The main feature is the Database, it contains Silos which are either Archives or Collections. Archives implement the Key Value Store abstraction and utimatly the cloudflare Key value store. 
 - The Archive is able to store, load and remove documents, loading can be done using a prefix or an id of the document.
