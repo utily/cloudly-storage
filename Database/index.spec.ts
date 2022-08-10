@@ -21,9 +21,9 @@ describe("Database", () => {
 		expect(await partitioned?.items.load("abcd")).toEqual(item)
 		expect(await database?.items.load("abcd")).toEqual(item)
 		expect(await emptyPartition?.items.load("abcd")).toEqual(undefined)
-		// expect(await partitioned?.items.load({ created: { start: "2022-07-30", end: "2022-07-30" } })).toEqual([
-		// 	item,
-		// 	item2,
-		// ])
+		expect(await partitioned?.items.load({ created: { start: "2022-07-30", end: "2022-07-30" } })).toEqual([
+			item,
+			item2,
+		])
 	})
 })
