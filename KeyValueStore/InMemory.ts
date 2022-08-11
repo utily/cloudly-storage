@@ -1,4 +1,5 @@
 import * as isoly from "isoly"
+import { Selection } from "Database/Selection"
 import { KeyValueStore } from "./KeyValueStore"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
@@ -37,10 +38,13 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 	> {
 		const o = ListOptions.get(options)
 		const now = isoly.DateTime.now()
+		const start = Object.keys(this.data).findIndex(key => key == o.cursor)
 		const result = (
-			Object.entries(this.data).filter(
-				([key, user]) => user && (!o.prefix || key.startsWith(o.prefix)) && (!user.expires || user.expires >= now)
-			) as unknown as [string, user<V, string>][]
+			Object.entries(this.data)
+				.slice(start == -1 ? 0 : start, -1)
+				.filter(
+					([key, user]) => user && (!o.prefix || key.startsWith(o.prefix)) && (!user.expires || user.expires >= now)
+				) as unknown as [string, user<V, string>][]
 		)
 			.map<ListItem<V, M>>(([key, user]) => ({
 				key,
@@ -48,7 +52,7 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 				meta: user.meta ? (JSON.parse(user.meta) as M) : undefined,
 			}))
 			.map<ListItem<V, M>>(o.values ? user => user : ({ value: disregard, ...user }) => user)
-		return result
+		return Object.defineProperty(result.slice(0, Selection.limit), "cursor", result.slice(-1)[0])
 	}
 	private static opened: Record<string, InMemory> = {}
 	static open<V extends string | ArrayBuffer | ReadableStream = string, M = Record<string, any>>(
