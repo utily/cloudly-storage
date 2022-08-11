@@ -50,7 +50,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	}
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
-	load(selection: Selection): Promise<(Document & T)[] & { cursor?: string }>
+	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
 	async load(
 		selection: Identifier | Identifier[] | Selection
 	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })> {
@@ -66,22 +66,21 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		return result
 	}
 	private async list(selection: Selection): Promise<(Document & T)[] & { cursor?: string }> {
-		const dates: isoly.Date[] = []
-		if (selection && "created" in selection && selection.created.start <= selection.created.end) {
-			dates.push(selection.created.start)
-			while (dates.slice(-1)[0] < selection.created.end) {
-				dates.push(isoly.Date.next(dates.slice(-1)[0]))
-			}
-		}
+		selection = selection?.cursor ? { ...selection, ...Selection.Locus.parse(selection?.cursor) } : selection
+		const dates: isoly.Date[] = Selection.extractPrefix(selection)
 		const reponseList = []
 		let limit = selection?.limit ?? 1000
 		let locus: Selection.Locus | undefined
 		for (const date of dates) {
-			const response = await this.backend.doc.list({ prefix: this.partitions + date, limit })
-			limit -= reponseList.length
+			const response = await this.backend.doc.list({
+				prefix: this.partitions + date,
+				limit,
+				cursor: selection?.cursor,
+			})
+			limit -= response.length
 			reponseList.push(...response)
 			if (response.cursor) {
-				locus = Selection.Locus.generate(selection)
+				locus = Selection.Locus.generate({ ...(selection ?? {}), cursor: response.cursor })
 				break
 			}
 		}
