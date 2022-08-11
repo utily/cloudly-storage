@@ -5,10 +5,10 @@ import * as model from "../model"
 
 type Layout = { collection: { users: model.User } }
 
-export type Database = storage.Database<Layout>
+export type Collection = storage.Database<Layout>
 
-export namespace Database {
-	export function create(environment: Environment): Database | gracely.Error {
+export namespace Collection {
+	export function create(environment: Environment): Collection | gracely.Error {
 		return (
 			storage.Database.create<Layout>(
 				{
