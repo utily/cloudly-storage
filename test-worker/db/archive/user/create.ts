@@ -15,6 +15,7 @@ export async function create(request: http.Request, context: Context): Promise<h
 	else if (gracely.Error.is(database))
 		result = database
 	else {
+		console.log("totlore")
 		const response = await database.users.store(user)
 		result = response ? gracely.success.created(response) : gracely.server.databaseFailure()
 	}
