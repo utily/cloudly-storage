@@ -1,13 +1,14 @@
+import * as cryptly from "cryptly"
 import * as gracely from "gracely"
 import * as isoly from "isoly"
 import * as http from "cloudly-http"
 import { Context } from "../../../Context"
-import * as model from "../../../model"
 import { router } from "../../../router"
 
 export async function list(request: http.Request, context: Context): Promise<http.Response.Like | any> {
-	let result: model.User[] | any | gracely.Error
+	let result: (gracely.Result & { header: Record<string, string | undefined> }) | gracely.Error
 	const authorization = request.header.authorization
+	const cursor = request.header.locus
 	const start = request.search.start
 	const end = request.search.end
 	const limit = request.search.limit ? +request.search.limit : undefined
@@ -26,14 +27,18 @@ export async function list(request: http.Request, context: Context): Promise<htt
 			"isoly.Date | undefined",
 			"end needs to be an isoly.Date if defined."
 		)
-	else if (limit && !Number.isNaN(+limit))
+	else if (limit && Number.isNaN(limit))
 		result = gracely.client.invalidQueryArgument("limit", "number", "limit needs to be a number if defined.")
 	else if (gracely.Error.is(database))
 		result = database
+	else if (cursor && !cryptly.Identifier.is(cursor))
+		result = gracely.client.malformedHeader("locus", "If defined locus must be a cryptly.Identifier.")
 	else {
-		const selection = start && end ? { limit, created: { start, end } } : undefined
-		console.log("yolo")
-		result = await database.users.load(selection)
+		const selection =
+			start && end ? { cursor, limit, created: { start, end } } : { cursor, limit, created: { start: "", end: "" } }
+		const listed = await database.users.load(selection)
+		const response = gracely.success.ok(listed) ?? gracely.server.databaseFailure()
+		result = { ...response, header: { ...response.header, locus: listed.cursor } }
 	}
 	return result
 }

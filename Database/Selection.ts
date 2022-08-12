@@ -12,6 +12,7 @@ export type Selection =
 			| {
 					created: isoly.DateRange
 			  }
+			| undefined
 	  ))
 	| undefined
 
