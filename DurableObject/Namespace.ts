@@ -5,6 +5,7 @@ export class Namespace {
 	#objects: Record<string, Client | undefined> = {}
 	private constructor(private readonly backend: platform.DurableObjectNamespace, readonly partitions = "") {}
 	open(name: string): Client {
+		console.log("this.partitions + name: ", this.partitions + name)
 		return (
 			this.#objects[name] ??
 			(this.#objects[name] = new Client(this.backend.get(this.backend.idFromName(this.partitions + name))))

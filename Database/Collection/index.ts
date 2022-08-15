@@ -17,7 +17,12 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		super()
 	}
 	partition(...partition: string[]): Collection<T> {
-		return new Collection(this.archive, this.buffer, this.configuration, this.partitions + partition.join("/") + "/")
+		return new Collection(
+			this.archive.partition(this.partitions + partition.join("/")),
+			this.buffer.partition(this.partitions + partition.join("/")),
+			this.configuration,
+			this.partitions + partition.join("/") + "/"
+		)
 	}
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids?: Identifier[]): Promise<((Document & T) | undefined)[]>

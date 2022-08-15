@@ -26,7 +26,7 @@ bindings = [
 
 [build.upload]
 format = "modules"
-main = "./_worker.js"
+main = "./_worker.mjs"
 
 [dev]
 port = 7212
@@ -39,3 +39,8 @@ kv_namespaces = [
   { binding = "kvStore", id = "f783c34180ed4dbe852fc706f10f0c9d", preview_id = "f783c34180ed4dbe852fc706f10f0c9d" }
 ]
 
+[env.development.durable_objects]
+bindings = [
+	{ name = "DatabaseBuffer", class_name = "Backend" },
+	{ name = "Do", class_name = "Do" },
+]

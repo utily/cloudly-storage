@@ -15,6 +15,7 @@ export class Client {
 		body?: any,
 		header?: http.Request.Header
 	): Promise<R | gracely.Error> {
+		console.log("path", `https://origin${path}`)
 		const request = http.Request.create({
 			url: `https://origin${path}`,
 			method: method,

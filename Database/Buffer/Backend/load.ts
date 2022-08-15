@@ -13,18 +13,23 @@ export async function load(request: http.Request, context: Context): Promise<htt
 		result = state
 	else {
 		try {
-			result = gracely.success.ok(
-				await (Array.isArray(ids)
-					? state.storage.get(ids)
-					: typeof ids == "string" && ids
-					? state.storage.get(ids)
-					: Object.fromEntries((await state.storage.list()).entries()))
-			)
+			let response
+			switch (typeof ids) {
+				case "string":
+					const key = await state.storage
+						.get<{ key: string; changed: string }>(ids)
+						.then(r => (r && r.key ? r.key : undefined))
+					response = key ? await state.storage.get(key) : undefined
+					break
+				default:
+					break
+			}
+			result = gracely.success.ok(response)
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
 		}
 	}
 	return result
 }
-router.add("GET", "/doc", load)
-router.add("GET", "/doc/:id", load)
+router.add("GET", "/buffer", load)
+router.add("GET", "/buffer/:id", load)

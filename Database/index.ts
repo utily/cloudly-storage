@@ -48,7 +48,7 @@ class DatabaseImplementation<T extends Record<string, any>> {
 							: c.type == "collection"
 							? DBCollection.open(
 									DBArchive.open(KeyValueStore.partition(archive, name + "/"), { ...configuration, ...c }),
-									DBBuffer.open(buffer?.partition(name + "/"), { ...configuration, ...c }),
+									DBBuffer.open(buffer?.partition(name), { ...configuration, ...c }),
 									{ ...configuration, ...c }
 							  )
 							: undefined),
