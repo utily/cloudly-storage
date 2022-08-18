@@ -8,7 +8,8 @@ import { router } from "../../../router"
 export async function list(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: (gracely.Result & { header: Record<string, string | undefined> }) | gracely.Error
 	const authorization = request.header.authorization
-	const cursor = request.header.locus
+	const locus: { locus: string } | undefined =
+		typeof request.header.locus == "string" ? { locus: request.header.locus } : undefined
 	const start = request.search.start
 	const end = request.search.end
 	const limit = request.search.limit ? +request.search.limit : undefined
@@ -31,14 +32,14 @@ export async function list(request: http.Request, context: Context): Promise<htt
 		result = gracely.client.invalidQueryArgument("limit", "number", "limit needs to be a number if defined.")
 	else if (gracely.Error.is(database))
 		result = database
-	else if (cursor && !cryptly.Identifier.is(cursor))
+	else if (locus && !cryptly.Identifier.is(locus.locus))
 		result = gracely.client.malformedHeader("locus", "If defined locus must be a cryptly.Identifier.")
 	else {
-		const selection =
-			start && end ? { cursor, limit, created: { start, end } } : { cursor, limit, created: { start: "", end: "" } }
-		const listed = await database.users.load(selection)
+		const listed = await database.users.load(
+			locus ? locus : start && end ? { created: { start, end }, limit } : { limit }
+		)
 		const response = gracely.success.ok(listed) ?? gracely.server.databaseFailure()
-		result = { ...response, header: { ...response.header, locus: listed.cursor } }
+		result = { ...response, header: { ...response.header, locus: listed.locus } }
 	}
 	return result
 }

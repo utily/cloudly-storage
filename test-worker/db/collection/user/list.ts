@@ -13,7 +13,7 @@ export async function list(request: http.Request, context: Context): Promise<htt
 	else if (gracely.Error.is(database))
 		result = database
 	else
-		result = await database.users.load()
+		result = await database.users.partition("test").load()
 	return result
 }
 router.add("GET", "/db/collection/user", list)

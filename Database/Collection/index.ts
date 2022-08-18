@@ -39,8 +39,11 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				result = "changed" in selection ? [] : "cursor" in selection ? [] : "created" in selection ? [] : []
 				break
 			case "undefined":
-				result = await this.buffer.load()
-				// result.cursor = "cont"
+				const buffer = await this.buffer.load()
+				console.log("buffer: ", JSON.stringify(buffer, null, 2))
+				const archive = await this.archive.load()
+				console.log("archive: ", JSON.stringify(archive, null, 2))
+				result = [...archive, ...(buffer ?? [])]
 				break
 		}
 		return result

@@ -45,7 +45,11 @@ export class Buffer<T = any> {
 				response = await this.backend.open(this.partitions).post<Loaded<T>>(`/buffer`, { ids: selection })
 				break
 			case "undefined":
-				response = await this.backend.open(this.partitions).get<Loaded<T>>(`/buffer`)
+				response = await Promise.all(
+					Configuration.Collection.get(this.configuration).map(shard =>
+						this.backend.open(shard).get<Loaded<T>>(`/buffer`)
+					)
+				).then(r => r.flatMap(e => (gracely.Error.is(e) ? [] : e)))
 				break
 			default:
 				break

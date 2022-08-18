@@ -1,5 +1,6 @@
 import * as gracely from "gracely"
 import * as http from "cloudly-http"
+import { DurableObjectState } from "../../../platform"
 import { Context } from "./Context"
 import { router } from "./router"
 
@@ -16,15 +17,7 @@ export async function store(request: http.Request, context: Context): Promise<ht
 		result = state
 	else {
 		try {
-			const store = await state.storage.put(key, document)
-			const getId = await state.storage.get<{ key: string; changed: string }>(document.id)
-			getId && getId.changed && (await state.storage.delete(getId.changed))
-			const changed = await state.storage.put(`changed/${document.changed}/${document.id}`, key)
-			const id = await state.storage.put("id/" + document.id, {
-				key,
-				changed: `changed/${document.changed}/${document.id}`,
-			})
-			await Promise.all([store, getId, changed, id])
+			await put(key, document, state)
 			result = gracely.success.created(document)
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
@@ -33,3 +26,38 @@ export async function store(request: http.Request, context: Context): Promise<ht
 	return result
 }
 router.add("POST", "/buffer/:key", store)
+
+async function put<T extends { id: string } & Record<string, any>>(
+	key: string,
+	document: T,
+	state: DurableObjectState
+): Promise<void> {
+	console.log("put")
+	const idIndexKey = "id/" + document.id
+	await removeChanged(key, state, idIndexKey)
+	const changedKey = `changed/${truncateDateTime(document.changed)}`
+	const changedIndex = await state.storage.get<string>(changedKey)
+	const everything = {
+		[key]: document,
+		[changedKey]: (changedIndex ? changedIndex + "\n" : "") + key,
+		[idIndexKey]: key,
+	}
+	return await state.storage.put(everything)
+}
+
+async function removeChanged(key: string, state: DurableObjectState, idIndexKey: string): Promise<void> {
+	const oldDoc = await state.storage
+		.get<string>(idIndexKey)
+		.then(async r => (r ? await state.storage.get<Record<string, any>>(r) : undefined))
+	const oldChangedIndex = oldDoc ? "changed/" + truncateDateTime(oldDoc.changed) : undefined
+	oldChangedIndex &&
+		(await state.storage
+			.get<string>(oldChangedIndex)
+			.then(async r => (r ? await state.storage.put(oldChangedIndex, r.replace(key + "\n", "")) : undefined)))
+}
+
+// TODO change to new isoly truncate function.
+function truncateDateTime(dateTime: string): string {
+	console.log("dateTime: ", dateTime)
+	return dateTime.substring(0, 19)
+}

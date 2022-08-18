@@ -50,11 +50,11 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	}
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
-	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
+	load(selection?: Selection | { locus: Selection.Locus }): Promise<(Document & T)[] & { locus?: string }>
 	async load(
 		selection: Identifier | Identifier[] | Selection
-	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })> {
-		let result: (T & Document) | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })
+	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { locus?: string })> {
+		let result: (T & Document) | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { locus?: string })
 		if (typeof selection == "string") {
 			const key = await this.getKey(selection)
 			result = key && key.startsWith(this.partitions) ? (await this.backend.doc.get(key))?.value : undefined
@@ -65,31 +65,36 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		}
 		return result
 	}
-	private async list(selection: Selection): Promise<(Document & T)[] & { cursor?: string }> {
-		selection = selection?.cursor ? { ...selection, ...Selection.Locus.parse(selection?.cursor) } : selection
-		const dates: isoly.Date[] = Selection.extractPrefix(selection)
-		const reponseList = []
-		let limit = selection?.limit ?? 1000
+
+	private async list(selection: Selection): Promise<(Document & T)[] & { locus?: string }> {
+		const query: Selection.Query | undefined = Selection.get(selection)
+		const prefixes: string[] = Selection.Query.extractPrefix(query)
+		const reponseList: KeyValueStore.ListItem<T & Document, undefined>[] &
+			{
+				cursor?: string | undefined
+			}[] = []
+		let limit = query?.limit ?? 1000
 		let locus: Selection.Locus | undefined
-		for (const date of dates) {
+		for (const prefix of prefixes) {
 			const response = await this.backend.doc.list({
-				prefix: this.partitions + date,
+				prefix: this.partitions + prefix,
 				limit,
-				cursor: selection?.cursor,
+				cursor: query?.cursor,
 			})
+			console.log("response: ", response)
 			limit -= response.length
 			reponseList.push(...response)
 			if (response.cursor) {
-				locus = Selection.Locus.generate({ ...(selection ?? {}), cursor: response.cursor })
+				locus = Selection.Locus.generate({ ...(query ?? {}), cursor: response.cursor })
 				break
 			}
 		}
-		const result: (Document & T)[] & { cursor?: string } = reponseList.map(item => ({
+		const result = reponseList.map(item => ({
 			...item.value,
 			...(item.meta ?? {}),
-		})) as (Document & T)[] & { cursor?: string }
+		})) as (T & Document)[] & { locus?: string }
 		if (locus)
-			result.cursor = locus
+			result.locus = locus
 		return result
 	}
 

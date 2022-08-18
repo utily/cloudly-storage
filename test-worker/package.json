@@ -52,7 +52,7 @@
 		"build:local": "rollup --config rollup.dev.config.js",
 		"dev": "NODE_ENV=development npm run build",
 		"test": "jest",
-		"forge": "cd .. && npm run build && cd test-worker/ && npm run start",
+		"forge": "cd .. && rm -rf dist/ && npm run build && cd test-worker/ && npm run start",
 		"transpile": "tsc --project tsconfig.test.json",
 		"deploy": "wrangler login && wrangler publish; wrangler logout",
 		"login": "wrangler login",

@@ -7,6 +7,7 @@ import { Collection as DBCollection } from "./Collection"
 import { Configuration as DBConfiguration } from "./Configuration"
 import { Document as DBDocument } from "./Document"
 import { Identifier as DBIdentifier } from "./Identifier"
+export { Selection } from "./Selection"
 import { Silo as DBSilo } from "./Silo"
 
 export { Backend } from "./Buffer"
