@@ -114,6 +114,18 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			await Promise.all(documents.map(this.store.bind(this)))
 		return result
 	}
+	async update(appendee: T & Partial<Document>): Promise<(T & Document) | undefined> {
+		const originalDoc = await (appendee.id ? this.load(appendee.id) : undefined)
+		const updatedDoc = originalDoc ? Document.update(originalDoc, appendee) : undefined
+		const result = await (updatedDoc ? this.store(updatedDoc) : undefined)
+		return result
+	}
+	async append(appendee: T & Partial<Document>): Promise<(T & Document) | undefined> {
+		const originalDoc = await (appendee.id ? this.load(appendee.id) : undefined)
+		const updatedDoc = originalDoc ? Document.append(originalDoc, appendee) : undefined
+		const result = await (updatedDoc ? this.store(updatedDoc) : undefined)
+		return result
+	}
 	remove(id: string): Promise<boolean>
 	remove(ids: string[]): Promise<boolean[]>
 	async remove(ids: string | string[]): Promise<boolean | boolean[]> {
