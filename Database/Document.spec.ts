@@ -54,6 +54,40 @@ describe("merge tests", () => {
 		const appended = Document.append<TestType>(oldObj, newObj)
 		expect(appended).toEqual(result)
 	})
+	it("Compare deep equality", () => {
+		const oldObj = {
+			id: "xpto",
+			name: { firstName: "Thiago", surname: { middleName: "Hlebanja", lastName: "Oliva" } },
+			age: 30,
+			hobbies: ["fencing"],
+			created: "",
+			changed: "",
+		}
+		const newObj = {
+			id: "xpto",
+			name: { firstName: "Thiago", surname: { middleName: "Hlebanja", lastName: "Octaviosson" } },
+			age: 325,
+			hobbies: ["coding", "singing"],
+			created: "",
+			changed: "",
+		}
+
+		// oldObj.name.surname.middleName = "Tavares"
+
+		const expectedObj = {
+			id: "xpto",
+			name: { firstName: "Thiago", surname: { middleName: "Hlebanja", lastName: "Octaviosson" } },
+			age: 325,
+			hobbies: ["fencing", "coding", "singing"],
+			created: "",
+			changed: "",
+		}
+
+		const appended = Document.append<TestType>(oldObj, newObj)
+		console.log(appended)
+
+		expect(appended).toEqual(expectedObj)
+	})
 	it("append object with mismatching object value", () => {
 		const original = { id: "abcd", name: "baboba", created: "", changed: "" }
 		const update = { name: undefined }

@@ -43,8 +43,10 @@ export namespace Document {
 			if (Array.isArray(value)) {
 				Object.defineProperty(result, key, { value: [...(Array.isArray(result[key]) ? result[key] : []), ...value] })
 			} else if (typeof value == "object") {
-				append<typeof result[typeof key]>(result[key], value)
+				Object.defineProperty(result, key, { value: append<typeof result[typeof key]>(result[key], value) })
 			} else {
+				console.log("Key is: ", key)
+				console.log("Value is: ", value)
 				Object.defineProperty(result, key, { value })
 			}
 		}
