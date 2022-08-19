@@ -32,21 +32,25 @@ export class Buffer<T = any> {
 		let response: Loaded<T> | gracely.Error | undefined
 		switch (typeof selection) {
 			case "string":
-				response = await this.backend.open(this.partitions).get<Loaded<T>>(`load/${selection}`)
+				response = await this.backend.open(this.partitions).get<Loaded<T>>(`/doc/${selection}`)
 				break
 			case "object":
-				response = await this.backend.open(this.partitions).get<Loaded<T>>(`load`, { ids: selection })
+				response = await this.backend.open(this.partitions).post<Loaded<T>>(`/doc`, { ids: selection })
+				break
+			case "undefined":
+				response = await this.backend.open(this.partitions).get<Loaded<T>>(`/doc`)
 				break
 			default:
 				break
 		}
 		return gracely.Error.is(response) ? undefined : response
 	}
-	async store(document: T): Promise<T | gracely.Error> {
-		return await this.backend.open(this.partitions).post<T>(`doc`, document)
+	async store(document: T): Promise<(T & Document) | undefined> {
+		const response = await this.backend.open(this.partitions).post<T & Document>(`/doc`, document)
+		return gracely.Error.is(response) ? undefined : response
 	}
 	async remove(id: T): Promise<T | gracely.Error> {
-		return await this.backend.open(this.partitions).delete<T>(`doc/${id}`)
+		return await this.backend.open(this.partitions).delete<T>(`/doc/${id}`)
 	}
 	static open<T extends object = any>(
 		backend: DurableObject.Namespace,

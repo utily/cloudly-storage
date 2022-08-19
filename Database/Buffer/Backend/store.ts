@@ -21,4 +21,4 @@ export async function store(request: http.Request, context: Context): Promise<ht
 	}
 	return result
 }
-router.add("POST", "/doc/item", store)
+router.add("POST", "/doc", store)

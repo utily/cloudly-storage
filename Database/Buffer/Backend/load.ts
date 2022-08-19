@@ -6,8 +6,7 @@ import { router } from "./router"
 export async function load(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: gracely.Result
 	const state = context.state
-	const body = await request.body
-	const ids: string[] | string | undefined = body && request.parameter.id ? undefined : request.parameter.id ?? body
+	const ids: string[] | string | undefined = request.parameter.id ?? (await request.body)
 	if (ids && typeof ids != "string" && ids.some(e => typeof e != "string"))
 		result = gracely.client.unauthorized()
 	else if (gracely.Error.is(state))
@@ -15,11 +14,11 @@ export async function load(request: http.Request, context: Context): Promise<htt
 	else {
 		try {
 			result = gracely.success.ok(
-				Array.isArray(ids)
-					? await state.storage.get(ids)
-					: typeof ids == "string"
-					? await state.storage.get(ids)
-					: Object.fromEntries(await state.storage.list())
+				await (Array.isArray(ids)
+					? state.storage.get(ids)
+					: typeof ids == "string" && ids
+					? state.storage.get(ids)
+					: Object.fromEntries((await state.storage.list()).entries()))
 			)
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
@@ -27,5 +26,5 @@ export async function load(request: http.Request, context: Context): Promise<htt
 	}
 	return result
 }
-router.add("GET", "/doc/:id", load)
 router.add("GET", "/doc", load)
+router.add("GET", "/doc/:id", load)

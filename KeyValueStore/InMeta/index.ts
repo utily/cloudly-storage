@@ -1,4 +1,3 @@
-import { methodNotAllowed } from "gracely/dist/client"
 import * as isoly from "isoly"
 import { Json } from "../Json"
 import { KeyValueStore } from "../KeyValueStore"
