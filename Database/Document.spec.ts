@@ -21,6 +21,12 @@ describe("merge tests", () => {
 		const appended = Document.append<TestType>(old, age)
 		expect(appended).toEqual({ ...old, age: 29 })
 	})
+	it("append object with mismatching object value", () => {
+		const original = { id: "abcd", name: "baboba", created: "", changed: "" }
+		const update = { name: undefined }
+		const updated = Document.update(original, update)
+		expect(updated && !("name" in updated)).toBeTruthy()
+	})
 	it("append array property", () => {
 		const appended = Document.append<TestType>(old, hobbies)
 		expect(appended).toEqual({ ...old, hobbies: [...old.hobbies, ...hobbies.hobbies] })
@@ -54,7 +60,7 @@ describe("merge tests", () => {
 		const appended = Document.append<TestType>(oldObj, newObj)
 		expect(appended).toEqual(result)
 	})
-	it("Compare deep equality", () => {
+	it("Deep update", () => {
 		const oldObj = {
 			id: "xpto",
 			name: { firstName: "Thiago", surname: { middleName: "Hlebanja", lastName: "Oliva" } },
@@ -86,6 +92,64 @@ describe("merge tests", () => {
 		const appended = Document.append<TestType>(oldObj, newObj)
 		console.log(appended)
 
+		expect(appended).toEqual(expectedObj)
+	})
+	it("Add deep new object", () => {
+		const oldObj = {
+			level: 0,
+			id: "bubu",
+			groups: [],
+			name: "James",
+			created: "2022-08-01T15:50:03.649Z",
+			changed: "2022-08-01T15:50:03.649Z",
+			address: {
+				street: "Torsgatan",
+				zip: 7777,
+				region: {
+					city: "Gothenburg",
+					country: "Sweden",
+				},
+			},
+		}
+		const newObj = {
+			level: 0,
+			id: "bubu",
+			groups: ["group1"],
+			name: "James",
+			created: "2022-08-01T15:50:03.649Z",
+			changed: "2022-08-01T15:50:03.649Z",
+			address: {
+				street: "Torsgatan",
+				zip: 7777,
+				region: {
+					city: "Uppsala",
+					country: "Sweden",
+					county: "Uppland",
+				},
+			},
+		}
+		const expectedObj = {
+			level: 0,
+			id: "bubu",
+			groups: ["group1"],
+			name: "James",
+			created: "2022-08-01T15:50:03.649Z",
+			changed: "2022-08-01T15:50:03.649Z",
+			address: {
+				street: "Torsgatan",
+				zip: 7777,
+				region: {
+					city: "Uppsala",
+					country: "Sweden",
+					county: "Uppland",
+				},
+			},
+		}
+		const appended = Document.append<TestType>(oldObj, newObj)
+		console.log(appended)
+		console.log(appended && appended["address"]["region"]["county"])
+		console.log(appended && appended["address"]["region"].county)
+		console.log(appended && appended.county)
 		expect(appended).toEqual(expectedObj)
 	})
 	it("append object with mismatching object value", () => {

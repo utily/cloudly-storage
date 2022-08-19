@@ -32,14 +32,22 @@ export namespace Document {
 		originalDoc: T,
 		appendee: Partial<T>
 	): T | undefined {
-		const result = { ...originalDoc }
+		const result: T = { ...originalDoc }
 		for (const [key, value] of Object.entries(appendee)) {
 			if (Array.isArray(value)) {
-				Object.defineProperty(result, key, { value: [...(Array.isArray(result[key]) ? result[key] : []), ...value] })
+				Object.defineProperty(result, key, {
+					value: [...(Array.isArray(result[key]) ? result[key] : []), ...value],
+					enumerable: true,
+					writable: true,
+				})
 			} else if (typeof value == "object") {
-				Object.defineProperty(result, key, { value: append<typeof result[typeof key]>(result[key], value) })
+				Object.defineProperty(result, key, {
+					value: append<typeof result[typeof key]>(result[key], value),
+					enumerable: true,
+					writable: true,
+				})
 			} else {
-				Object.defineProperty(result, key, { value })
+				Object.defineProperty(result, key, { value, enumerable: true, writable: true })
 			}
 		}
 		return result
