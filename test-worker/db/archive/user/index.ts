@@ -1,6 +1,8 @@
 import "./addGroup"
+import "./append"
 import "./create"
 import "./load"
 import "./list"
 import "./remove"
 import "./replace"
+import "./update"

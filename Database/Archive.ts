@@ -92,7 +92,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			result.cursor = locus
 		return result
 	}
-
 	store(document: T & Partial<Document>): Promise<(T & Document) | undefined>
 	store(documents: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
 	async store(
@@ -106,24 +105,27 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				!Document.is(documents) || (await this.getKey(documents.id)) != this.generateKey(documents)
 					? { ...documents, ...(await this.allocateId(documents)) }
 					: undefined
-			if (Document.is(document, this.configuration.idLength))
-				this.backend.doc.set(this.generateKey(document), (result = document))
-			else
-				result = undefined
+			result = document && (await this.set(document))
 		} else
 			await Promise.all(documents.map(this.store.bind(this)))
 		return result
 	}
 	async update(appendee: T & Partial<Document>): Promise<(T & Document) | undefined> {
 		const originalDoc = await (appendee.id ? this.load(appendee.id) : undefined)
-		const updatedDoc = originalDoc ? Document.update(originalDoc, appendee) : undefined
-		const result = await (updatedDoc ? this.store(updatedDoc) : undefined)
+		const updatedDoc = originalDoc && Document.update(originalDoc, appendee)
+		const result = updatedDoc && (await this.set(updatedDoc))
 		return result
 	}
 	async append(appendee: T & Partial<Document>): Promise<(T & Document) | undefined> {
 		const originalDoc = await (appendee.id ? this.load(appendee.id) : undefined)
-		const updatedDoc = originalDoc ? Document.append(originalDoc, appendee) : undefined
-		const result = await (updatedDoc ? this.store(updatedDoc) : undefined)
+		const updatedDoc = originalDoc && Document.append(originalDoc, appendee)
+		const result = updatedDoc && (await this.set(updatedDoc))
+		return result
+	}
+	private async set(document: T & Partial<Document>): Promise<(T & Document) | undefined> {
+		let result: (T & Document) | undefined = undefined
+		if (Document.is(document, this.configuration.idLength))
+			await this.backend.doc.set(this.generateKey(document), (result = document))
 		return result
 	}
 	remove(id: string): Promise<boolean>

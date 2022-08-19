@@ -56,16 +56,10 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			: await Promise.all(document.map(v => this.store(v)))
 	}
 	async update(appendee: T & Partial<Document>): Promise<(T & Document) | undefined> {
-		const originalDoc = await (appendee.id ? this.load(appendee.id) : undefined)
-		const updatedDoc = originalDoc ? Document.update(originalDoc, appendee) : undefined
-		const result = await (updatedDoc ? this.store(updatedDoc) : undefined)
-		return result
+		return undefined //todo
 	}
 	async append(appendee: T & Partial<Document>): Promise<(T & Document) | undefined> {
-		const originalDoc = await (appendee.id ? this.load(appendee.id) : undefined)
-		const updatedDoc = originalDoc ? Document.append(originalDoc, appendee) : undefined
-		const result = await (updatedDoc ? this.store(updatedDoc) : undefined)
-		return result
+		return undefined //todo
 	}
 	async remove(id: Identifier): Promise<boolean>
 	async remove(id: Identifier[]): Promise<boolean[]>
