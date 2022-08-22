@@ -34,7 +34,7 @@ describe("merge tests", () => {
 	it("append object with different array", () => {
 		const oldObj = {
 			id: "xpto",
-			name: { first: "Magnus", last: "Dunno" },
+			name: { first: "TestName", last: "TestLast" },
 			age: 30,
 			hobbies: ["fencing"],
 			created: "",
@@ -42,7 +42,7 @@ describe("merge tests", () => {
 		}
 		const newObj = {
 			id: "xpto",
-			name: { first: "Magnus", last: "Dunno" },
+			name: { first: "TestName", last: "TestLast" },
 			age: 325,
 			hobbies: ["coding", "singing"],
 			created: "",
@@ -50,7 +50,7 @@ describe("merge tests", () => {
 		}
 		const result = {
 			id: "xpto",
-			name: { first: "Magnus", last: "Dunno" },
+			name: { first: "TestName", last: "TestLast" },
 			age: 325,
 			hobbies: ["fencing", "coding", "singing"],
 			created: "",
@@ -63,7 +63,7 @@ describe("merge tests", () => {
 	it("Deep update", () => {
 		const oldObj = {
 			id: "xpto",
-			name: { firstName: "Thiago", surname: { middleName: "Hlebanja", lastName: "Oliva" } },
+			name: { firstName: "TestName", surname: { middleName: "TestMiddle", lastName: "TestLast" } },
 			age: 30,
 			hobbies: ["fencing"],
 			created: "",
@@ -71,18 +71,16 @@ describe("merge tests", () => {
 		}
 		const newObj = {
 			id: "xpto",
-			name: { firstName: "Thiago", surname: { middleName: "Hlebanja", lastName: "Octaviosson" } },
+			name: { firstName: "TestName", surname: { middleName: "TestMiddle", lastName: "TestLast" } },
 			age: 325,
 			hobbies: ["coding", "singing"],
 			created: "",
 			changed: "",
 		}
 
-		// oldObj.name.surname.middleName = "Tavares"
-
 		const expectedObj = {
 			id: "xpto",
-			name: { firstName: "Thiago", surname: { middleName: "Hlebanja", lastName: "Octaviosson" } },
+			name: { firstName: "TestName", surname: { middleName: "TestMiddle", lastName: "TestLast" } },
 			age: 325,
 			hobbies: ["fencing", "coding", "singing"],
 			created: "",
@@ -103,10 +101,10 @@ describe("merge tests", () => {
 			created: "2022-08-01T15:50:03.649Z",
 			changed: "2022-08-01T15:50:03.649Z",
 			address: {
-				street: "Torsgatan",
+				street: "ElizabethRoad",
 				zip: 7777,
 				region: {
-					city: "Gothenburg",
+					city: "Lund",
 					country: "Sweden",
 				},
 			},
@@ -119,7 +117,7 @@ describe("merge tests", () => {
 			created: "2022-08-01T15:50:03.649Z",
 			changed: "2022-08-01T15:50:03.649Z",
 			address: {
-				street: "Torsgatan",
+				street: "ElizabethRoad",
 				zip: 7777,
 				region: {
 					city: "Uppsala",
@@ -136,7 +134,7 @@ describe("merge tests", () => {
 			created: "2022-08-01T15:50:03.649Z",
 			changed: "2022-08-01T15:50:03.649Z",
 			address: {
-				street: "Torsgatan",
+				street: "ElizabethRoad",
 				zip: 7777,
 				region: {
 					city: "Uppsala",
