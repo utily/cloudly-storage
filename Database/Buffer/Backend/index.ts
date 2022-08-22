@@ -1,67 +1,105 @@
 import * as isoly from "isoly"
 import "./load"
 import "./store"
-import * as storage from "../../../Database"
+import { Archive } from "../../../Database/Archive"
+import { Configuration } from "../../../Database/Configuration"
+import { Document } from "../../../Database/Document"
+import { KeyValueStore } from "../../../KeyValueStore"
 import { DurableObjectState } from "../../../platform"
 import { Key } from "../../Key"
 import { Context } from "./Context"
 import { Environment } from "./Environment"
-import { Portion } from "./Portion"
+import { Storage } from "./Storage"
 
 export class Backend {
-	private constructor(private readonly state: DurableObjectState, private environment: Environment) {}
+	alarmTime = 10 * 1000
+	partitions?: string[]
+	idLength?: number
+	private constructor(private readonly state: DurableObjectState, private environment: Environment) {
+		this.state.blockConcurrencyWhile(async () => {
+			this.partitions = await this.state.storage.get("partitions")
+			!!(await this.state.storage.getAlarm()) ||
+				(await (async () => {
+					await this.state.storage.setAlarm(this.alarmTime)
+					return true
+				})())
+		})
+	}
 
 	async fetch(request: Request): Promise<Response> {
-		!(await this.state.storage.getAlarm()) && (await this.state.storage.setAlarm(Date.now() + 20 * 1000))
+		this.state.waitUntil(this.configuration(request))
 		return await Context.handle(request, { ...(this.environment ?? {}), state: this.state })
 	}
 
+	async configuration(request: Request): Promise<void> {
+		const idLength = +(request.headers.get("length") ?? NaN)
+		this.idLength = Number.isNaN(idLength) ? undefined : idLength
+		const partitions = request.headers.get("partitions")?.split("/").slice(0, -1)
+		!this.partitions &&
+			!(this.partitions = await this.state.storage.get("partitions")) &&
+			partitions &&
+			this.state.waitUntil(this.state.storage.put("partitions", (this.partitions = partitions)))
+	}
+
 	async alarm(): Promise<void> {
-		const archiveTime = 20 * 1000 //after settlement
+		const archiveTime = 12 * 1000 //after settlement
 		const archiveThreshold = isoly.DateTime.create(Date.now() - archiveTime, "milliseconds").substring(0, 19) //replace by new isoly function
-		await this.remove()
-		await this.archive(archiveThreshold) // Should be set by some config
-		const snooze = Date.now() + archiveTime - 10 * 1000
+		const changed: [string, string][] = Array.from(
+			(await this.state.storage.list<string>({ prefix: "changed/" })).entries()
+		)
+		const archived = await this.state.storage.get<string>("archived")
+		await this.removeArchived(changed, archived)
+		await this.archive(archiveThreshold, changed, archived) // Should be set by some config
+		const snooze = Date.now() + archiveTime - 7 * 1000
 		await this.state.storage.setAlarm(snooze)
 	}
 
-	private async archive(threshold: isoly.DateTime): Promise<boolean> {
-		const keyToBeStored = await this.getStaleKeys(threshold)
-		await this.store(keyToBeStored)
-		await this.state.storage.put("archived", threshold)
-		return true
+	private async archive(threshold: isoly.DateTime, changed: [string, string][], archived?: string): Promise<boolean> {
+		const keyToBeStored = await this.getStaleKeys(threshold, changed, archived)
+		const stored = keyToBeStored.length > 0 ? await this.store(keyToBeStored) : 0
+		stored > 0 && (await this.state.storage.put("archived", threshold))
+		return true // TODO what to do if everything wasn't archived.
 	}
-	private async remove(): Promise<any> {
-		const changed: Map<string, string> = await this.state.storage.list<string>({ prefix: "changed/" })
+	private async removeArchived(changed: [string, string][], archived?: string): Promise<any> {
 		const promises = []
-		for (const [key, value] of changed.entries()) {
-			if (Key.getLast(key) < ((await this.state.storage.get<string>("archived")) ?? "")) {
+		for (const [key, value] of changed) {
+			if (Key.getLast(key) < (archived ?? "")) {
 				const docKeys = value.split("\n")
 				const idIndexKey = docKeys.map(e => "id/" + Key.getLast(e))
-				promises.push(Portion.remove([...docKeys, ...idIndexKey, key], this.state))
+				promises.push(Storage.open(this.state)?.remove([...docKeys, ...idIndexKey, key]))
 			}
 		}
 		return await Promise.all(promises)
 	}
 
-	private async store(keysToBeStored: string[]) {
-		const listed = Object.fromEntries((await this.state.storage.list<any>({ prefix: "doc" })).entries())
-		const db = storage.Database.create<{ archive: { yolo: any } }>(
-			{
-				silos: { users: { type: "archive", idLength: 4, retainChanged: true } },
-			},
-			this.environment.archive
+	private async store(keysToBeStored: string[]): Promise<number> {
+		// const listed = Object.fromEntries((await this.state.storage.list<any>({ prefix: "doc" })).entries())
+		const listed: Document[] | undefined = Object.values(
+			(await Storage.open(this.state)?.load<Document>(keysToBeStored)) ?? {}
 		)
-		const stored = await Promise.all(keysToBeStored.map(key => db?.yolo?.store(listed[key])))
-		stored.length > 0 && console.log("alarm stored: ", JSON.stringify(stored, null, 2))
+		const partition = this.partitions ?? (await this.state.storage.get("partitions")) ?? []
+
+		const KV = KeyValueStore.open(this.environment.archive, "text")
+		const archive = Archive.open(
+			partition.length > 0 ? KeyValueStore.partition(KV, partition.splice(0, 1) + "/") : KV,
+			{
+				...Configuration.Collection.standard,
+				...(this.idLength ? { idLength: this.idLength as 4 } : {}),
+			}
+		)
+		const partitioned = partition.length > 0 ? archive.partition(...partition) : archive
+
+		const stored = listed.length > 0 ? await partitioned.store(listed) : 0
+		console.log("partitioned: ", await partitioned.load())
+		return stored ? 1 : 0
 	}
 
-	private async getStaleKeys(threshold: string) {
-		const changedList = Object.fromEntries((await this.state.storage.list<string>({ prefix: "changed" })).entries())
-		const keyToBeStored = Object.entries(changedList).reduce(
-			(result, [key, value]) => [...(Key.getAt(key, 1) < threshold ? value.split("\n") : []), ...result],
-			[]
-		)
-		return keyToBeStored
+	private async getStaleKeys(threshold: string, changes: [string, string][], archived?: string): Promise<string[]> {
+		const result: string[] = []
+		for (const [key, value] of changes) {
+			const keyDate = Key.getAt(key, 1)
+			result.push(...((archived ?? "") < keyDate && keyDate < threshold ? value.split("\n") : []))
+		}
+		return result
 	}
 }

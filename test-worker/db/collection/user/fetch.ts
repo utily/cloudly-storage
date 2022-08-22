@@ -14,7 +14,7 @@ export async function fetch(request: http.Request, context: Context): Promise<ht
 	else if (gracely.Error.is(database))
 		result = database
 	else {
-		const response = await database.users.partition("test").load(id)
+		const response = await database.users.load(id)
 		result =
 			gracely.success.ok(response) ??
 			gracely.client.invalidPathArgument("user/:id", "id", "string", "Unable to find user with that identifier.")

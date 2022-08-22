@@ -18,17 +18,25 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 	async set(key: string, value?: undefined): Promise<void>
 	async set(key: string, value: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void>
 	async set(key: string, value?: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void> {
+		console.log("inMemory.set.key: ", key)
+		console.log("inMemory.set.value: ", JSON.stringify(value, null, 2))
+		console.log("inMemory.set.options: ", JSON.stringify(options, null, 2))
 		if (value == undefined)
 			delete this.data[key]
 		else
 			this.data[key] = { value, ...options, meta: options?.meta && JSON.stringify(options.meta) }
 	}
 	async get(key: string): Promise<{ value: V; meta?: M } | undefined> {
+		console.log("inMemory.get.key: ", key)
+		console.log("this.data", JSON.stringify(this.data, null, 2))
 		let result = this.data[key]
 		if (result != undefined)
 			if (result.expires && result.expires < isoly.DateTime.now())
 				result = undefined
-		return result && (({ expires: disregard, meta, ...user }) => ({ ...user, meta: meta && JSON.parse(meta) }))(result)
+		const realResult =
+			result && (({ expires: disregard, meta, ...user }) => ({ ...user, meta: meta && JSON.parse(meta) }))(result)
+		console.log("inMeta.get.realResult")
+		return realResult
 	}
 	async list(options?: string | ListOptions): Promise<
 		ListItem<V, M>[] & {

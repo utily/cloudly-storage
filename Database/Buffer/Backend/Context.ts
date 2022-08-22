@@ -3,16 +3,16 @@ import * as http from "cloudly-http"
 import { DurableObjectState } from "../../../platform"
 import { Environment } from "./Environment"
 import { router } from "./router"
+import { Storage } from "./Storage"
 
 export class Context {
-	#state?: DurableObjectState | gracely.Error
+	#state?: DurableObjectState
 	get state() {
-		return (
-			this.#state ??
-			(this.#state = this.environment.state
-				? this.environment.state
-				: gracely.server.misconfigured("databaseStore", "KeyValueNamespace missing."))
-		)
+		return this.#state ?? (this.#state = this.environment.state)
+	}
+	#storage?: Storage
+	get storage() {
+		return this.#storage ?? (this.#storage = Storage.open(this.environment.state))
 	}
 	constructor(public readonly environment: Environment) {}
 	static async handle(request: Request, environment: Environment): Promise<Response> {

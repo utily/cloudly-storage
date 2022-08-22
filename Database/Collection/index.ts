@@ -17,9 +17,10 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		super()
 	}
 	partition(...partition: string[]): Collection<T> {
+		console.log("partition.partition: ", partition)
 		return new Collection(
-			this.archive.partition(this.partitions + partition.join("/")),
-			this.buffer.partition(this.partitions + partition.join("/")),
+			this.archive.partition(partition.join("/")),
+			this.buffer.partition(partition.join("/")),
 			this.configuration,
 			this.partitions + partition.join("/") + "/"
 		)
@@ -33,14 +34,20 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		let result: ((T & Document) | undefined) | ((Document & T)[] & { cursor?: string }) | undefined
 		switch (typeof selection) {
 			case "string":
-				result = (await this.buffer.load(selection)) ?? (await this.archive.load(selection))
+				const bufferDoc = await this.buffer.load(selection)
+				const archiveDoc = await this.archive.load(selection)
+				console.log("bufferDoc: ", JSON.stringify(bufferDoc))
+				console.log("archiveDoc: ", JSON.stringify(archiveDoc))
+				result = bufferDoc ? bufferDoc : archiveDoc
 				break
 			case "object":
 				result = "changed" in selection ? [] : "cursor" in selection ? [] : "created" in selection ? [] : []
 				break
 			case "undefined":
 				const buffer = await this.buffer.load()
+				console.log("buffer.list()", buffer)
 				const archive = await this.archive.load()
+				console.log("archive.list()", archive)
 				result = [...archive, ...buffer]
 				break
 		}
@@ -51,6 +58,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 	async store(
 		document: (T & Partial<Document>) | (T & Partial<Document>)[]
 	): Promise<(T & Partial<Document>) | undefined | ((T & Document) | undefined)[]> {
+		console.log("Collection.partitions: ", this.partitions)
 		return !Array.isArray(document)
 			? await this.buffer.store({
 					...document,
