@@ -55,16 +55,13 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		selection: Identifier | Identifier[] | Selection
 	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { locus?: string })> {
 		let result: (T & Document) | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { locus?: string })
-		console.log("selection in archive: ", selection)
 		if (typeof selection == "string") {
 			const key = await this.getKey(selection)
-			console.log("key in load: ", key)
 			result = key && key.startsWith(this.partitions) ? (await this.backend.doc.get(key))?.value : undefined
 		} else if (Array.isArray(selection))
 			result = await Promise.all(selection.map(id => this.load(id)))
-		else {
+		else
 			result = await this.list(selection)
-		}
 		return result
 	}
 
@@ -77,8 +74,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			}[] = []
 		let limit = query?.limit ?? 1000
 		let locus: Selection.Locus | undefined
-		console.log("doc: ", JSON.stringify(await this.backend.doc.list()))
-		console.log("id: ", JSON.stringify(await this.backend.id.get("cccc")))
 		for (const prefix of prefixes) {
 			const response = await this.backend.doc.list({
 				prefix: this.partitions + prefix,
@@ -114,20 +109,12 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				!Document.is(documents) || (await this.getKey(documents.id)) != this.generateKey(documents)
 					? { ...documents, ...(await this.allocateId(documents)) }
 					: undefined
-			console.log("document: ", document)
-			console.log(
-				"Document.is(document, this.configuration.idLength): ",
-				Document.is(document, this.configuration.idLength)
-			)
-			console.log(" this.configuration.idLength: ", this.configuration.idLength)
-			if (Document.is(document, this.configuration.idLength)) {
-				console.log("Key in store: ", this.generateKey(document))
+			if (Document.is(document, this.configuration.idLength))
 				await this.backend.doc.set(this.generateKey(document), (result = document))
-			} else
+			else
 				result = undefined
-		} else {
+		} else
 			result = await Promise.all(documents.map(e => this.store(e)))
-		}
 		return result
 	}
 	remove(id: string): Promise<boolean>

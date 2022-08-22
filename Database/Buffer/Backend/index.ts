@@ -90,7 +90,6 @@ export class Backend {
 		const partitioned = partition.length > 0 ? archive.partition(...partition) : archive
 
 		const stored = listed.length > 0 ? await partitioned.store(listed) : 0
-		console.log("partitioned: ", await partitioned.load())
 		return stored ? 1 : 0
 	}
 

@@ -17,7 +17,6 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		super()
 	}
 	partition(...partition: string[]): Collection<T> {
-		console.log("partition.partition: ", partition)
 		return new Collection(
 			this.archive.partition(partition.join("/")),
 			this.buffer.partition(partition.join("/")),
@@ -36,8 +35,6 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			case "string":
 				const bufferDoc = await this.buffer.load(selection)
 				const archiveDoc = await this.archive.load(selection)
-				console.log("bufferDoc: ", JSON.stringify(bufferDoc))
-				console.log("archiveDoc: ", JSON.stringify(archiveDoc))
 				result = bufferDoc ? bufferDoc : archiveDoc
 				break
 			case "object":
@@ -45,9 +42,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				break
 			case "undefined":
 				const buffer = await this.buffer.load()
-				console.log("buffer.list()", buffer)
 				const archive = await this.archive.load()
-				console.log("archive.list()", archive)
 				result = [...archive, ...buffer]
 				break
 		}
@@ -58,7 +53,6 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 	async store(
 		document: (T & Partial<Document>) | (T & Partial<Document>)[]
 	): Promise<(T & Partial<Document>) | undefined | ((T & Document) | undefined)[]> {
-		console.log("Collection.partitions: ", this.partitions)
 		return !Array.isArray(document)
 			? await this.buffer.store({
 					...document,
