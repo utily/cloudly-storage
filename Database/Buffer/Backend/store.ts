@@ -32,7 +32,6 @@ async function put<T extends { id: string } & Record<string, any>>(
 	document: T,
 	state: DurableObjectState
 ): Promise<void> {
-	console.log("put")
 	const idIndexKey = "id/" + document.id
 	await removeChanged(key, state, idIndexKey)
 	const changedKey = `changed/${truncateDateTime(document.changed)}`
@@ -58,6 +57,5 @@ async function removeChanged(key: string, state: DurableObjectState, idIndexKey:
 
 // TODO change to new isoly truncate function.
 function truncateDateTime(dateTime: string): string {
-	console.log("dateTime: ", dateTime)
 	return dateTime.substring(0, 19)
 }

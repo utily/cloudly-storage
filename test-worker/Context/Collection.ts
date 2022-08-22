@@ -14,7 +14,7 @@ export namespace Collection {
 				{
 					silos: { users: { type: "collection", idLength: 4, retainChanged: true } },
 				},
-				environment.kvStore,
+				environment.archive,
 				environment.DatabaseBuffer
 			) ?? gracely.server.misconfigured("databaseBuffer", "Missing environment variable to open database.")
 		)

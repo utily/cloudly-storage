@@ -4,11 +4,12 @@ describe("Collection", () => {
 	const configuration: Collection = { shards: 4 }
 	it("simple shard", () => {
 		expect(Collection.get(configuration, "AAAA")).toEqual("AA")
+		expect(Collection.get(configuration, "APAA")).toEqual("AA")
 		expect(Collection.get(configuration, "AQAA")).toEqual("AQ")
 		expect(Collection.get(configuration, "AgAA")).toEqual("Ag")
 		expect(Collection.get(configuration, "AhAA")).toEqual("Ag")
 		expect(Collection.get(configuration, "AwAA")).toEqual("Aw")
-		expect(Collection.get(configuration, "FAAA")).toEqual("AA")
+		expect(Collection.get(configuration, "FFAA")).toEqual("AA")
 		expect(Collection.get(configuration, "GAAA")).toEqual("AA")
 		expect(Collection.get(configuration, "HAAA")).toEqual("AA")
 		expect(Collection.get(configuration, "IAAA")).toEqual("AA")
@@ -19,7 +20,8 @@ describe("Collection", () => {
 		expect(Collection.get(configuration, "NAAA")).toEqual("AA")
 		expect(Collection.get(configuration, "OAAA")).toEqual("AA")
 		expect(Collection.get(configuration, "PAAA")).toEqual("AA")
-		expect(Collection.get(configuration, "QAAA")).toEqual("AA")
+		expect(Collection.get(configuration, "EMMA")).toEqual("AA")
+		expect(Collection.get(configuration, "emma")).toEqual("Ag")
 	})
 	it("shard no id", () => {
 		expect(Collection.get(configuration)).toEqual(["AA", "AQ", "Ag", "Aw"])

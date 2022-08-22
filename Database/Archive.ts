@@ -81,7 +81,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				limit,
 				cursor: query?.cursor,
 			})
-			console.log("response: ", response)
 			limit -= response.length
 			reponseList.push(...response)
 			if (response.cursor) {

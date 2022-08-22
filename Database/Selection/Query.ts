@@ -27,7 +27,6 @@ export namespace Query {
 			}
 		} // todo changed
 		else {
-			console.log("this case")
 			result.push("")
 		}
 		return result

@@ -15,7 +15,7 @@ export async function create(request: http.Request, context: Context): Promise<h
 	else if (gracely.Error.is(database))
 		result = database
 	else {
-		const response = await database.users.partition("test").store(user)
+		const response = await database.users.store(user)
 		result = response ? gracely.success.created(response) : gracely.server.databaseFailure()
 	}
 	return result

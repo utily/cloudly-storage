@@ -2,9 +2,6 @@ import { Locus as SLocus } from "./Locus"
 import { Query as SQuery } from "./Query"
 
 export type Selection = SQuery | { locus?: SLocus } | undefined
-
-const test: Selection = { locus: "sdawda" }
-console.log(test)
 export namespace Selection {
 	export function get(selection: Selection): Query | undefined {
 		return selection && !("locus" in selection) ? (selection as Query) : Locus.parse(selection?.locus)

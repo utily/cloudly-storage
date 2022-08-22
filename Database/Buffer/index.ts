@@ -29,11 +29,10 @@ export class Buffer<T = any> {
 		return `doc/${this.partitions}${document.created}/${document.id}`
 	}
 
-	load(): Promise<(T & Document)[] | undefined>
+	load(): Promise<(T & Document)[]>
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
 	async load(selection?: Identifier | Identifier[]): Promise<Loaded<T>> {
-		console.log("Buffer partitions: ", this.partitions)
 		let response: Loaded<T> | gracely.Error | undefined
 		switch (typeof selection) {
 			case "string":
@@ -57,7 +56,6 @@ export class Buffer<T = any> {
 		return gracely.Error.is(response) ? undefined : response
 	}
 	async store(document: T & Document): Promise<(T & Document) | undefined> {
-		console.log("Buffer partitions: ", this.partitions)
 		const response = await this.backend
 			.open(Configuration.Collection.get(this.configuration, document.id))
 			.post<T & Document>(`/buffer/${this.generateKey(document).replaceAll("/", "$")}`, document)

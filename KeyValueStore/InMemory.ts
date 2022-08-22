@@ -18,7 +18,6 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 	async set(key: string, value?: undefined): Promise<void>
 	async set(key: string, value: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void>
 	async set(key: string, value?: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void> {
-		console.log("key", key)
 		if (value == undefined)
 			delete this.data[key]
 		else
@@ -53,7 +52,6 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 				meta: user.meta ? (JSON.parse(user.meta) as M) : undefined,
 			}))
 			.map<ListItem<V, M>>(o.values ? user => user : ({ value: disregard, ...user }) => user)
-		console.log("DATA IN MEMORY: ", JSON.stringify(this.data))
 		return result.length > (o.limit ?? 0)
 			? Object.defineProperty(result.slice(0, o.limit), "cursor", {
 					value: result.slice(0, o.limit).slice(-1)[0].key,

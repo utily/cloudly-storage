@@ -47,20 +47,18 @@
 	},
 	"scripts": {
 		"lint": "eslint --max-warnings=0 '**/*.{ts,tsx}'",
-		"fix": "eslint '**/*.{ts,tsx}' --yfix",
+		"fix": "eslint '**/*.{ts,tsx}' --fix",
 		"build": "rollup -c",
 		"build:local": "rollup --config rollup.dev.config.js",
 		"dev": "NODE_ENV=development npm run build",
 		"test": "jest",
-		"forge": "cd .. && rm -rf dist/ && npm run build && cd test-worker/ && npm run start",
 		"transpile": "tsc --project tsconfig.test.json",
 		"deploy": "wrangler login && wrangler publish; wrangler logout",
 		"login": "wrangler login",
-		"serve": "wrangler dev --env development",
 		"start": "node --experimental-vm-modules --inspect ./node_modules/miniflare/dist/src/cli.js dist/_worker.js --wrangler-env miniflare --watch --live-reload",
 		"start:wrangler": "wrangler dev --env wrangler",
 		"clean": "rimraf dist node_modules coverage",
-		"wrangler-dev": "wrangler publish --env development"
+		"forge": "cd .. && rm -rf dist/ && npm run build && cd test-worker/ && npm run start"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^3.14.1",
