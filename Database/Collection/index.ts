@@ -12,7 +12,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		private readonly archive: Archive<T>,
 		private readonly buffer: Buffer<T>,
 		readonly configuration: Configuration.Collection,
-		private partitions = ""
+		private readonly partitions = ""
 	) {
 		super()
 	}

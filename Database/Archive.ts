@@ -57,7 +57,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		let result: (T & Document) | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })
 		if (typeof selection == "string") {
 			const key = await this.getKey(selection)
-			result = key ? (await this.backend.doc.get(key))?.value : undefined
+			result = key && key.startsWith(this.partitions) ? (await this.backend.doc.get(key))?.value : undefined
 		} else if (Array.isArray(selection))
 			result = await Promise.all(selection.map(id => this.load(id)))
 		else {
