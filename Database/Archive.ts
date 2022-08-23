@@ -68,7 +68,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	private async list(selection: Selection): Promise<(Document & T)[] & { locus?: string }> {
 		const query: Selection.Query | undefined = Selection.get(selection)
 		const prefixes: string[] = Selection.Query.extractPrefix(query)
-		const reponseList: KeyValueStore.ListItem<T & Document, undefined>[] &
+		const responseList: KeyValueStore.ListItem<T & Document, undefined>[] &
 			{
 				cursor?: string | undefined
 			}[] = []
@@ -81,13 +81,13 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				cursor: query?.cursor,
 			})
 			limit -= response.length
-			reponseList.push(...response)
+			responseList.push(...response)
 			if (response.cursor) {
 				locus = Selection.Locus.generate({ ...(query ?? {}), cursor: response.cursor })
 				break
 			}
 		}
-		const result = reponseList.map(item => ({
+		const result = responseList.map(item => ({
 			...item.value,
 			...(item.meta ?? {}),
 		})) as (T & Document)[] & { locus?: string }
