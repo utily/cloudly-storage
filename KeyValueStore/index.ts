@@ -4,6 +4,7 @@ import { exists as kvExists } from "./exists"
 import { InMeta as KVInMeta } from "./InMeta"
 import { Json as KVJson } from "./Json"
 import { KeyValueStore as Interface } from "./KeyValueStore"
+import { ListItem as KVListItem } from "./ListItem"
 import { ListOptions as KVListOptions } from "./ListOptions"
 import { OnlyMeta as KVOnlyMeta } from "./OnlyMeta"
 import { open as kvOpen } from "./open"
@@ -20,6 +21,7 @@ export namespace KeyValueStore {
 	export const Json = KVJson
 	export const ListOptions = KVListOptions
 	export type ListOptions = KVListOptions
+	export type ListItem<V, M> = KVListItem<V, M>
 	export const OnlyMeta = KVOnlyMeta
 	export const open = kvOpen
 	export const partition = kvPartition

@@ -50,46 +50,49 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	}
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
-	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
+	load(selection?: Selection | { locus: Selection.Locus }): Promise<(Document & T)[] & { locus?: string }>
 	async load(
 		selection: Identifier | Identifier[] | Selection
-	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })> {
-		let result: (T & Document) | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })
+	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { locus?: string })> {
+		let result: (T & Document) | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { locus?: string })
 		if (typeof selection == "string") {
 			const key = await this.getKey(selection)
 			result = key && key.startsWith(this.partitions) ? (await this.backend.doc.get(key))?.value : undefined
 		} else if (Array.isArray(selection))
 			result = await Promise.all(selection.map(id => this.load(id)))
-		else {
+		else
 			result = await this.list(selection)
-		}
 		return result
 	}
-	private async list(selection: Selection): Promise<(Document & T)[] & { cursor?: string }> {
-		selection = selection?.cursor ? { ...selection, ...Selection.Locus.parse(selection?.cursor) } : selection
-		const dates: isoly.Date[] = Selection.extractPrefix(selection)
-		const reponseList = []
-		let limit = selection?.limit ?? 1000
+
+	private async list(selection: Selection): Promise<(Document & T)[] & { locus?: string }> {
+		const query: Selection.Query | undefined = Selection.get(selection)
+		const prefixes: string[] = Selection.Query.extractPrefix(query)
+		const responseList: KeyValueStore.ListItem<T & Document, undefined>[] &
+			{
+				cursor?: string | undefined
+			}[] = []
+		let limit = query?.limit ?? 1000
 		let locus: Selection.Locus | undefined
-		for (const date of dates) {
+		for (const prefix of prefixes) {
 			const response = await this.backend.doc.list({
-				prefix: this.partitions + date,
+				prefix: this.partitions + prefix,
 				limit,
-				cursor: selection?.cursor,
+				cursor: query?.cursor,
 			})
 			limit -= response.length
-			reponseList.push(...response)
+			responseList.push(...response)
 			if (response.cursor) {
-				locus = Selection.Locus.generate({ ...(selection ?? {}), cursor: response.cursor })
+				locus = Selection.Locus.generate({ ...(query ?? {}), cursor: response.cursor })
 				break
 			}
 		}
-		const result: (Document & T)[] & { cursor?: string } = reponseList.map(item => ({
+		const result = responseList.map(item => ({
 			...item.value,
 			...(item.meta ?? {}),
-		})) as (Document & T)[] & { cursor?: string }
+		})) as (T & Document)[] & { locus?: string }
 		if (locus)
-			result.cursor = locus
+			result.locus = locus
 		return result
 	}
 
@@ -107,11 +110,11 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 					? { ...documents, ...(await this.allocateId(documents)) }
 					: undefined
 			if (Document.is(document, this.configuration.idLength))
-				this.backend.doc.set(this.generateKey(document), (result = document))
+				await this.backend.doc.set(this.generateKey(document), (result = document))
 			else
 				result = undefined
 		} else
-			await Promise.all(documents.map(this.store.bind(this)))
+			result = await Promise.all(documents.map(e => this.store(e)))
 		return result
 	}
 	remove(id: string): Promise<boolean>

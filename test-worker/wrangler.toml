@@ -7,10 +7,9 @@ workers_dev = true
 routes = ["https://example.com/item*"]
 
 kv_namespaces = [
-  { binding = "kvStore", id = "f783c34180ed4dbe852fc706f10f0c9d", preview_id = "f783c34180ed4dbe852fc706f10f0c9d" },
   { binding = "archive", id = "5d6c5901b28d423da2bcc6deda79b7d6", preview_id = "5d6c5901b28d423da2bcc6deda79b7d6" },
+  { binding = "kvStore", id = "f783c34180ed4dbe852fc706f10f0c9d", preview_id = "f783c34180ed4dbe852fc706f10f0c9d" }
 ]
-
 
 vars = { }
 
@@ -39,3 +38,8 @@ kv_namespaces = [
   { binding = "kvStore", id = "f783c34180ed4dbe852fc706f10f0c9d", preview_id = "f783c34180ed4dbe852fc706f10f0c9d" }
 ]
 
+[env.development.durable_objects]
+bindings = [
+	{ name = "DatabaseBuffer", class_name = "Backend" },
+	{ name = "Do", class_name = "Do" },
+]

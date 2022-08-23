@@ -9,7 +9,7 @@ export async function fetch(request: http.Request, context: Context): Promise<ht
 	const id: string | undefined = request.parameter.id
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
-	else if (!id || id.length <= 1 || id < "a" || id > "z")
+	else if (!id || id.length != 4)
 		result = gracely.client.invalidPathArgument("user/:id", "id", "string", "A valid identifier is required.")
 	else if (gracely.Error.is(database))
 		result = database

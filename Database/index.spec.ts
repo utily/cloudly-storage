@@ -37,11 +37,11 @@ describe("Database Archive", () => {
 	it("list with limit and prefix", async () => {
 		const listed = await partition?.items.load(selection)
 		expect(listed?.flat()).toEqual([item])
-		expect(listed?.cursor).toEqual(
+		expect(listed?.locus).toEqual(
 			"eyJjcmVhdGVkIjp7InN0YXJ0IjoiMjAyMi0wNy0zMCIsImVuZCI6IjIwMjItMDgtMDEifSwibGltaXQiOjEsImN1cnNvciI6Iml0ZW1zL2RvYy9heGIwMDEvMjAyMi0wNy0zMFQwMDoxNzo1NS43MzBaL2FiY2QifQ"
 		)
-		const listedCursor = await partition?.items.load({ ...selection, cursor: listed?.cursor })
-		expect(listedCursor).toEqual([item2])
-		expect(listedCursor?.cursor).toEqual(undefined)
+		const listedLocus = await partition?.items.load({ locus: listed?.locus })
+		expect(listedLocus).toEqual([item2])
+		expect(listedLocus?.locus).toEqual(undefined)
 	})
 })

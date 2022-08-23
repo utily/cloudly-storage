@@ -47,19 +47,18 @@
 	},
 	"scripts": {
 		"lint": "eslint --max-warnings=0 '**/*.{ts,tsx}'",
-		"fix": "eslint '**/*.{ts,tsx}' --yfix",
+		"fix": "eslint '**/*.{ts,tsx}' --fix",
 		"build": "rollup -c",
 		"build:local": "rollup --config rollup.dev.config.js",
 		"dev": "NODE_ENV=development npm run build",
 		"test": "jest",
-		"forge": "cd .. && npm run build && cd test-worker/ && npm run start",
 		"transpile": "tsc --project tsconfig.test.json",
 		"deploy": "wrangler login && wrangler publish; wrangler logout",
 		"login": "wrangler login",
-		"serve": "wrangler dev --env development",
 		"start": "node --experimental-vm-modules --inspect ./node_modules/miniflare/dist/src/cli.js dist/_worker.js --wrangler-env miniflare --watch --live-reload",
 		"start:wrangler": "wrangler dev --env wrangler",
-		"clean": "rimraf dist node_modules coverage"
+		"clean": "rimraf dist node_modules coverage",
+		"forge": "cd .. && rm -rf dist/ && npm run build && cd test-worker/ && npm run start"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^3.14.1",
@@ -74,7 +73,7 @@
 		"eslint-plugin-prettierx": "github:utily/eslint-plugin-prettierx#utily-20220323",
 		"eslint-plugin-simple-import-sort": "^7.0.0",
 		"jest": "^28.1.3",
-		"miniflare": "^2.6.0",
+		"miniflare": "^2.7.0",
 		"prettierx": "github:utily/prettierx#utily-20220323",
 		"rimraf": "^3.0.2",
 		"rollup": "^2.77.2",

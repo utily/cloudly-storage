@@ -1,12 +1,12 @@
 {
-	"configurations": [
-		{
-			"name": "Miniflare (npm)",
-			"type": "node",
-			"request": "launch",
-			"runtimeExecutable": "npm",
-			"runtimeArgs": ["--prefix", "./test-worker", "run", "start"], 
-			"skipFiles": ["<node_internals>/**"]
-		}
-	]
+  "configurations": [
+    {
+      "name": "Miniflare (npm)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "./test-worker", "run", "start"], 
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
 }

@@ -17,7 +17,12 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		super()
 	}
 	partition(...partition: string[]): Collection<T> {
-		return new Collection(this.archive, this.buffer, this.configuration, this.partitions + partition.join("/") + "/")
+		return new Collection(
+			this.archive.partition(partition.join("/")),
+			this.buffer.partition(partition.join("/")),
+			this.configuration,
+			this.partitions + partition.join("/") + "/"
+		)
 	}
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids?: Identifier[]): Promise<((Document & T) | undefined)[]>
@@ -28,14 +33,17 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		let result: ((T & Document) | undefined) | ((Document & T)[] & { cursor?: string }) | undefined
 		switch (typeof selection) {
 			case "string":
-				result = (await this.buffer.load(selection)) ?? (await this.archive.load(selection))
+				const bufferDoc = await this.buffer.load(selection)
+				const archiveDoc = await this.archive.load(selection)
+				result = bufferDoc ? bufferDoc : archiveDoc
 				break
 			case "object":
 				result = "changed" in selection ? [] : "cursor" in selection ? [] : "created" in selection ? [] : []
 				break
 			case "undefined":
-				result = await this.buffer.load()
-				// result.cursor = "cont"
+				const buffer = await this.buffer.load()
+				const archive = await this.archive.load()
+				result = [...archive, ...buffer]
 				break
 		}
 		return result
