@@ -105,9 +105,11 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		if (!Array.isArray(documents)) {
 			if (!this.configuration.retainChanged)
 				documents = { ...documents, changed: isoly.DateTime.now() }
+			const kvKey = Document.is(documents) ? await this.getKey(documents.id) : undefined
+			const newKey = Document.is(documents) ? this.generateKey(documents) : null
 			const document =
-				!Document.is(documents) || (await this.getKey(documents.id)) != this.generateKey(documents)
-					? { ...documents, ...(await this.allocateId(documents)) }
+				!Document.is(documents) || kvKey != newKey
+					? { ...documents, ...((await this.allocateId(documents)) ?? {}) }
 					: undefined
 			if (Document.is(document, this.configuration.idLength))
 				await this.backend.doc.set(this.generateKey(document), (result = document))

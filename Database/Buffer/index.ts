@@ -39,15 +39,28 @@ export class Buffer<T = any> {
 			case "string":
 				response = await this.backend
 					.open(Configuration.Collection.get(this.configuration, selection))
-					.get<Loaded<T>>(`/buffer/${encodeURIComponent(selection)}`)
+					.get<Loaded<T>>(`/buffer/${encodeURIComponent(selection)}`, {
+						partitions: this.partitions,
+						length: { ...Configuration.Buffer.standard, ...this.configuration }.idLength.toString(),
+					})
 				break
 			case "object":
-				response = await this.backend.open(this.partitions).post<Loaded<T>>(`/buffer`, { ids: selection })
+				response = await this.backend.open(this.partitions).post<Loaded<T>>(
+					`/buffer`,
+					{ ids: selection },
+					{
+						partitions: this.partitions,
+						length: { ...Configuration.Buffer.standard, ...this.configuration }.idLength.toString(),
+					}
+				)
 				break
 			case "undefined":
 				response = await Promise.all(
 					Configuration.Collection.get(this.configuration).map(shard =>
-						this.backend.open(shard).get<Loaded<T>>(`/buffer`)
+						this.backend.open(shard).get<Loaded<T>>(`/buffer`, {
+							partitions: this.partitions,
+							length: { ...Configuration.Buffer.standard, ...this.configuration }.idLength.toString(),
+						})
 					)
 				).then(r => r.flatMap(e => (gracely.Error.is(e) ? [] : e)))
 				break
@@ -61,7 +74,7 @@ export class Buffer<T = any> {
 			.open(Configuration.Collection.get(this.configuration, document.id))
 			.post<T & Document>(`/buffer/${encodeURIComponent(this.generateKey(document))}`, document, {
 				partitions: this.partitions,
-				length: this.configuration.idLength && this.configuration.idLength.toString(),
+				length: { ...Configuration.Buffer.standard, ...this.configuration }.idLength.toString(),
 			})
 		return gracely.Error.is(response) ? undefined : response
 	}

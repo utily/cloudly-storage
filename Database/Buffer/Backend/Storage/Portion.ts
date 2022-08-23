@@ -21,16 +21,13 @@ export namespace Portion {
 		data: string[],
 		storage: platform.DurableObjectState["storage"],
 		keyLimit = 128
-	): Promise<Record<string, T>> {
+	): Promise<T[]> {
 		const promises: Promise<Map<string, T>>[] = []
 		for (let i = 0; i < data.length; i += keyLimit) {
 			const segment = data.slice(i, i + keyLimit)
 			promises.push(storage.get<T>(segment))
 		}
-		return (await Promise.all(promises)).reduce(
-			(r: Record<string, T>, e) => ({ ...r, ...Object.fromEntries(e.entries()) }),
-			{}
-		)
+		return (await Promise.all(promises)).reduce((r: T[], e) => [...r, ...Array.from(e.values())], [])
 	}
 	export async function remove(
 		keys: string[],
