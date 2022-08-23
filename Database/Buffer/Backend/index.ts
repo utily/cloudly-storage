@@ -29,6 +29,7 @@ export class Backend {
 	}
 
 	async configuration(request: Request): Promise<void> {
+		//TODO: Review
 		const idLength = +(request.headers.get("length") ?? NaN)
 		this.idLength = this.idLength ?? (Number.isNaN(idLength) ? undefined : idLength)
 		this.state.waitUntil(
@@ -50,18 +51,13 @@ export class Backend {
 			"seconds"
 		)
 		this.state.blockConcurrencyWhile(async () => {
-			return await this.reconcile(archiveThreshold)
+			const idLength = this.idLength ?? (await this.state.storage.get("idLength"))
+			const partitions = this.partitions ?? (await this.state.storage.get("partitions"))
+			const archivist = Archivist.open(this.environment.archive, this.state, partitions ?? ["unkonwn"], idLength)
+			return await archivist.reconcile(archiveThreshold)
 		})
 		// Should be set by some config
 		const snooze = Date.now() + archiveTime - 7 * 1000
 		await this.state.storage.setAlarm(snooze)
-	}
-
-	private async reconcile(threshold: isoly.DateTime): Promise<number> {
-		const partitions = this.partitions ?? (await this.state.storage.get<string[]>("partitions")) ?? ["unkonwn"]
-		const archivist = Archivist.open(this.environment.archive, this.state, partitions[0], this.idLength)
-		const partitioned = partitions.length > 1 ? archivist.partition(...partitions.slice(1)) : archivist
-		const stored = await partitioned.reconcile(threshold)
-		return stored.length // TODO what to do if everything wasn't archived.
 	}
 }

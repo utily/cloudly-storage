@@ -56,12 +56,12 @@ export class Archivist {
 	static open(
 		keyValueNamespace: KVNamespace | undefined,
 		state: DurableObjectState,
-		documentType: string,
+		documentType: string[],
 		idLength?: number
 	): Archivist {
-		return new Archivist(
+		const archivist = new Archivist(
 			Archive.open<Document & Record<string, any>>(
-				KeyValueStore.partition(KeyValueStore.open(keyValueNamespace, "text"), documentType + "/"),
+				KeyValueStore.partition(KeyValueStore.open(keyValueNamespace, "text"), documentType[0] + "/"),
 				{
 					...Configuration.Collection.standard,
 					...(idLength ? { idLength: idLength as 4 | 8 } : {}),
@@ -70,5 +70,6 @@ export class Archivist {
 			Storage.open(state),
 			state
 		)
+		return documentType.length > 1 ? archivist.partition(...documentType.splice(1)) : archivist
 	}
 }

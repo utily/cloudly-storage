@@ -23,7 +23,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			this.configuration,
 			this.partitions + partition.join("/") + "/"
 		)
-	}
+	} // TODO allocateId
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids?: Identifier[]): Promise<((Document & T) | undefined)[]>
 	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
@@ -37,7 +37,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				const archiveDoc = await this.archive.load(selection)
 				result = bufferDoc ? bufferDoc : archiveDoc
 				break
-			case "object":
+			case "object": //TODO: Fix listing with prefix and id array.
 				// let bufferList: (T & Document) | undefined | (Document & T)[]
 				// let archiveList: (T & Document) | undefined | (Document & T)[]
 				// if (Array.isArray(selection)) {
@@ -52,7 +52,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				// 	bufferList
 				// )
 				break
-			case "undefined":
+			case "undefined": // TODO: Add locus.
 				const archive: ((Document & T) | undefined)[] = await this.archive.load()
 				const buffer: Record<string, Document & T> = (await this.buffer.load()).reduce(
 					(r, e) => ({ [e.id]: e, ...r }),
@@ -84,6 +84,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 	async remove(id: Identifier): Promise<boolean>
 	async remove(id: Identifier[]): Promise<boolean[]>
 	async remove(id: Identifier | Identifier[]): Promise<boolean | boolean[]> {
+		//TODO: implement
 		return !Array.isArray(id) ? false : Promise.all(id.map(i => this.remove(i)))
 	}
 	static open<T extends object = any>(

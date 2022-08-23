@@ -23,13 +23,13 @@ export class Storage {
 	}
 	async storeDocument<T extends { id: string } & Record<string, any>>(key: string, document: T): Promise<void> {
 		const idIndexKey = "id/" + document.id
-		await this.removeChanged(key, idIndexKey) //remove old changed index
+		await this.removeChanged(key, idIndexKey)
 		const changedKey = `changed/${isoly.DateTime.truncate(document.changed, "seconds")}`
 		const changedIndex = await this.storage.get<string>(changedKey)
 		return await this.storage.put({
-			[key]: document, //doc
-			[changedKey]: (changedIndex ? changedIndex + "\n" : "") + key, // changed index
-			[idIndexKey]: key, //id index
+			[key]: document,
+			[changedKey]: (changedIndex ? changedIndex + "\n" : "") + key,
+			[idIndexKey]: key,
 		})
 	}
 	async removeChanged(key: string, idIndexKey: string): Promise<void> {

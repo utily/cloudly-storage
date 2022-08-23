@@ -32,7 +32,7 @@ export class Buffer<T = any> {
 	load(): Promise<(T & Document)[]>
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
-	load(selection?: Identifier | Identifier[]): Promise<Loaded<T>>
+	load(selection?: Identifier | Identifier[]): Promise<Loaded<T>> // TODO: Implement Selection query
 	async load(selection?: Identifier | Identifier[]): Promise<Loaded<T>> {
 		let response: Loaded<T> | gracely.Error | undefined
 		switch (typeof selection) {
@@ -44,7 +44,7 @@ export class Buffer<T = any> {
 						length: { ...Configuration.Buffer.standard, ...this.configuration }.idLength.toString(),
 					})
 				break
-			case "object":
+			case "object": // TODO: Implement Selection
 				response = await this.backend.open(this.partitions).post<Loaded<T>>(
 					`/buffer`,
 					{ ids: selection },
@@ -70,6 +70,7 @@ export class Buffer<T = any> {
 		return gracely.Error.is(response) ? undefined : response
 	}
 	async store(document: T & Document): Promise<(T & Document) | undefined> {
+		// TODO???: Store many.
 		const response = await this.backend
 			.open(Configuration.Collection.get(this.configuration, document.id))
 			.post<T & Document>(`/buffer/${encodeURIComponent(this.generateKey(document))}`, document, {
@@ -79,6 +80,7 @@ export class Buffer<T = any> {
 		return gracely.Error.is(response) ? undefined : response
 	}
 	async remove(id: string): Promise<T | gracely.Error> {
+		//TODO: Test?
 		return await this.backend.open(Configuration.Collection.get(this.configuration, id)).delete<T>(`/buffer/${id}`)
 	}
 	static open<T extends object = any>(
