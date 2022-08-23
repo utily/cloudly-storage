@@ -37,18 +37,26 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 	> {
 		const o = ListOptions.get(options)
 		const now = isoly.DateTime.now()
-		const result = (
-			Object.entries(this.data).filter(
-				([key, user]) => user && (!o.prefix || key.startsWith(o.prefix)) && (!user.expires || user.expires >= now)
-			) as unknown as [string, user<V, string>][]
-		)
+		const partition = Object.entries(this.data).filter(
+			([key, user]) => user && (!o.prefix || key.startsWith(o.prefix)) && (!user.expires || user.expires >= now)
+		) as unknown as [string, user<V, string>][]
+		const start =
+			partition.findIndex(([key, value]) => {
+				return key == o.cursor
+			}) + 1
+		const result = partition
+			.slice(start)
 			.map<ListItem<V, M>>(([key, user]) => ({
 				key,
 				...user,
 				meta: user.meta ? (JSON.parse(user.meta) as M) : undefined,
 			}))
 			.map<ListItem<V, M>>(o.values ? user => user : ({ value: disregard, ...user }) => user)
-		return result
+		return result.length > (o.limit ?? 0)
+			? Object.defineProperty(result.slice(0, o.limit), "cursor", {
+					value: result.slice(0, o.limit).slice(-1)[0].key,
+			  })
+			: result
 	}
 	private static opened: Record<string, InMemory> = {}
 	static open<V extends string | ArrayBuffer | ReadableStream = string, M = Record<string, any>>(
