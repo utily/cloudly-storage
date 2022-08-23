@@ -73,7 +73,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			{
 				cursor?: string | undefined
 			}[] = []
-		let limit = query?.limit ?? 1000
+		let limit = query?.limit ?? Selection.Query.standardLimit
 		let locus: Selection.Locus | undefined
 		for (const prefix of prefixes) {
 			const response = await this.backend.doc.list({
