@@ -26,11 +26,11 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 	} // #TODO allocateId
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids?: Identifier[]): Promise<((Document & T) | undefined)[]>
-	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
+	load(selection?: Selection): Promise<(Document & T)[] & { locus?: string }>
 	async load(
 		selection: Identifier | Identifier[] | Selection
-	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })> {
-		let result: ((T & Document) | undefined) | ((Document & T)[] & { cursor?: string }) | undefined
+	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { locus?: string })> {
+		let result: ((T & Document) | undefined) | ((Document & T)[] & { locus?: string }) | undefined
 		switch (typeof selection) {
 			case "string":
 				const bufferDoc = await this.buffer.load(selection)
@@ -39,7 +39,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				break
 			case "object": //TODO: will return configuration.shards * limit
 				let bufferList: (T & Document) | undefined | ((Document & T) | undefined)[]
-				let archiveList: (T & Document) | undefined | ((Document & T) | undefined)[]
+				let archiveList: (T & Document) | undefined | (((Document & T) | undefined)[] & { locus?: string })
 				if (Array.isArray(selection)) {
 					bufferList = await this.buffer.load(selection)
 					archiveList = await this.archive.load(selection)
@@ -48,10 +48,13 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 					bufferList = await this.buffer.load(query)
 					const limit =
 						(query && "limit" in query && query.limit ? query.limit : Selection.Query.standardLimit) - bufferList.length
-					archiveList = await this.archive.load({
-						...query,
-						limit: limit > 1 ? limit : 2,
-					})
+					archiveList =
+						limit > 1
+							? await this.archive.load({
+									...query,
+									limit,
+							  })
+							: []
 				}
 				result = Object.values(
 					archiveList.reduce<(T & Document)[]>(
@@ -59,9 +62,13 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 						bufferList.reduce((r, document) => (document ? { [document.id]: document, ...r } : r), [])
 					)
 				)
+				if (archiveList.locus)
+					result.locus = archiveList.locus
 				break
-			case "undefined": // #TODO: Add locus.
-				const archive: ((Document & T) | undefined)[] = await this.archive.load()
+			case "undefined": // TODO: Add locus in the buffer.
+				const archive: ((Document & T) | undefined)[] & {
+					locus?: string | undefined
+				} = await this.archive.load()
 				const buffer: Record<string, Document & T> = (await this.buffer.load()).reduce(
 					(r, e) => ({ [e.id]: e, ...r }),
 					{}
@@ -71,6 +78,8 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 					buffer
 				)
 				result = Object.values(combined)
+				if (archive.locus)
+					result.locus = archive.locus
 				break
 		}
 		return result
