@@ -3,7 +3,10 @@ import * as platform from "../../../../platform"
 import { Portion } from "./Portion"
 
 export class Storage {
-	private constructor(private readonly storage: platform.DurableObjectState["storage"]) {}
+	private constructor(
+		private readonly storage: platform.DurableObjectState["storage"],
+		private readonly portion: Portion
+	) {}
 
 	async load<T>(): Promise<T | undefined>
 	async load<T>(id: string): Promise<T | undefined>
@@ -16,7 +19,7 @@ export class Storage {
 			const key = await this.storage.get<string>("id/" + id)
 			result = key ? await this.storage.get<T>(key) : undefined
 		} else if (Array.isArray(id))
-			result = Array.from((await Portion.get<T>(id, this.storage)).values())
+			result = Array.from((await this.portion.get<T>(id)).values())
 		else if (typeof id == "object" || !id) {
 			result = (
 				await Promise.all(
@@ -35,31 +38,26 @@ export class Storage {
 			(r, [key, document]) => ({ ...r, ["id/" + document.id]: key }),
 			{}
 		)
-		const oldIdIndices = Object.fromEntries(
-			(await Portion.get<string>(Object.keys(suggestedIdIndices), this.storage)).entries()
-		)
+		const oldIdIndices = Object.fromEntries((await this.portion.get<string>(Object.keys(suggestedIdIndices))).entries())
 		const newdocuments = Object.entries(documents).reduce(
 			(r: Record<string, T>, [key, document]) => ({ ...r, [oldIdIndices["id/" + document.id] ?? key]: document }),
 			{}
 		)
 		const changedIndex = await this.updateChangedIndex(newdocuments)
-		return await Portion.put(
-			{
-				...newdocuments,
-				...suggestedIdIndices,
-				...oldIdIndices,
-				...changedIndex,
-			},
-			this.storage
-		)
+		return await this.portion.put({
+			...newdocuments,
+			...suggestedIdIndices,
+			...oldIdIndices,
+			...changedIndex,
+		})
 	}
 	async updateChangedIndex(documents: Record<string, any>): Promise<Record<string, string>> {
 		const oldDocuments = {
 			...documents,
-			...Object.fromEntries((await Portion.get<Record<string, any>>(Object.keys(documents), this.storage)).entries()),
+			...Object.fromEntries((await this.portion.get<Record<string, any>>(Object.keys(documents))).entries()),
 		}
 		const toBeRemoved = this.toChanged(oldDocuments)
-		const oldChanged = await Portion.get<string>(Object.keys(toBeRemoved), this.storage)
+		const oldChanged = await this.portion.get<string>(Object.keys(toBeRemoved))
 		const oldCleanedChanged = await Promise.resolve(oldChanged).then(response =>
 			Array.from(response.entries()).reduce(
 				(r: Record<string, string>, [changedIndexKey, oldValue]) => ({
@@ -84,12 +82,12 @@ export class Storage {
 	}
 
 	async remove(keys: string[]): Promise<number> {
-		return Portion.remove(keys, this.storage)
+		return this.portion.remove(keys)
 	}
 
 	static open(state: platform.DurableObjectState): Storage
 	static open(state: platform.DurableObjectState | undefined): Storage | undefined
 	static open(state: platform.DurableObjectState | undefined): Storage | undefined {
-		return state ? new Storage(state.storage) : undefined
+		return state ? new Storage(state.storage, Portion.open(state.storage)) : undefined
 	}
 }
