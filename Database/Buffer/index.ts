@@ -32,22 +32,35 @@ export class Buffer<T = any> {
 	load(): Promise<(T & Document)[]>
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
-	load(selection?: Identifier | Identifier[]): Promise<Loaded<T>>
+	load(selection?: Identifier | Identifier[]): Promise<Loaded<T>> // TODO: Implement Selection query
 	async load(selection?: Identifier | Identifier[]): Promise<Loaded<T>> {
 		let response: Loaded<T> | gracely.Error | undefined
 		switch (typeof selection) {
 			case "string":
 				response = await this.backend
 					.open(Configuration.Collection.get(this.configuration, selection))
-					.get<Loaded<T>>(`/buffer/${encodeURIComponent(selection)}`)
+					.get<Loaded<T>>(`/buffer/${encodeURIComponent(selection)}`, {
+						partitions: this.partitions,
+						length: { ...Configuration.Buffer.standard, ...this.configuration }.idLength.toString(),
+					})
 				break
-			case "object":
-				response = await this.backend.open(this.partitions).post<Loaded<T>>(`/buffer`, { ids: selection })
+			case "object": // TODO: Implement Selection
+				response = await this.backend.open(this.partitions).post<Loaded<T>>(
+					`/buffer`,
+					{ ids: selection },
+					{
+						partitions: this.partitions,
+						length: { ...Configuration.Buffer.standard, ...this.configuration }.idLength.toString(),
+					}
+				)
 				break
 			case "undefined":
 				response = await Promise.all(
 					Configuration.Collection.get(this.configuration).map(shard =>
-						this.backend.open(shard).get<Loaded<T>>(`/buffer`)
+						this.backend.open(shard).get<Loaded<T>>(`/buffer`, {
+							partitions: this.partitions,
+							length: { ...Configuration.Buffer.standard, ...this.configuration }.idLength.toString(),
+						})
 					)
 				).then(r => r.flatMap(e => (gracely.Error.is(e) ? [] : e)))
 				break
@@ -57,15 +70,17 @@ export class Buffer<T = any> {
 		return gracely.Error.is(response) ? undefined : response
 	}
 	async store(document: T & Document): Promise<(T & Document) | undefined> {
+		// TODO???: Store many.
 		const response = await this.backend
 			.open(Configuration.Collection.get(this.configuration, document.id))
 			.post<T & Document>(`/buffer/${encodeURIComponent(this.generateKey(document))}`, document, {
 				partitions: this.partitions,
-				length: this.configuration.idLength && this.configuration.idLength.toString(),
+				length: { ...Configuration.Buffer.standard, ...this.configuration }.idLength.toString(),
 			})
 		return gracely.Error.is(response) ? undefined : response
 	}
 	async remove(id: string): Promise<T | gracely.Error> {
+		//TODO: Test?
 		return await this.backend.open(Configuration.Collection.get(this.configuration, id)).delete<T>(`/buffer/${id}`)
 	}
 	static open<T extends object = any>(

@@ -23,7 +23,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			this.configuration,
 			this.partitions + partition.join("/") + "/"
 		)
-	}
+	} // TODO allocateId
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids?: Identifier[]): Promise<((Document & T) | undefined)[]>
 	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
@@ -37,13 +37,32 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				const archiveDoc = await this.archive.load(selection)
 				result = bufferDoc ? bufferDoc : archiveDoc
 				break
-			case "object":
-				result = "changed" in selection ? [] : "cursor" in selection ? [] : "created" in selection ? [] : []
+			case "object": //TODO: Fix listing with prefix and id array.
+				// let bufferList: (T & Document) | undefined | (Document & T)[]
+				// let archiveList: (T & Document) | undefined | (Document & T)[]
+				// if (Array.isArray(selection)) {
+				// 	bufferList = await this.buffer.load(selection)
+				// 	archiveList = await this.archive.load(selection)
+				// } else {
+				// 	bufferList = await this.buffer.load(selection)
+				// 	archiveList = await this.archive.load(selection)
+				// }
+				// result = archiveList.reduce<(T & Document)[]>(
+				// 	(r, document) => document && { [document.id]: document, ...r },
+				// 	bufferList
+				// )
 				break
-			case "undefined":
-				const buffer = await this.buffer.load()
-				const archive = await this.archive.load()
-				result = [...archive, ...buffer]
+			case "undefined": // TODO: Add locus.
+				const archive: ((Document & T) | undefined)[] = await this.archive.load()
+				const buffer: Record<string, Document & T> = (await this.buffer.load()).reduce(
+					(r, e) => ({ [e.id]: e, ...r }),
+					{}
+				)
+				const combined: Record<string, Document & T> = archive.reduce(
+					(r, document) => ({ ...(document ? { [document.id]: document } : {}), ...r }),
+					buffer
+				)
+				result = Object.values(combined)
 				break
 		}
 		return result
@@ -65,6 +84,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 	async remove(id: Identifier): Promise<boolean>
 	async remove(id: Identifier[]): Promise<boolean[]>
 	async remove(id: Identifier | Identifier[]): Promise<boolean | boolean[]> {
+		//TODO: implement
 		return !Array.isArray(id) ? false : Promise.all(id.map(i => this.remove(i)))
 	}
 	static open<T extends object = any>(

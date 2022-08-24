@@ -50,7 +50,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	}
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
-	load(selection?: Selection | { locus: Selection.Locus }): Promise<(Document & T)[] & { locus?: string }>
+	load(selection?: Selection): Promise<(Document & T)[] & { locus?: string }> // TODO: Test
 	async load(
 		selection: Identifier | Identifier[] | Selection
 	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { locus?: string })> {
@@ -66,6 +66,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	}
 
 	private async list(selection: Selection): Promise<(Document & T)[] & { locus?: string }> {
+		// TODO: test
 		const query: Selection.Query | undefined = Selection.get(selection)
 		const prefixes: string[] = Selection.Query.extractPrefix(query)
 		const responseList: KeyValueStore.ListItem<T & Document, undefined>[] &
@@ -105,9 +106,11 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		if (!Array.isArray(documents)) {
 			if (!this.configuration.retainChanged)
 				documents = { ...documents, changed: isoly.DateTime.now() }
+			const kvKey = Document.is(documents) ? await this.getKey(documents.id) : undefined
+			const newKey = Document.is(documents) ? this.generateKey(documents) : null
 			const document =
-				!Document.is(documents) || (await this.getKey(documents.id)) != this.generateKey(documents)
-					? { ...documents, ...(await this.allocateId(documents)) }
+				!Document.is(documents) || kvKey != newKey
+					? { ...documents, ...((await this.allocateId(documents)) ?? {}) }
 					: undefined
 			if (Document.is(document, this.configuration.idLength))
 				await this.backend.doc.set(this.generateKey(document), (result = document))
@@ -118,7 +121,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		return result
 	}
 	remove(id: string): Promise<boolean>
-	remove(ids: string[]): Promise<boolean[]>
+	remove(ids: string[]): Promise<boolean[]> // TODO: test
 	async remove(ids: string | string[]): Promise<boolean | boolean[]> {
 		let result: boolean | boolean[]
 		if (typeof ids == "string") {
