@@ -24,7 +24,7 @@ export async function load(request: http.Request, context: Context): Promise<htt
 		result = gracely.server.backendFailure("Failed to open Buffer Storage.")
 	else {
 		try {
-			result = gracely.success.ok(await storage.load<Record<string, any>>(ids ?? { prefix: ["doc/"] }))
+			result = gracely.success.ok(await storage.load<Record<string, any>>(ids))
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
 		}

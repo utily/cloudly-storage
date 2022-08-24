@@ -1,6 +1,7 @@
 import * as platform from "../../../../platform"
 
 export namespace Portion {
+	//TODO: Create open function.
 	export async function put<T = unknown>(
 		data: Record<string, T>,
 		storage: platform.DurableObjectState["storage"],
@@ -21,13 +22,13 @@ export namespace Portion {
 		data: string[],
 		storage: platform.DurableObjectState["storage"],
 		keyLimit = 128
-	): Promise<T[]> {
+	): Promise<Map<string, T>> {
 		const promises: Promise<Map<string, T>>[] = []
 		for (let i = 0; i < data.length; i += keyLimit) {
 			const segment = data.slice(i, i + keyLimit)
 			promises.push(storage.get<T>(segment))
 		}
-		return (await Promise.all(promises)).reduce((r: T[], e) => [...r, ...Array.from(e.values())], [])
+		return (await Promise.all(promises)).reduce((r: Map<string, T>, e) => new Map([...r, ...e]), new Map())
 	}
 	export async function remove(
 		keys: string[],

@@ -46,8 +46,9 @@ export class Backend {
 
 	async alarm(): Promise<void> {
 		const archiveTime = 12 * 1000 //after settlement
+		const now = Date.now()
 		const archiveThreshold = isoly.DateTime.truncate(
-			isoly.DateTime.create(Date.now() - archiveTime, "milliseconds"),
+			isoly.DateTime.create(now - archiveTime, "milliseconds"),
 			"seconds"
 		)
 		this.state.blockConcurrencyWhile(async () => {
@@ -57,7 +58,7 @@ export class Backend {
 			return await archivist.reconcile(archiveThreshold)
 		})
 		// Should be set by some config
-		const snooze = Date.now() + archiveTime - 7 * 1000
+		const snooze = now + archiveTime - 7 * 1000
 		await this.state.storage.setAlarm(snooze)
 	}
 }

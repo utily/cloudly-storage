@@ -40,9 +40,8 @@ export class Buffer<T = any> {
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
 	load(query: Selection.Query): Promise<((Document & T) | undefined)[]>
-	load(query?: Identifier | Identifier[] | Selection.Query): Promise<Loaded<T>> // TODO: Implement Selection query
+	load(query?: Identifier | Identifier[] | Selection.Query): Promise<Loaded<T>>
 	async load(query?: Identifier | Identifier[] | Selection.Query): Promise<Loaded<T>> {
-		console.log("this.partiitions; ", this.partitions)
 		let response: Loaded<T> | gracely.Error | undefined
 		if (typeof query == "string") {
 			response = await this.backend
@@ -69,11 +68,33 @@ export class Buffer<T = any> {
 
 		return gracely.Error.is(response) ? undefined : response
 	}
-	async store(document: T & Document): Promise<(T & Document) | undefined> {
-		// TODO???: Store many.
-		const response = await this.backend
-			.open(Configuration.Buffer.getShard(this.configuration, document.id))
-			.post<T & Document>(`/buffer/${encodeURIComponent(this.generateKey(document))}`, document, this.header)
+	async store(document: T & Document & { created?: isoly.DateTime }): Promise<(T & Document) | undefined>
+	async store(document: (T & Document & { created?: isoly.DateTime })[]): Promise<(T & Document)[] | undefined>
+	async store(
+		document: (T & Document & { created?: isoly.DateTime }) | (T & Document)[]
+	): Promise<(T & Document) | (T & Document)[] | undefined> {
+		let response: (T & Document)[] | (T & Document) | gracely.Error
+		if (!Array.isArray(document))
+			response = await this.backend
+				.open(Configuration.Buffer.getShard(this.configuration, document.id))
+				.post<T & Document>(`/buffer`, { [this.generateKey(document)]: document }, this.header)
+		else
+			response = (
+				await Promise.all(
+					Object.entries(
+						Configuration.Buffer.getShard(
+							this.configuration,
+							document.map(d => d.id)
+						)
+					).map(([key, value]) =>
+						this.backend.open(key).post<T & Document>(
+							`/buffer`,
+							document.reduce((r, d) => (value.includes(d.id) ? { [this.generateKey(d)]: d, ...r } : r), {}),
+							this.header
+						)
+					)
+				)
+			).reduce((r, e) => (gracely.Error.is(e) ? r : [e, ...r]), [])
 		return gracely.Error.is(response) ? undefined : response
 	}
 	async remove(id: string): Promise<T | gracely.Error> {

@@ -80,14 +80,14 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 	async store(
 		document: (T & Partial<Document>) | (T & Partial<Document>)[]
 	): Promise<(T & Partial<Document>) | undefined | ((T & Document) | undefined)[]> {
-		return !Array.isArray(document)
-			? await this.buffer.store({
-					...document,
-					id: document.id ?? Identifier.generate(),
-					created: document.created ?? isoly.DateTime.now(),
-					changed: isoly.DateTime.now(),
-			  })
-			: await Promise.all(document.map(v => this.store(v)))
+		return await this.buffer.store(
+			(Array.isArray(document) ? document : [document]).map<T & Document>(d => ({
+				...d,
+				id: d.id ?? Identifier.generate(),
+				created: d.created ?? isoly.DateTime.now(),
+				changed: isoly.DateTime.now(),
+			}))
+		)
 	}
 	async remove(id: Identifier): Promise<boolean>
 	async remove(id: Identifier[]): Promise<boolean[]>
