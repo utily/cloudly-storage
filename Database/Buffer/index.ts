@@ -117,7 +117,6 @@ export class Buffer<T = any> {
 				.delete<number>(`/buffer/${ids}`)
 			result = !gracely.Error.is(response)
 		}
-		console.log("buffer.result: ", result)
 		return result
 	}
 	static open<T extends object = any>(

@@ -108,15 +108,12 @@ export class Storage {
 				{}
 			)
 			await this.portion.put(changedValue)
-			console.log("key: ", key)
-			console.log("idKey: ", idKey)
 			const deleted = await this.portion.remove([...key, ...idKey])
 			result = deleted.reduce(
 				(r: boolean[], d: boolean, i) =>
 					(i + 1) % 2 === 0 ? [...r.slice(0, r.length - 1), r[r.length - 1] && d] : [...r, d],
 				[]
 			)
-			console.log("result: ", result)
 		}
 		return result
 	}

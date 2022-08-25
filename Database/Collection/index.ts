@@ -103,7 +103,10 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 	async remove(ids: Identifier | Identifier[]): Promise<boolean | boolean[]> {
 		const buffer = await this.buffer.remove(ids)
 		const archive = await this.archive.remove(ids)
-		const result = [...[buffer].flat(), ...[archive].flat()].filter(e => e)
+		const result = [[buffer].flat(), [archive].flat()].reduce(
+			(r, [buffer, archive], i) => [...r, buffer && archive],
+			[]
+		)
 		return Array.isArray(ids) ? result : result.some(e => e == true)
 	}
 	static open<T extends object = any>(
