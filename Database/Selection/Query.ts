@@ -18,6 +18,7 @@ export type Query =
 	| undefined
 
 export namespace Query {
+	export const standardLimit = 1000
 	export function extractPrefix(query: Query | undefined): isoly.Date[] {
 		const result = []
 		if (query && "created" in query && query.created.start <= query.created.end) {
@@ -25,7 +26,7 @@ export namespace Query {
 			while (result.slice(-1)[0] < query.created.end) {
 				result.push(isoly.Date.next(result.slice(-1)[0]))
 			}
-		} // todo changed
+		} // TODO: changed
 		else {
 			result.push("")
 		}

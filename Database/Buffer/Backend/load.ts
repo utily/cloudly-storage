@@ -7,7 +7,7 @@ export async function load(request: http.Request, context: Context): Promise<htt
 	let result: gracely.Result
 	const storage = context.storage
 	const body = await request.body
-	const ids: { prefix: string } | string[] | string | undefined = request.parameter.id ?? (body ? body : undefined)
+	const ids: { prefix: string[] } | string[] | string | undefined = request.parameter.id ?? (body ? body : undefined)
 	if (
 		ids &&
 		typeof ids != "string" &&
@@ -24,7 +24,7 @@ export async function load(request: http.Request, context: Context): Promise<htt
 		result = gracely.server.backendFailure("Failed to open Buffer Storage.")
 	else {
 		try {
-			result = gracely.success.ok(await storage.load(ids ?? { prefix: "doc/" })) // TODO???: Add support for many
+			result = gracely.success.ok(await storage.load<Record<string, any>>(ids ?? { prefix: ["doc/"] }))
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
 		}

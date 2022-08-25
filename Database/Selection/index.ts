@@ -8,6 +8,7 @@ export namespace Selection {
 	}
 	export type Query = SQuery
 	export namespace Query {
+		export const standardLimit = SQuery.standardLimit
 		export const extractPrefix = SQuery.extractPrefix
 	}
 

@@ -37,20 +37,28 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				const archiveDoc = await this.archive.load(selection)
 				result = bufferDoc ? bufferDoc : archiveDoc
 				break
-			case "object": //TODO: Fix listing with prefix and id array.
-				// let bufferList: (T & Document) | undefined | (Document & T)[]
-				// let archiveList: (T & Document) | undefined | (Document & T)[]
-				// if (Array.isArray(selection)) {
-				// 	bufferList = await this.buffer.load(selection)
-				// 	archiveList = await this.archive.load(selection)
-				// } else {
-				// 	bufferList = await this.buffer.load(selection)
-				// 	archiveList = await this.archive.load(selection)
-				// }
-				// result = archiveList.reduce<(T & Document)[]>(
-				// 	(r, document) => document && { [document.id]: document, ...r },
-				// 	bufferList
-				// )
+			case "object": //TODO: will return configuration.shards * limit
+				let bufferList: (T & Document) | undefined | ((Document & T) | undefined)[]
+				let archiveList: (T & Document) | undefined | ((Document & T) | undefined)[]
+				if (Array.isArray(selection)) {
+					bufferList = await this.buffer.load(selection)
+					archiveList = await this.archive.load(selection)
+				} else {
+					const query: Selection.Query = Selection.get(selection)
+					bufferList = await this.buffer.load(query)
+					const limit =
+						(query && "limit" in query && query.limit ? query.limit : Selection.Query.standardLimit) - bufferList.length
+					archiveList = await this.archive.load({
+						...query,
+						limit: limit > 1 ? limit : 2,
+					})
+				}
+				result = Object.values(
+					archiveList.reduce<(T & Document)[]>(
+						(r, document) => (document ? { [document.id]: document, ...r } : r),
+						bufferList.reduce((r, document) => (document ? { [document.id]: document, ...r } : r), [])
+					)
+				)
 				break
 			case "undefined": // TODO: Add locus.
 				const archive: ((Document & T) | undefined)[] = await this.archive.load()
