@@ -97,9 +97,28 @@ export class Buffer<T = any> {
 			).reduce((r, e) => (gracely.Error.is(e) ? r : [e, ...r]), [])
 		return gracely.Error.is(response) ? undefined : response
 	}
-	async remove(id: string): Promise<T | gracely.Error> {
+	remove(id: string): Promise<boolean>
+	remove(ids: string[]): Promise<boolean[]>
+	remove(ids: string | string[]): Promise<boolean | boolean[]>
+	async remove(ids: string | string[]): Promise<boolean | boolean[]> {
 		//TODO: Test?
-		return await this.backend.open(Configuration.Buffer.getShard(this.configuration, id)).delete<T>(`/buffer/${id}`)
+		let result: boolean | boolean[]
+		if (Array.isArray(ids))
+			result = (
+				await Promise.all(
+					Object.entries(Configuration.Buffer.getShard(this.configuration, ids)).map(([shard, keys]) =>
+						this.backend.open(shard).post<boolean[]>(`/buffer/delete`, keys)
+					)
+				)
+			).flatMap<boolean>(e => (!gracely.Error.is(e) ? e : false))
+		else {
+			const response = await this.backend
+				.open(Configuration.Buffer.getShard(this.configuration, ids))
+				.delete<number>(`/buffer/${ids}`)
+			result = !gracely.Error.is(response)
+		}
+		console.log("buffer.result: ", result)
+		return result
 	}
 	static open<T extends object = any>(
 		backend: DurableObject.Namespace,

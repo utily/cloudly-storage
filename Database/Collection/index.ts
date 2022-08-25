@@ -84,8 +84,8 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		}
 		return result
 	}
-	async store(document: T & Partial<Document>): Promise<(T & Document) | undefined>
-	async store(documents: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
+	store(document: T & Partial<Document>): Promise<(T & Document) | undefined>
+	store(documents: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
 	async store(
 		document: (T & Partial<Document>) | (T & Partial<Document>)[]
 	): Promise<(T & Partial<Document>) | undefined | ((T & Document) | undefined)[]> {
@@ -98,11 +98,13 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			}))
 		)
 	}
-	async remove(id: Identifier): Promise<boolean>
-	async remove(id: Identifier[]): Promise<boolean[]>
-	async remove(id: Identifier | Identifier[]): Promise<boolean | boolean[]> {
-		//#TODO: implement
-		return !Array.isArray(id) ? false : Promise.all(id.map(i => this.remove(i)))
+	remove(id: Identifier): Promise<boolean>
+	remove(id: Identifier[]): Promise<boolean[]>
+	async remove(ids: Identifier | Identifier[]): Promise<boolean | boolean[]> {
+		const buffer = await this.buffer.remove(ids)
+		const archive = await this.archive.remove(ids)
+		const result = [...[buffer].flat(), ...[archive].flat()].filter(e => e)
+		return Array.isArray(ids) ? result : result.some(e => e == true)
 	}
 	static open<T extends object = any>(
 		archive: Archive<T>,
