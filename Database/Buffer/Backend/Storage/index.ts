@@ -81,8 +81,50 @@ export class Storage {
 		}, {})
 	}
 
-	async remove(keys: string[]): Promise<number> {
-		return this.portion.remove(keys)
+	async removeDocuments(keys: string | string[]): Promise<boolean | boolean[]> {
+		let result: boolean | boolean[] = false
+		if (typeof keys == "string") {
+			const idKey = "id/" + keys
+			const key = await this.storage.get<string>(idKey)
+			const document = key ? await this.storage.get<Record<string, any>>(key) : undefined
+			const changedKey = "changed/" + isoly.DateTime.truncate(document?.changed, "minutes")
+			const changedValue = document?.changed ? await this.storage.get<string>(changedKey) : undefined
+			changedValue && (await this.storage.put(changedKey, changedValue.replace(new RegExp(key + "(\n)?"), "")))
+			result = !!key && (await this.storage.delete([key, idKey])) == 2
+		} else {
+			const idKey = keys.map(e => "id/" + e)
+			const key = Array.from((await this.portion.get<string>(idKey)).values())
+			const document = Array.from((await this.portion.get<Record<string, any>>(key)).entries())
+			const changedToRemove = document.reduce((r: Record<string, string[]>, [key, document]) => {
+				const changedKey = "changed/" + isoly.DateTime.truncate(document?.changed, "minutes")
+				return { [changedKey]: (r[changedKey] ?? []).concat(key + "(\n)?") }
+			}, {})
+			const a: [string, string][] = Array.from((await this.portion.get<string>(Object.keys(changedToRemove))).entries())
+			const changedValue = a.reduce(
+				(r: Record<string, string>, [changedKey, changedValue]) => ({
+					...r,
+					[changedKey]: changedValue.replace(new RegExp(changedToRemove[changedKey].join("|") + "(\n)?"), ""),
+				}),
+				{}
+			)
+			await this.portion.put(changedValue)
+			const deleted = await this.portion.remove([...key, ...idKey])
+			result = deleted.reduce(
+				(r: boolean[], d: boolean, i) =>
+					(i + 1) % 2 === 0 ? [...r.slice(0, r.length - 1), r[r.length - 1] && d] : [...r, d],
+				[]
+			)
+		}
+		return result
+	}
+
+	async remove(keys: string | string[]): Promise<boolean | boolean[]> {
+		let result: boolean | boolean[]
+		if (typeof keys == "string")
+			result = !!keys && (await this.storage.delete(keys))
+		else
+			result = await this.portion.remove(keys)
+		return result
 	}
 
 	static open(state: platform.DurableObjectState): Storage

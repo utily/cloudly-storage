@@ -1,6 +1,7 @@
 import * as isoly from "isoly"
 import "./load"
 import "./store"
+import "./remove"
 import { DurableObjectState } from "../../../platform"
 import { Archivist } from "./Archivist"
 import { Context } from "./Context"
