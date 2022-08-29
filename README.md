@@ -102,7 +102,7 @@ remove(id: Identifier[]): Promise<boolean[]>
 ```
 ### partition
 The partition function can be used to create partitions, theoretically infinitly many partitions can be created but don't go crazy with it.
-```
+```ts
 partition(...partition: Identifier[]): S 
 ```
 ## Indecies
