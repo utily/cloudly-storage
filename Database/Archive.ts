@@ -122,6 +122,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	}
 	remove(id: string): Promise<boolean>
 	remove(ids: string[]): Promise<boolean[]> // TODO: test
+	remove(ids: string | string[]): Promise<boolean | boolean[]>
 	async remove(ids: string | string[]): Promise<boolean | boolean[]> {
 		let result: boolean | boolean[]
 		if (typeof ids == "string") {
