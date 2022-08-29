@@ -23,4 +23,31 @@ export namespace Document {
 		const { id, created, changed, purged: purged, ...remainder } = document
 		return [{ id, created, changed, purged }, remainder as T]
 	}
+	export function update<T extends Record<string, any> = Document>(original: T, appendee: Partial<T>): T | undefined {
+		return JSON.parse(JSON.stringify({ ...original, ...appendee }))
+	}
+	export function append<T extends Record<string, any> = Document>(
+		originalDoc: T,
+		appendee: Partial<T>
+	): T | undefined {
+		const result: T = { ...originalDoc }
+		for (const [key, value] of Object.entries(appendee)) {
+			if (Array.isArray(value)) {
+				Object.defineProperty(result, key, {
+					value: [...(Array.isArray(result[key]) ? result[key] : []), ...value],
+					enumerable: true,
+					writable: true,
+				})
+			} else if (typeof value == "object") {
+				Object.defineProperty(result, key, {
+					value: append<typeof result[typeof key]>(result[key], value),
+					enumerable: true,
+					writable: true,
+				})
+			} else {
+				Object.defineProperty(result, key, { value, enumerable: true, writable: true })
+			}
+		}
+		return result
+	}
 }

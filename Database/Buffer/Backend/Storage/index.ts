@@ -1,7 +1,7 @@
 import * as isoly from "isoly"
 import * as platform from "../../../../platform"
+import { Document } from "../../../Document"
 import { Portion } from "./Portion"
-
 export class Storage {
 	private constructor(
 		private readonly storage: platform.DurableObjectState["storage"],
@@ -53,6 +53,17 @@ export class Storage {
 		const result = Object.values(documents)
 		return result.length == 1 ? result[0] : result
 	}
+	async updateDocument<T extends Document>(
+		update: T & Partial<Document> & Pick<Document, "id">,
+		archived?: T & Document
+	): Promise<(T & Document) | undefined> {
+		const key = await this.storage.get<string>("id/" + update.id)
+		const old = key ? await this.storage.get<T>(key) : undefined
+		const temp: (T & Document) | undefined = old ?? archived
+		const updated = temp && Document.update<T & Document>(temp, update)
+		const response = key && updated ? await this.storeDocuments({ [key]: updated }) : undefined
+		return response ? updated : undefined
+	}
 	async updateChangedIndex(documents: Record<string, any>): Promise<Record<string, string>> {
 		const oldDocuments = {
 			...documents,
@@ -89,9 +100,7 @@ export class Storage {
 			const idKey = "id/" + keys
 			const key = await this.storage.get<string>(idKey)
 			const document = key ? await this.storage.get<Record<string, any>>(key) : undefined
-			const changedKey = "changed/" + isoly.DateTime.truncate(document?.changed, "seconds")
-			const changedValue = document?.changed ? await this.storage.get<string>(changedKey) : undefined
-			changedValue && (await this.storage.put(changedKey, changedValue.replace(new RegExp(key + "(\n)?"), "")))
+			document && key && (await this.removeChanged(document.changed, key))
 			result = !!key && (await this.storage.delete([key, idKey])) == 2
 		} else {
 			const idKey = keys.map(e => "id/" + e)
@@ -119,7 +128,11 @@ export class Storage {
 		}
 		return result
 	}
-
+	private async removeChanged(oldChangedDate: isoly.DateTime, key: string) {
+		const changedKey = "changed/" + oldChangedDate && isoly.DateTime.truncate(oldChangedDate, "seconds")
+		const changedValue = oldChangedDate ? await this.storage.get<string>(changedKey) : undefined
+		changedValue && (await this.storage.put(changedKey, changedValue.replace(new RegExp(key + "(\n)?"), "")))
+	}
 	async remove(keys: string | string[]): Promise<boolean | boolean[]> {
 		let result: boolean | boolean[]
 		if (typeof keys == "string")

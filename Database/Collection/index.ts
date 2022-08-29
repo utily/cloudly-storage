@@ -118,6 +118,10 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		const toBeStored: (T & Document) | (T & Document)[] | undefined = await this.allocateId(documents)
 		return toBeStored && (await this.buffer.store(toBeStored))
 	}
+	async update(incomingDoc: T & Partial<Document> & { id: Document["id"] }): Promise<(T & Document) | undefined> {
+		const archiveDocument = await this.archive.load(incomingDoc.id)
+		return this.buffer.update({ ...incomingDoc, changed: isoly.DateTime.now() }, archiveDocument)
+	}
 	remove(id: Identifier): Promise<boolean>
 	remove(id: Identifier[]): Promise<boolean[]>
 	async remove(ids: Identifier | Identifier[]): Promise<boolean | boolean[]> {

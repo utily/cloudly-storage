@@ -102,6 +102,19 @@ export class Buffer<T = any> {
 			).reduce((r, e) => (gracely.Error.is(e) ? r : [e, ...r]), [])
 		return result
 	}
+	async update(
+		incomingDocument: T & Partial<Document> & { id: Document["id"] },
+		archiveDocument?: T & Document
+	): Promise<(T & Document) | undefined> {
+		const updatedDoc = await this.backend
+			.open(Configuration.Buffer.getShard(this.configuration, incomingDocument.id))
+			.put<T & Document>(
+				`/buffer/document/${incomingDocument.id}`,
+				{ incomingDocument: incomingDocument, archiveDocument: archiveDocument },
+				this.header
+			)
+		return gracely.Error.is(updatedDoc) ? undefined : updatedDoc
+	}
 	remove(id: string): Promise<boolean>
 	remove(ids: string[]): Promise<boolean[]>
 	remove(ids: string | string[]): Promise<boolean | boolean[]>
