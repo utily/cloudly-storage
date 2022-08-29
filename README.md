@@ -67,7 +67,7 @@ export abstract class Storage {
 ```
 here I use the dependency `gracely` to generate errors. Note that the `Storage.environment.archive` & `Storage.environment.BufferBackend` needs to correspond to the bindings defined in wrangler.toml. The initialize function needs to be called with the environment by the worker before utilizing the database.
 
-Now the databse can be used by the worker as follows:
+Now the database can be used by the worker as follows:
 ```
 import { Storage } from "./Storage"
 import { User } from "../model/User"
@@ -106,16 +106,16 @@ The partition function can be used to create partitions, theoretically infinitly
 partition(...partition: Identifier[]): S 
 ```
 ## Indecies
-There exists 3 types of keys in the Database, `id`, `changed` and `doc`; which each adds functionality to the database.
-The definitions below are based on how they look in the `Archive`; the buffer uses a small variation of these keys where the type of the document aswell as the slash following the type is omitted.
+There exists 3 types of keys in the Database, `id`, `changed` and `doc`; each adds functionality to the database.
+The definitions below are based on how they look in the `Archive`; the buffer uses a small variation of these keys where the type of the document as well as the slash following the type is omitted.
 
 ### doc
 The doc-index contains the document the user wants to store/load/update.
-The structure of the doc-key makes it possible, easy, fast to list ceratin partition, query a partition on created time.
+The structure of the doc-key makes it possible, easy and fast to list ceratin a partition and query it on created time with a date range.
 
 Definition:
 ```
-key := type + "/doc/" + partitions.join("/") + "/" + document.created + document.id
+key := type + "/doc/" + partitions.join("/") + "/" + document.created + "/" + document.id
 {
 	[key]: document
 }
@@ -132,10 +132,10 @@ Definition:
 	[type + "/id/" + document.id]: key
 }
 ```
-Where the type is the name of the document-type used in the layout when initiating the database and the document is the value the user want to store and the key is defined above in `doc`.
+Where the type is the name of the document-type used in the layout when initiating the database and the document is the value the user wants to store and the key is defined above in `doc`.
 
 ### changed 
-The changed-index is multi purposed and is used in the buffer to determine which documents to archive and which archived documents to remove. It's use in the archive is to be able query documents with a daterange representing the last time the document was changed.
+The changed-index is multi purposed and is used in the buffer to determine which documents to archive and which archived documents to remove. Its use in the archive is to be able query documents with a daterange representing the last time the document was changed.
 Definition: 
 ```
 {
