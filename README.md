@@ -127,7 +127,7 @@ Where type is the name of the document used in the layout when initiating the da
 ### id
 The purpose of the id-index is to make it possible to fetch a document while only knowing the type and id of the document.
 Definition: 
-```
+```ts
 {
 	[type + "/id/" + document.id]: key
 }
