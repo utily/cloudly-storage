@@ -137,7 +137,7 @@ Where the type is the name of the document-type used in the layout when initiati
 ### changed 
 The changed-index is multi purposed and is used in the buffer to determine which documents to archive and which archived documents to remove. Its use in the archive is to be able query documents with a daterange representing the last time the document was changed.
 Definition: 
-```
+```ts
 {
 	changed := truncate(document.changed, "minutes")
 	[type + "/changed/" + changed]: `key_1\n
