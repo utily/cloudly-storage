@@ -87,7 +87,7 @@ store(document: User & Partial<Document>): Promise<(User & Document) | undefined
 store(documents: (User & Partial<Document>)[]): Promise<((User & Document) | undefined)[]>
 ```
 ### load
-Loads document(s) form the database by either specifying the id, ids or a query in the form specified in the type `Database/Selection/index.ts`. A locus can be returned if the query includes more documents than the specified limit or 1000 as default. The locus can be used to continue the listing from where the previous one stopped.
+Loads document(s) from the database by either specifying the id, ids or a query in the form specified in the type `Database/Selection/index.ts`. A locus can be returned if the query includes more documents than the specified limit or 1000 as default. The locus can be used to continue the listing from where the previous one stopped.
 
 ```
 load(id: Identifier): Promise<(T & Document) | undefined>
