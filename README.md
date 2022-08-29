@@ -17,7 +17,7 @@ _figure 1: The architecture of the database._
 - The cloudly-storage package needs to be added in the dependencies of the package.json file and needs to be installed.
 - A keyvalue store needs to be created on the cloudflare account used by the worker in order to use this database in the cloudflare worker.
 - The durable object class Backend needs to be exported from the main ```index.ts``` file in your worker:
-```
+```ts
 export { Backend } from "cloudly-storage"
 
 export default {
