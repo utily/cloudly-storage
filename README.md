@@ -96,7 +96,7 @@ load(selection?: Selection): Promise<(Document & T)[] & { locus?: string }>
 ```
 ### remove
 The remove function will delete the document and return a boolean representing the success of the operation.
-```
+```ts
 remove(id: Identifier): Promise<boolean>
 remove(id: Identifier[]): Promise<boolean[]>
 ```
