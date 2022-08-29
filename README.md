@@ -114,7 +114,7 @@ The doc-index contains the document the user wants to store/load/update.
 The structure of the doc-key makes it possible, easy and fast to list ceratin a partition and query it on created time with a date range.
 
 Definition:
-```
+```ts
 key := type + "/doc/" + partitions.join("/") + "/" + document.created + "/" + document.id
 {
 	[key]: document
