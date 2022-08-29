@@ -23,13 +23,21 @@ export class Portion {
 		}
 		return (await Promise.all(promises)).reduce((r: Map<string, T>, e) => new Map([...r, ...e]), new Map())
 	}
-	async remove(keys: string[], keyLimit = 128): Promise<number> {
-		const promises: Promise<number>[] = []
+	async remove(keys: string[], keyLimit = 128): Promise<boolean[]> {
+		const promises: Promise<boolean[]>[] = []
 		for (let i = 0; i < keys.length; i += keyLimit) {
 			const segment = keys.slice(i, i + keyLimit)
-			promises.push(this.storage.delete(segment))
+			promises.push(
+				this.storage.delete(segment).then(r => {
+					const fails = segment.length - r
+					const result = []
+					for (let i = 0; i < segment.length; i++)
+						result.push(i < fails ? false : true)
+					return result
+				})
+			)
 		}
-		return (await Promise.all(promises)).reduce((r: number, e) => r + e, 0)
+		return (await Promise.all(promises)).flat()
 	}
 	static open(storage: platform.DurableObjectState["storage"]): Portion
 	static open(storage: platform.DurableObjectState["storage"] | undefined): Portion | undefined
