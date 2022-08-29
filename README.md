@@ -82,7 +82,7 @@ Once the database has been created following the example in the section `Integra
 
 ### store
 Stores document(s) in the database.
-```
+```ts
 store(document: User & Partial<Document>): Promise<(User & Document) | undefined>
 store(documents: (User & Partial<Document>)[]): Promise<((User & Document) | undefined)[]>
 ```
