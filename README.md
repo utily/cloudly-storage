@@ -40,7 +40,7 @@ The binding in the kv-namespaces and the name of the durable_objects bindings ca
 
 ### Opening the DB
 Lets say we want to open a transactional database that can store users with an interface User.
-```
+```ts
 import { User } from "../model/User"
 import * as gracely from "gracely"
 
