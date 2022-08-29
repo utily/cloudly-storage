@@ -65,7 +65,7 @@ export abstract class Storage {
 	}
 }
 ```
-here I use the dependency `gracely` to generate errors. Note that the `Storage.environment.archive` & `Storage.environment.BufferBackend` needs to correspond to the bindings defined in wrangler.toml. The initialize function needs to be called with the environment by the worker before utilizing the database.
+Here I use the dependency `gracely` to generate errors. Note that the `Storage.environment.archive` & `Storage.environment.BufferBackend` needs to correspond to the bindings defined in wrangler.toml. The initialize function needs to be called with the environment by the worker before utilizing the database.
 
 Now the database can be used by the worker as follows:
 ```
