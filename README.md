@@ -141,9 +141,9 @@ Definition:
 {
 	changed := truncate(document.changed, "minutes")
 	[type + "/changed/" + changed]: `key_1\n
-																	 key_2\n
-																	 ...
-																	 key_n`
+	                                 key_2\n
+	                                 ...
+	                                 key_n`
 }
 ```
 Where the truncate function truncates the changed date of the document to minutes to save all keys of documents changed within that minute, the document is the value the user wants to store in the database, the key_n are on the form of key defined in `doc` and n is a natural number.
