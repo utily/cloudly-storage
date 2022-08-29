@@ -15,7 +15,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			id: KeyValueStore<string>
 		},
 		private readonly configuration: Required<Configuration.Archive>,
-		private readonly partitions: string = ""
+		readonly partitions: string = ""
 	) {
 		super()
 	}
@@ -97,27 +97,29 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		return result
 	}
 
-	store(document: T & Partial<Document>): Promise<(T & Document) | undefined>
-	store(documents: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
+	store(document: T & Partial<Document>, overwrite?: true): Promise<(T & Document) | undefined>
+	store(documents: (T & Partial<Document>)[], overwrite?: true): Promise<((T & Document) | undefined)[]>
 	async store(
-		documents: (T & Partial<Document>) | (T & Partial<Document>)[]
+		documents: (T & Partial<Document>) | (T & Partial<Document>)[],
+		overwrite?: true
 	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
 		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
 		if (!Array.isArray(documents)) {
 			if (!this.configuration.retainChanged)
 				documents = { ...documents, changed: isoly.DateTime.now() }
-			const kvKey = Document.is(documents) ? await this.getKey(documents.id) : undefined
-			const newKey = Document.is(documents) ? this.generateKey(documents) : null
-			const document =
-				!Document.is(documents) || kvKey != newKey
-					? { ...documents, ...((await this.allocateId(documents)) ?? {}) }
-					: undefined
+			const kvKey = Document.is(documents) && !overwrite ? await this.getKey(documents.id) : undefined
+			const newKey = Document.is(documents) && !overwrite ? this.generateKey(documents) : null
+			const document = overwrite
+				? documents
+				: !Document.is(documents) || kvKey != newKey
+				? { ...documents, ...((await this.allocateId(documents)) ?? {}) }
+				: undefined
 			if (Document.is(document, this.configuration.idLength))
 				await this.backend.doc.set(this.generateKey(document), (result = document))
 			else
 				result = undefined
 		} else
-			result = await Promise.all(documents.map(e => this.store(e)))
+			result = await Promise.all(documents.map(e => this.store(e, overwrite)))
 		return result
 	}
 	remove(id: string): Promise<boolean>

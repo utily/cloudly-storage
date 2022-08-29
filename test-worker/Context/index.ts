@@ -33,14 +33,17 @@ export class Context {
 		return (
 			this.#collection ??
 			(this.#collection =
-				Collection.create(this.environment) ?? gracely.server.databaseFailure("Failed to open collection."))
+				Collection.create(this.environment)?.partition("testtest") ??
+				gracely.server.databaseFailure("Failed to open collection."))
 		)
 	}
 	#archive?: Archive | gracely.Error
 	get archive(): Archive | gracely.Error {
 		return (
 			this.#archive ??
-			(this.#archive = Archive.create(this.environment) ?? gracely.server.databaseFailure("Failed to open archive."))
+			(this.#archive =
+				Archive.create(this.environment)?.partition("testtest") ??
+				gracely.server.databaseFailure("Failed to open archive."))
 		)
 	}
 	constructor(public readonly environment: Environment) {}
