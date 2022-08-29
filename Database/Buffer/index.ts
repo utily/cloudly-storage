@@ -103,7 +103,7 @@ export class Buffer<T = any> {
 		return result
 	}
 	async update(
-		amendment: T & Partial<Document> & { id: Document["id"] },
+		amendment: Partial<T & Document> & { id: Document["id"] },
 		archived?: T & Document
 	): Promise<(T & Document) | undefined> {
 		const updated = await this.backend
@@ -112,7 +112,7 @@ export class Buffer<T = any> {
 		return gracely.Error.is(updated) ? undefined : updated
 	}
 	async append(
-		amendment: T & Partial<Document> & { id: Document["id"] },
+		amendment: Partial<T & Document> & { id: Document["id"] },
 		archived?: T & Document
 	): Promise<(T & Document) | undefined> {
 		const updated = await this.backend

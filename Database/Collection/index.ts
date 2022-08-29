@@ -118,11 +118,11 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		const toBeStored: (T & Document) | (T & Document)[] | undefined = await this.allocateId(documents)
 		return toBeStored && (await this.buffer.store(toBeStored))
 	}
-	async update(amendment: T & Partial<Document> & { id: Document["id"] }): Promise<(T & Document) | undefined> {
+	async update(amendment: Partial<T & Document> & { id: Document["id"] }): Promise<(T & Document) | undefined> {
 		const archived = await this.archive.load(amendment.id)
 		return this.buffer.update({ ...amendment, changed: isoly.DateTime.now() }, archived)
 	}
-	async append(amendment: T & Partial<Document> & { id: Document["id"] }): Promise<(T & Document) | undefined> {
+	async append(amendment: Partial<T & Document> & { id: Document["id"] }): Promise<(T & Document) | undefined> {
 		const archived = await this.archive.load(amendment.id)
 		return this.buffer.append({ ...amendment, changed: isoly.DateTime.now() }, archived)
 	}
