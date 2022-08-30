@@ -10,28 +10,33 @@ import { Context } from "./Context"
 import { Environment } from "./Environment"
 
 export class Backend {
-	alarmTime = 10 * 1000
-	partitions?: string[]
-	idLength?: number
+	partitions: string[] | undefined
+	idLength: number = 60 * 1000
+
+	snooze: number = 60 * 1000 // make configurable
+	archiveTime: number = 60 * 1000 // make configurable
+
+	deletionTime = 60 * 1000 // hard coded. should be 5 minutes in production
+
 	private constructor(private readonly state: DurableObjectState, private environment: Environment) {
 		this.state.blockConcurrencyWhile(async () => {
-			this.partitions = await this.state.storage.get("partitions")
+			this.partitions = (await this.state.storage.get("partitions")) ?? this.partitions
 			!!(await this.state.storage.getAlarm()) ||
 				(await (async () => {
-					await this.state.storage.setAlarm(this.alarmTime)
+					await this.state.storage.setAlarm(this.snooze)
 					return true
 				})())
 		})
 	}
 
 	async fetch(request: Request): Promise<Response> {
-		this.state.waitUntil(this.configuration(request))
+		this.state.waitUntil(this.configure(request))
 		return this.state.blockConcurrencyWhile(() =>
 			Context.handle(request, { ...(this.environment ?? {}), state: this.state })
 		)
 	}
 
-	async configuration(request: Request): Promise<void> {
+	async configure(request: Request): Promise<void> {
 		//TODO: Review
 		const idLength = +(request.headers.get("length") ?? NaN)
 		this.idLength = this.idLength ?? (Number.isNaN(idLength) ? undefined : idLength)
@@ -61,7 +66,6 @@ export class Backend {
 			return await archivist.reconcile(archiveThreshold)
 		})
 		// TODO: Should be set by some config
-		const snooze = now + archiveTime - 15 * 1000
-		await this.state.storage.setAlarm(snooze)
+		await this.state.storage.setAlarm(this.snooze)
 	}
 }

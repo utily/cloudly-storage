@@ -3,7 +3,7 @@ import { Buffer } from "./Buffer"
 
 type ShardCount = 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256
 
-export interface Collection extends Archive {
+export interface Collection extends Archive, Buffer {
 	shards?: ShardCount
 }
 
