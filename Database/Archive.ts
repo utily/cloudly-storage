@@ -119,19 +119,17 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			result = await Promise.all(documents.map(e => this.store(e, overwrite)))
 		return result
 	}
-	async update(docWithUpdates: T & Partial<Document>): Promise<(T & Document) | undefined>
-	async update(docWithUpdates: T & Document): Promise<(T & Document) | undefined>
-	async update(docWithUpdates: T & Partial<Document>): Promise<(T & Document) | undefined> {
-		const originalDoc = await (docWithUpdates.id ? this.load(docWithUpdates.id) : undefined)
-		const updatedDoc = originalDoc && Document.update(originalDoc, docWithUpdates)
-		const result = updatedDoc && (await this.set(updatedDoc))
-		return result
+	async update(amendment: T & Partial<Document>): Promise<(T & Document) | undefined>
+	async update(amendment: T & Document): Promise<(T & Document) | undefined>
+	async update(amendment: T & Partial<Document>): Promise<(T & Document) | undefined> {
+		const archived = await (amendment.id ? this.load(amendment.id) : undefined)
+		const updated = archived && Document.update(archived, amendment)
+		return updated && (await this.set(updated))
 	}
-	async append(appendee: T & Partial<Document>): Promise<(T & Document) | undefined> {
-		const originalDoc = await (appendee.id ? this.load(appendee.id) : undefined)
-		const updatedDoc = originalDoc && Document.append(originalDoc, appendee)
-		const result = updatedDoc && (await this.set(updatedDoc))
-		return result
+	async append(amendment: T & Partial<Document>): Promise<(T & Document) | undefined> {
+		const archived = await (amendment.id ? this.load(amendment.id) : undefined)
+		const appended = archived && Document.append(archived, amendment)
+		return appended && (await this.set(appended))
 	}
 	private async set(document: T & Partial<Document>): Promise<(T & Document) | undefined> {
 		let result: (T & Document) | undefined = undefined

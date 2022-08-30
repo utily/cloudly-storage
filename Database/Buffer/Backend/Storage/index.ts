@@ -39,13 +39,13 @@ export class Storage {
 			{}
 		)
 		const oldIdIndices = Object.fromEntries((await this.portion.get<string>(Object.keys(suggestedIdIndices))).entries())
-		const newdocuments = Object.entries(documents).reduce(
+		const newDocuments = Object.entries(documents).reduce(
 			(r: Record<string, T>, [key, document]) => ({ ...r, [oldIdIndices["id/" + document.id] ?? key]: document }),
 			{}
 		)
-		const changedIndex = await this.updateChangedIndex(newdocuments)
+		const changedIndex = await this.updateChangedIndex(newDocuments)
 		await this.portion.put({
-			...newdocuments,
+			...newDocuments,
 			...suggestedIdIndices,
 			...oldIdIndices,
 			...changedIndex,
@@ -54,13 +54,24 @@ export class Storage {
 		return result.length == 1 ? result[0] : result
 	}
 	async updateDocument<T extends Document>(
-		update: T & Partial<Document> & Pick<Document, "id">,
+		append: T & Partial<Document> & Pick<Document, "id">,
 		archived?: T & Document
 	): Promise<(T & Document) | undefined> {
-		const key = await this.storage.get<string>("id/" + update.id)
+		const key = await this.storage.get<string>("id/" + append.id)
 		const old = key ? await this.storage.get<T>(key) : undefined
 		const temp: (T & Document) | undefined = old ?? archived
-		const updated = temp && Document.update<T & Document>(temp, update)
+		const updated = temp && Document.update<T & Document>(temp, append)
+		const response = key && updated ? await this.storeDocuments({ [key]: updated }) : undefined
+		return response ? updated : undefined
+	}
+	async appendDocument<T extends Document>(
+		append: T & Partial<Document> & Pick<Document, "id">,
+		archived?: T & Document
+	): Promise<(T & Document) | undefined> {
+		const key = await this.storage.get<string>("id/" + append.id)
+		const old = key ? await this.storage.get<T>(key) : undefined
+		const temp: (T & Document) | undefined = old ?? archived
+		const updated = temp && Document.append<T & Document>(temp, append)
 		const response = key && updated ? await this.storeDocuments({ [key]: updated }) : undefined
 		return response ? updated : undefined
 	}
