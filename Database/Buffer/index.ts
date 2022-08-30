@@ -103,17 +103,22 @@ export class Buffer<T = any> {
 		return result
 	}
 	async update(
-		incomingDocument: T & Partial<Document> & { id: Document["id"] },
-		archiveDocument?: T & Document
+		amendment: T & Partial<Document> & { id: Document["id"] },
+		archived?: T & Document
 	): Promise<(T & Document) | undefined> {
-		const updatedDoc = await this.backend
-			.open(Configuration.Buffer.getShard(this.configuration, incomingDocument.id))
-			.put<T & Document>(
-				`/buffer/document/${incomingDocument.id}`,
-				{ incomingDocument: incomingDocument, archiveDocument: archiveDocument },
-				this.header
-			)
-		return gracely.Error.is(updatedDoc) ? undefined : updatedDoc
+		const updated = await this.backend
+			.open(Configuration.Buffer.getShard(this.configuration, amendment.id))
+			.put<T & Document>(`/buffer/document`, { amendment, archived }, this.header)
+		return gracely.Error.is(updated) ? undefined : updated
+	}
+	async append(
+		amendment: T & Partial<Document> & { id: Document["id"] },
+		archived?: T & Document
+	): Promise<(T & Document) | undefined> {
+		const updated = await this.backend
+			.open(Configuration.Buffer.getShard(this.configuration, amendment.id))
+			.patch<T & Document>(`/buffer/document`, { amendment, archived }, this.header)
+		return gracely.Error.is(updated) ? undefined : updated
 	}
 	remove(id: string): Promise<boolean>
 	remove(ids: string[]): Promise<boolean[]>
