@@ -5,6 +5,8 @@ type ShardCount = 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256
 
 export interface Collection extends Archive, Buffer {
 	shards?: ShardCount
+	secondsBetweenArchives?: number
+	secondsInBuffer?: number
 }
 
 export namespace Collection {

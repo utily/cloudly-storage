@@ -13,7 +13,7 @@ export class Archivist {
 		private readonly storage: Storage,
 		private readonly state: DurableObjectState,
 		private readonly partitions = "",
-		private readonly configurations = { remove: 10 * 1000 }
+		private readonly configurations = { remove: 5 * 60 * 1000 }
 	) {}
 	partition(...name: string[]): Archivist {
 		return new Archivist(
@@ -54,7 +54,6 @@ export class Archivist {
 			}
 		return result
 	}
-
 	static open(
 		keyValueNamespace: KVNamespace | undefined,
 		state: DurableObjectState,

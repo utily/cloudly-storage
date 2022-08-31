@@ -10,13 +10,10 @@ import { Context } from "./Context"
 import { Environment } from "./Environment"
 
 export class Backend {
-	partitions: string[] | undefined
-	idLength: number = 60 * 1000
-
-	snooze: number = 60 * 1000 // make configurable
-	archiveTime: number = 60 * 1000 // make configurable
-
-	deletionTime = 60 * 1000 // hard coded. should be 5 minutes in production
+	private partitions: string[] | undefined
+	private idLength: number
+	private snooze: number
+	private archiveTime: number
 
 	private constructor(private readonly state: DurableObjectState, private environment: Environment) {
 		this.state.blockConcurrencyWhile(async () => {
@@ -28,16 +25,18 @@ export class Backend {
 				})())
 		})
 	}
-
 	async fetch(request: Request): Promise<Response> {
 		this.state.waitUntil(this.configure(request))
 		return this.state.blockConcurrencyWhile(() =>
 			Context.handle(request, { ...(this.environment ?? {}), state: this.state })
 		)
 	}
-
 	async configure(request: Request): Promise<void> {
 		//TODO: Review
+		const snooze = +(request.headers.get("secondsBetweenArchives") ?? NaN)
+		this.snooze = this.snooze ?? (Number.isNaN(snooze) ? undefined : snooze)
+		const archiveTime = +(request.headers.get("secondsInBuffer") ?? NaN)
+		this.archiveTime = this.archiveTime ?? (Number.isNaN(archiveTime) ? undefined : archiveTime)
 		const idLength = +(request.headers.get("length") ?? NaN)
 		this.idLength = this.idLength ?? (Number.isNaN(idLength) ? undefined : idLength)
 		this.state.waitUntil(
@@ -53,10 +52,9 @@ export class Backend {
 	}
 
 	async alarm(): Promise<void> {
-		const archiveTime = 20 * 1000 //TODO: after settlement
 		const now = Date.now()
 		const archiveThreshold = isoly.DateTime.truncate(
-			isoly.DateTime.create(now - archiveTime, "milliseconds"),
+			isoly.DateTime.create(now - this.archiveTime, "milliseconds"),
 			"seconds"
 		)
 		this.state.blockConcurrencyWhile(async () => {
