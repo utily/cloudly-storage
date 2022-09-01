@@ -19,7 +19,7 @@ export class Archivist {
 		private readonly storage: Storage,
 		private readonly state: DurableObjectState,
 		private readonly partitions = "",
-		private readonly configurations = { remove: 50 }
+		private readonly configurations = { remove: 5 * 60 * 1000 }
 	) {}
 	partition(...name: string[]): Archivist {
 		return new Archivist(
