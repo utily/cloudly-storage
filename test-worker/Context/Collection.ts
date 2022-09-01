@@ -10,7 +10,7 @@ export namespace Collection {
 	export function create(environment: Environment): Collection | undefined {
 		return storage.Database.create<Layout>(
 			{
-				silos: { users: { type: "collection", idLength: 4, retainChanged: true } },
+				silos: { users: { type: "collection", idLength: 4, retainChanged: true, shards: 1 } },
 			},
 			environment.archive,
 			environment.DatabaseBuffer

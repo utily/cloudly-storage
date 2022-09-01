@@ -64,7 +64,6 @@ export class Buffer<T = any> {
 					this.backend.open(shard).get<Loaded<T>>(`/buffer`, this.header)
 				)
 			).then(r => r.flatMap(e => (gracely.Error.is(e) ? [] : e)))
-
 		return gracely.Error.is(response) ? undefined : response
 	}
 	async store(document: T & Document & { created?: isoly.DateTime }): Promise<(T & Document) | undefined>
@@ -82,7 +81,7 @@ export class Buffer<T = any> {
 				.open(Configuration.Buffer.getShard(this.configuration, document.id))
 				.post<T & Document>(`/buffer`, { [key]: document }, this.header)
 			result = gracely.Error.is(response) ? undefined : response
-		} else
+		} else {
 			result = (
 				await Promise.all(
 					Object.entries(
@@ -91,14 +90,15 @@ export class Buffer<T = any> {
 							document.map(d => d.id)
 						)
 					).map(([key, value]) =>
-						this.backend.open(key).post<T & Document>(
+						this.backend.open(key).post<(T & Document)[]>(
 							`/buffer`,
 							document.reduce((r, d) => (value.includes(d.id) ? { [this.generateKey(d)]: d, ...r } : r), {}),
 							this.header
 						)
 					)
 				)
-			).reduce((r, e) => (gracely.Error.is(e) ? r : [e, ...r]), [])
+			).reduce((r: any[], e) => (gracely.Error.is(e) ? r : [...e, ...r]), [])
+		}
 		return result
 	}
 	async update(

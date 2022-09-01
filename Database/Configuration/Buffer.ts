@@ -17,8 +17,8 @@ export namespace Buffer {
 		idLength: Identifier.Length.standard,
 		retainChanged: false,
 		shards: 4,
-		secondsBetweenArchives: 60,
-		secondsInBuffer: 60,
+		secondsBetweenArchives: 30,
+		secondsInBuffer: 59,
 	}
 	export function getShard(configuration: Buffer): string[]
 	export function getShard(configuration: Buffer, id: string): string
