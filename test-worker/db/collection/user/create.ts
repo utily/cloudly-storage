@@ -1,3 +1,4 @@
+import * as cryptly from "cryptly"
 import * as gracely from "gracely"
 import * as http from "cloudly-http"
 import { Context } from "../../../Context"
@@ -15,7 +16,11 @@ export async function create(request: http.Request, context: Context): Promise<h
 	else if (gracely.Error.is(database))
 		result = database
 	else {
-		const response = Array.isArray(user) ? await database.users.store(user) : await database.users.store(user)
+		const users = [user]
+		for (let index = 0; index < 9; index++) {
+			users.push({ ...user, id: "qq" + cryptly.Identifier.generate(4).substring(2) })
+		}
+		const response = Array.isArray(users) ? await database.users.store(users) : await database.users.store(user)
 		result = response ? gracely.success.created(response) : gracely.server.databaseFailure()
 	}
 	return result
