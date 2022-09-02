@@ -20,7 +20,7 @@ export class Backend {
 			this.partitions = (await this.state.storage.get("partitions")) ?? this.partitions
 			!!(await this.state.storage.getAlarm()) ||
 				(await (async () => {
-					await this.state.storage.setAlarm(this.snooze)
+					await this.state.storage.setAlarm(this.snooze ? this.snooze * 1000 : 5 * 1000)
 					return true
 				})())
 		})
@@ -33,9 +33,9 @@ export class Backend {
 	}
 	async configure(request: Request): Promise<void> {
 		//TODO: Review
-		const snooze = +(request.headers.get("secondsBetweenArchives") ?? NaN)
+		const snooze = +(request.headers.get("seconds-between-archives") ?? NaN)
 		this.snooze = this.snooze ?? (Number.isNaN(snooze) ? undefined : snooze)
-		const archiveTime = +(request.headers.get("secondsInBuffer") ?? NaN)
+		const archiveTime = +(request.headers.get("seconds-in-buffer") ?? NaN)
 		this.archiveTime = this.archiveTime ?? (Number.isNaN(archiveTime) ? undefined : archiveTime)
 		const idLength = +(request.headers.get("length") ?? NaN)
 		this.idLength = this.idLength ?? (Number.isNaN(idLength) ? undefined : idLength)
@@ -54,8 +54,8 @@ export class Backend {
 	async alarm(): Promise<void> {
 		const now = Date.now()
 		const archiveThreshold = isoly.DateTime.truncate(
-			isoly.DateTime.create(now - this.archiveTime, "milliseconds"),
-			"seconds"
+			isoly.DateTime.create(now - this.archiveTime * 1000, "milliseconds"),
+			"milliseconds"
 		)
 		this.state.blockConcurrencyWhile(async () => {
 			const idLength = this.idLength ?? (await this.state.storage.get("idLength"))
@@ -63,7 +63,6 @@ export class Backend {
 			const archivist = Archivist.open(this.environment.archive, this.state, partitions ?? ["unknown"], idLength)
 			return await archivist.reconcile(archiveThreshold)
 		})
-		// TODO: Should be set by some config
-		await this.state.storage.setAlarm(this.snooze)
+		await this.state.storage.setAlarm(this.snooze * 1000)
 	}
 }
