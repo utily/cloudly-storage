@@ -64,7 +64,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			result = await this.list(selection)
 		return result
 	}
-
 	private async list(selection: Selection): Promise<(Document & T)[] & { locus?: string }> {
 		// TODO: test
 		const query: Selection.Query | undefined = Selection.get(selection)
@@ -96,7 +95,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			result.locus = locus
 		return result
 	}
-
 	store(document: T & Partial<Document>, overwrite?: true): Promise<(T & Document) | undefined>
 	store(documents: (T & Partial<Document>)[], overwrite?: true): Promise<((T & Document) | undefined)[]>
 	async store(
@@ -123,12 +121,12 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	async update(amendment: T & Document): Promise<(T & Document) | undefined>
 	async update(amendment: Partial<T & Document>): Promise<(T & Document) | undefined> {
 		const archived = await (amendment.id ? this.load(amendment.id) : undefined)
-		const updated = archived && Document.update(archived, amendment)
+		const updated = archived && Document.update(archived, { ...amendment, created: archived.created })
 		return updated && (await this.set(updated))
 	}
 	async append(amendment: Partial<T & Document>): Promise<(T & Document) | undefined> {
 		const archived = await (amendment.id ? this.load(amendment.id) : undefined)
-		const appended = archived && Document.append(archived, amendment)
+		const appended = archived && Document.append(archived, { ...amendment, created: archived.created })
 		return appended && (await this.set(appended))
 	}
 	private async set(document: T & Partial<Document>): Promise<(T & Document) | undefined> {
