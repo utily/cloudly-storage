@@ -21,7 +21,7 @@ export class Backend {
 			this.partitions = (await this.state.storage.get("partitions")) ?? this.partitions
 			!!(await this.state.storage.getAlarm()) ||
 				(await (async () => {
-					await this.state.storage.setAlarm(this.snooze ? this.snooze * 1000 : 5 * 1000)
+					await this.state.storage.setAlarm(10 * 1000)
 					return true
 				})())
 		})
