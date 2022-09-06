@@ -11,6 +11,7 @@ import { Environment } from "./Environment"
 
 export class Backend {
 	private partitions: string[] | undefined
+	private documentType: string | undefined
 	private idLength: number
 	private snooze: number
 	private archiveTime: number
@@ -21,7 +22,7 @@ export class Backend {
 			this.partitions = (await this.state.storage.get("partitions")) ?? this.partitions
 			!!(await this.state.storage.getAlarm()) ||
 				(await (async () => {
-					await this.state.storage.setAlarm(Date.now() + 30 * 1000)
+					await this.state.storage.setAlarm(Date.now() + 10 * 1000)
 					return true
 				})())
 		})
@@ -48,6 +49,11 @@ export class Backend {
 				(await this.state.storage.get("idLength")) ??
 				(idLength ? this.state.storage.put("idLength", idLength) : Promise.resolve()))()
 		)
+		const documentType = request.headers.get("document-type")
+		!this.documentType &&
+			!(this.documentType = await this.state.storage.get("documentType")) &&
+			documentType &&
+			this.state.waitUntil(this.state.storage.put("documentType", (this.documentType = documentType)))
 		const partitions = request.headers.get("partitions")?.split("/").slice(0, -1)
 		!this.partitions &&
 			!(this.partitions = await this.state.storage.get("partitions")) &&
@@ -61,10 +67,17 @@ export class Backend {
 			isoly.DateTime.create(now - this.archiveTime * 1000, "milliseconds"),
 			this.changedPrecision
 		)
+		console.log("aaaaaaaaaaaaaaaaaaa")
 		this.state.blockConcurrencyWhile(async () => {
-			const idLength = this.idLength ?? (await this.state.storage.get("idLength"))
 			const partitions = this.partitions ?? (await this.state.storage.get("partitions"))
-			const archivist = Archivist.open(this.environment.archive, this.state, partitions ?? ["unknown"], idLength)
+			const documentType = this.documentType ?? (await this.state.storage.get("documentType"))
+			const archivist = Archivist.open(
+				this.environment.archive,
+				this.state,
+				documentType ?? "",
+				partitions ?? ["unknown"]
+			)
+			console.log("vvvvvvvvvvvvvvvvvvvvv")
 			return await archivist.reconcile(archiveThreshold)
 		})
 		await this.state.storage.setAlarm(now + this.snooze * 1000)

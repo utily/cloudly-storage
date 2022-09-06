@@ -65,12 +65,12 @@ export namespace Database {
 		archive?: platform.KVNamespace | undefined,
 		buffer?: platform.DurableObjectNamespace
 	): Database<T> | undefined {
-		const a = KeyValueStore.open(archive, "text")
+		const kv = KeyValueStore.open(archive, "text")
 		return (
-			a &&
+			kv &&
 			DatabaseImplementation.create<T>(
 				{ ...Configuration.Collection.standard, ...configuration },
-				a,
+				kv,
 				DONamespace.open(buffer)
 			)
 		)

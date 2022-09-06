@@ -19,15 +19,24 @@ export type Query =
 
 export namespace Query {
 	export const standardLimit = 1000
-	export function extractPrefix(query: Query | undefined): isoly.Date[] {
-		const result = []
-		if (query && "created" in query && query.created.start <= query.created.end) {
-			result.push(query.created.start)
-			while (result.slice(-1)[0] < query.created.end) {
+	export function extractPrefix(query: Query): isoly.Date[] & { type?: "changed" | "created" } {
+		const result: isoly.Date[] & { type?: "changed" | "created" } = []
+		let dateRange
+		let type: "changed" | "created" | undefined
+		if (query && "changed" in query) {
+			dateRange = query.changed
+			type = "changed"
+		} else if (query && "created" in query) {
+			dateRange = query.created
+			type = "created"
+		}
+		if (dateRange && dateRange.start <= dateRange.end) {
+			result.push(dateRange.start)
+			while (result.slice(-1)[0] < dateRange.end) {
 				result.push(isoly.Date.next(result.slice(-1)[0]))
 			}
-		} // TODO: changed
-		else {
+			result.type = type
+		} else {
 			result.push("")
 		}
 		return result

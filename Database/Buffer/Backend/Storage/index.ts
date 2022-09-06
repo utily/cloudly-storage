@@ -24,8 +24,8 @@ export class Storage {
 		else if (typeof id == "object" || !id) {
 			result = (
 				await Promise.all(
-					(id && Array.isArray(id.prefix) ? id.prefix : [""])?.map(p =>
-						this.storage.list<T>({ prefix: "doc/" + p, limit: id?.limit }).then(r => Array.from(r.values()))
+					(id && Array.isArray(id.prefix) ? id.prefix : [undefined])?.map(p =>
+						this.storage.list<T>({ prefix: p, limit: id?.limit }).then(r => Array.from(r.values()))
 					)
 				)
 			).flat()

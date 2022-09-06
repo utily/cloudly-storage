@@ -4,6 +4,7 @@ import { Configuration } from "./Configuration"
 import { Document } from "./Document"
 import { Identifier } from "./Identifier"
 import { Selection } from "./Selection"
+import { Query } from "./Selection/Query"
 import { Silo } from "./Silo"
 
 type Key = `${string}${isoly.DateTime}/${Identifier}`
@@ -13,6 +14,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		private readonly backend: {
 			doc: KeyValueStore<T & Document>
 			id: KeyValueStore<string>
+			changed: KeyValueStore<string>
 		},
 		private readonly configuration: Required<Configuration.Archive>,
 		readonly partitions: string = ""
@@ -66,54 +68,99 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	}
 	private async list(selection: Selection): Promise<(Document & T)[] & { locus?: string }> {
 		const query: Selection.Query | undefined = Selection.get(selection)
-		const prefixes: string[] = Selection.Query.extractPrefix(query)
+		const prefixes: string[] & { type?: "changed" | "created" } = Selection.Query.extractPrefix(query)
 		const responseList: KeyValueStore.ListItem<T & Document, undefined>[] &
 			{
 				cursor?: string | undefined
 			}[] = []
 		let limit = query?.limit ?? Selection.Query.standardLimit
 		let locus: Selection.Locus | undefined
-		for (const prefix of prefixes) {
-			const response = await this.backend.doc.list({
-				prefix: this.partitions + prefix,
-				limit,
-				cursor: query?.cursor,
-			})
-			limit -= response.length
-			responseList.push(...response)
-			if (response.cursor) {
-				locus = Selection.Locus.generate({ ...(query ?? {}), cursor: response.cursor })
-				break
+		if (prefixes.type == "changed") {
+			result = await this.listChanged(prefixes, { ...query, limit })
+		} else {
+			for (const prefix of prefixes) {
+				const response = await this.backend.doc.list({
+					prefix: this.partitions + prefix,
+					limit,
+					cursor: query?.cursor,
+				})
+				limit -= response.length
+				responseList.push(...response)
+				if (response.cursor) {
+					locus = Selection.Locus.generate({ ...(query ?? {}), cursor: response.cursor })
+					break
+				}
 			}
+			result = responseList.map(item => ({
+				...item.value,
+				...(item.meta ?? {}),
+			})) as (T & Document)[] & { locus?: string }
 		}
-		const result = responseList.map(item => ({
-			...item.value,
-			...(item.meta ?? {}),
-		})) as (T & Document)[] & { locus?: string }
+		if (locus && result)
+			result.locus = locus
+		return result
+	}
+
+	private async listChanged(
+		prefixes: string[] & { type?: "created" | "changed" | undefined },
+		query: Query & { limit: number }
+	): Promise<((Document & T) | undefined)[] & { locus?: string }> {
+		let locus
+		const result: ((Document & T) | undefined)[] & { locus?: string } = []
+		let nextCursor
+		for (const prefix of prefixes) {
+			console.log("prefix: ", this.partitions + prefix)
+			const currentCursor = query?.cursor ? JSON.parse(query.cursor) : undefined
+			const changed: KeyValueStore.ListItem<string, undefined>[] & {
+				cursor?: string | undefined
+			} = await this.backend.changed.list({
+				prefix: this.partitions + prefix,
+				limit: query.limit,
+				cursor: nextCursor ?? currentCursor?.cf,
+			})
+			console.log("changed: ", JSON.stringify(changed, null, 2))
+			if (changed.cursor)
+				nextCursor = changed.cursor
+			const keys = changed.reduce((r: string[], e, i) => {
+				let result2
+				const documentKeys = e.value?.split("\n") ?? []
+				if (result.length + r.length + documentKeys.length > query.limit) {
+					result2 = documentKeys.slice(0, query.limit - r.length)
+					locus = Selection.Locus.generate({
+						cursor: JSON.stringify({ cf: currentCursor, chng: e.key, doc: result2.slice(-1)[0] }),
+						limit: query?.limit,
+						changed: { start: prefix, end: prefixes.slice(-1)[0] },
+					})
+					changed.splice(i) //break
+				} else
+					result2 = documentKeys
+				return [...r, ...result2]
+			}, [])
+			result.push(...(await Promise.all(keys.map(k => this.backend.doc.get(k).then(e => e?.value)))))
+		}
 		if (locus)
 			result.locus = locus
 		return result
 	}
-	store(document: T & Partial<Document>, overwrite?: true): Promise<(T & Document) | undefined>
-	store(documents: (T & Partial<Document>)[], overwrite?: true): Promise<((T & Document) | undefined)[]>
+
+	store(document: T & Partial<Document>): Promise<(T & Document) | undefined>
+	store(documents: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
 	async store(
-		documents: (T & Partial<Document>) | (T & Partial<Document>)[],
-		overwrite?: true
+		documents: (T & Partial<Document>) | (T & Partial<Document>)[]
 	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
 		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
 		if (!Array.isArray(documents)) {
 			if (!this.configuration.retainChanged)
 				documents = { ...documents, changed: isoly.DateTime.now() }
-			const kvKey = Document.is(documents) && !overwrite ? await this.getKey(documents.id) : undefined
-			const newKey = Document.is(documents) && !overwrite ? this.generateKey(documents) : null
-			const document = overwrite
-				? documents
-				: !Document.is(documents) || kvKey != newKey
-				? { ...documents, ...((await this.allocateId(documents)) ?? {}) }
-				: undefined
+			const kvKey = Document.is(documents) ? await this.getKey(documents.id) : undefined
+			const newKey = Document.is(documents) ? this.generateKey(documents) : null
+			const document =
+				!Document.is(documents) || kvKey != newKey
+					? { ...documents, ...((await this.allocateId(documents)) ?? {}) }
+					: undefined
 			result = document && (await this.set(document))
 		} else
-			result = await Promise.all(documents.map(e => this.store(e, overwrite)))
+			result = await Promise.all(documents.map(e => this.store(e)))
 		return result
 	}
 	async update(amendment: Partial<T & Document>): Promise<(T & Document) | undefined>
@@ -130,8 +177,14 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	}
 	private async set(document: T & Partial<Document>): Promise<(T & Document) | undefined> {
 		let result: (T & Document) | undefined = undefined
-		if (Document.is(document, this.configuration.idLength))
-			await this.backend.doc.set(this.generateKey(document), (result = document))
+		if (Document.is(document, this.configuration.idLength)) {
+			const key = this.generateKey(document)
+			await this.backend.doc.set(key, (result = document))
+			const changedKey = this.partitions + isoly.DateTime.truncate(document.changed, "minutes")
+			const changed = await this.backend.changed.get(changedKey)
+			!changed?.value?.includes(key) &&
+				(await this.backend.changed.set(changedKey, changed ? changed.value + "\n" + key : key))
+		}
 		return result
 	}
 	remove(id: string): Promise<boolean>
@@ -174,6 +227,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 						"doc/"
 					), // retention expires
 					id: KeyValueStore.partition(KeyValueStore.OnlyMeta.create<string>(backend), "id/"), // retention expires
+					changed: KeyValueStore.partition(KeyValueStore.Json.create<string>(backend), "changed/"), // retention expires
 				},
 				configuration
 			)

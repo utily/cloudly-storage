@@ -10,7 +10,7 @@ interface Item {
 }
 type Layout = { archive: { items: Item } }
 
-describe("Database Archive", () => {
+describe("Archive create, load, list", () => {
 	const configuration: storage.Database.Configuration = {
 		silos: { items: { type: "archive", idLength: 4, retainChanged: true } },
 	}
