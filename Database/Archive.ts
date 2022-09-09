@@ -114,7 +114,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			const changed: KeyValueStore.ListItem<string, undefined>[] & {
 				cursor?: string | undefined
 			} = await this.backend.changed.list({
-				prefix: this.partitions + prefix,
+				prefix: this.partitions,
 				limit: query.limit,
 				cursor: nextCursor ?? currentCursor?.cf,
 			})
@@ -163,6 +163,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			result = await Promise.all(documents.map(e => this.store(e)))
 		return result
 	}
+
 	async update(amendment: Partial<T & Document>): Promise<(T & Document) | undefined>
 	async update(amendment: T & Document): Promise<(T & Document) | undefined>
 	async update(amendment: Partial<T & Document>): Promise<(T & Document) | undefined> {
@@ -170,6 +171,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		const updated = archived && Document.update(archived, { ...amendment, created: archived.created })
 		return updated && (await this.set(updated))
 	}
+
 	async append(amendment: Partial<T & Document>): Promise<(T & Document) | undefined> {
 		const archived = await (amendment.id ? this.load(amendment.id) : undefined)
 		const appended = archived && Document.append(archived, { ...amendment, created: archived.created })

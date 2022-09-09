@@ -116,12 +116,11 @@ export class Archivist {
 		documentType: string,
 		partitions: string[]
 	): Archivist {
-		const kv = KeyValueStore.open(keyValueNamespace, "text")
+		const kv = KeyValueStore.Json.create(
+			KeyValueStore.partition(KeyValueStore.open(keyValueNamespace, "text"), documentType + "/")
+		)
 		const doc = KeyValueStore.partition(
-			KeyValueStore.InMeta.create<Record<string, any>, Document>(
-				Document.split,
-				KeyValueStore.Json.create(KeyValueStore.partition(kv, documentType + "/"))
-			),
+			KeyValueStore.InMeta.create<Record<string, any>, Document>(Document.split, kv),
 			"doc/"
 		)
 		return new Archivist({ doc, changed: kv }, partitions ? partitions.join("/") + "/" : "", Storage.open(state), state)
