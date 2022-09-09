@@ -14,8 +14,6 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 	async set(key: string, value?: undefined): Promise<void>
 	async set(key: string, value: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void>
 	async set(key: string, value?: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void> {
-		console.log("FromPlatform.set.key: ", key)
-		console.log("FromPlatform.set.value: ", value)
 		if (value == undefined)
 			await this.backend.delete(key)
 		else

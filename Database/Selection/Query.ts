@@ -10,11 +10,11 @@ export type Query =
 			limit?: number
 			created: isoly.DateRange
 	  }
-	| {
-			cursor?: string
-			limit?: number
-			changed: isoly.DateRange
-	  }
+	// | { TODO
+	// 		cursor?: string
+	// 		limit?: number
+	// 		changed: isoly.DateRange
+	//   }
 	| undefined
 
 export namespace Query {
@@ -23,10 +23,11 @@ export namespace Query {
 		const result: isoly.Date[] & { type?: "changed" | "created" } = []
 		let dateRange
 		let type: "changed" | "created" | undefined
-		if (query && "changed" in query) {
-			dateRange = query.changed
-			type = "changed"
-		} else if (query && "created" in query) {
+		// if (query && "changed" in query) { TODO
+		// 	dateRange = query.changed
+		// 	type = "changed"
+		// } else
+		if (query && "created" in query) {
 			dateRange = query.created
 			type = "created"
 		}

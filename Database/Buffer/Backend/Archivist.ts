@@ -21,6 +21,7 @@ export class Archivist {
 		private readonly partitions: string,
 		private readonly storage: Storage,
 		private readonly state: DurableObjectState,
+		private readonly documentType: string,
 		private readonly configurations = { remove: 5 * 60 }
 	) {}
 	private generateKey(document: Pick<Document, "id" | "created">): string {
@@ -36,9 +37,7 @@ export class Archivist {
 		const { complete, partial, changed }: ToArchive = await this.getStaleKeys(threshold, changedIndex, archived)
 		const listed: (Document[] & { changed?: Record<string, string> }) | undefined =
 			(await this.storage.load<Document>([...Object.values(complete).flat(), ...(partial?.[1] ?? [])])) ?? []
-		console.log("listed: ", JSON.stringify(listed, null, 2))
 		const stored = listed && listed.length > 0 ? await this.store(listed, changed) : []
-		console.log("stored: ", JSON.stringify(stored, null, 2))
 		stored &&
 			!stored.some(e => !e) &&
 			(await this.state.storage.put("archived", partial ? [partial[0], partial[1].slice(-1)[0]] : threshold))
@@ -54,11 +53,8 @@ export class Archivist {
 		for (const [key, value] of Object.entries(changed ?? {})) {
 			promises.push(
 				this.backend.changed.set(
-					key + "/" + documents[0].id.substring(0, 2),
-					value
-						.split("\n")
-						.map(e => e)
-						.join("\n")
+					key.replace("changed/", "changed/" + this.partitions) + "/" + documents[0].id.substring(0, 2),
+					value.replaceAll(this.documentType + "/doc/", "")
 				)
 			)
 		}
@@ -98,7 +94,6 @@ export class Archivist {
 					const values = value.split("\n")
 					const documentKeys = lastArchived ? values.slice(values.indexOf(lastArchived) + 1) : values
 					if (length + documentKeys.length < this.archivizationLimit) {
-						console.log("values: ", JSON.stringify(values))
 						result.changed = { ...result.changed, [key]: value }
 						result.complete[key] = documentKeys
 						length += documentKeys.length
@@ -123,6 +118,12 @@ export class Archivist {
 			KeyValueStore.InMeta.create<Record<string, any>, Document>(Document.split, kv),
 			"doc/"
 		)
-		return new Archivist({ doc, changed: kv }, partitions ? partitions.join("/") + "/" : "", Storage.open(state), state)
+		return new Archivist(
+			{ doc, changed: kv },
+			partitions ? partitions.join("/") + "/" : "",
+			Storage.open(state),
+			state,
+			documentType
+		)
 	}
 }

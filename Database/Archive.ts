@@ -4,7 +4,6 @@ import { Configuration } from "./Configuration"
 import { Document } from "./Document"
 import { Identifier } from "./Identifier"
 import { Selection } from "./Selection"
-import { Query } from "./Selection/Query"
 import { Silo } from "./Silo"
 
 type Key = `${string}${isoly.DateTime}/${Identifier}`
@@ -75,70 +74,25 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			}[] = []
 		let limit = query?.limit ?? Selection.Query.standardLimit
 		let locus: Selection.Locus | undefined
-		if (prefixes.type == "changed") {
-			result = await this.listChanged(prefixes, { ...query, limit })
-		} else {
-			for (const prefix of prefixes) {
-				const response = await this.backend.doc.list({
-					prefix: this.partitions + prefix,
-					limit,
-					cursor: query?.cursor,
-				})
-				limit -= response.length
-				responseList.push(...response)
-				if (response.cursor) {
-					locus = Selection.Locus.generate({ ...(query ?? {}), cursor: response.cursor })
-					break
-				}
-			}
-			result = responseList.map(item => ({
-				...item.value,
-				...(item.meta ?? {}),
-			})) as (T & Document)[] & { locus?: string }
-		}
-		if (locus && result)
-			result.locus = locus
-		return result
-	}
-
-	private async listChanged(
-		prefixes: string[] & { type?: "created" | "changed" | undefined },
-		query: Query & { limit: number }
-	): Promise<((Document & T) | undefined)[] & { locus?: string }> {
-		let locus
-		const result: ((Document & T) | undefined)[] & { locus?: string } = []
-		let nextCursor
 		for (const prefix of prefixes) {
-			console.log("prefix: ", this.partitions + prefix)
-			const currentCursor = query?.cursor ? JSON.parse(query.cursor) : undefined
-			const changed: KeyValueStore.ListItem<string, undefined>[] & {
-				cursor?: string | undefined
-			} = await this.backend.changed.list({
-				prefix: this.partitions,
-				limit: query.limit,
-				cursor: nextCursor ?? currentCursor?.cf,
+			const response = await this.backend.doc.list({
+				prefix: this.partitions + prefix,
+				limit,
+				cursor: query?.cursor,
 			})
-			console.log("changed: ", JSON.stringify(changed, null, 2))
-			if (changed.cursor)
-				nextCursor = changed.cursor
-			const keys = changed.reduce((r: string[], e, i) => {
-				let result2
-				const documentKeys = e.value?.split("\n") ?? []
-				if (result.length + r.length + documentKeys.length > query.limit) {
-					result2 = documentKeys.slice(0, query.limit - r.length)
-					locus = Selection.Locus.generate({
-						cursor: JSON.stringify({ cf: currentCursor, chng: e.key, doc: result2.slice(-1)[0] }),
-						limit: query?.limit,
-						changed: { start: prefix, end: prefixes.slice(-1)[0] },
-					})
-					changed.splice(i) //break
-				} else
-					result2 = documentKeys
-				return [...r, ...result2]
-			}, [])
-			result.push(...(await Promise.all(keys.map(k => this.backend.doc.get(k).then(e => e?.value)))))
+			limit -= response.length
+			responseList.push(...response)
+			if (response.cursor) {
+				locus = Selection.Locus.generate({ ...(query ?? {}), cursor: response.cursor })
+				break
+			}
 		}
-		if (locus)
+		const result = responseList.map(item => ({
+			...item.value,
+			...(item.meta ?? {}),
+		})) as (T & Document)[] & { locus?: string }
+
+		if (locus && result)
 			result.locus = locus
 		return result
 	}

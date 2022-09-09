@@ -14,7 +14,6 @@ export async function list(request: http.Request, context: Context): Promise<htt
 	const end = request.search.end
 	const limit = request.search.limit ? +request.search.limit : undefined
 	const queryType: "created" | "changed" | undefined = request.search.type as "created" | "changed" | undefined
-	console.log("queryType: ", queryType)
 	const database = context.archive
 	if (!authorization)
 		result = gracely.client.unauthorized()

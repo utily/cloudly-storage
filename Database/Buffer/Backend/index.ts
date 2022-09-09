@@ -67,7 +67,6 @@ export class Backend {
 			isoly.DateTime.create(now - this.archiveTime * 1000, "milliseconds"),
 			this.changedPrecision
 		)
-		console.log("aaaaaaaaaaaaaaaaaaa")
 		this.state.blockConcurrencyWhile(async () => {
 			const partitions = this.partitions ?? (await this.state.storage.get("partitions"))
 			const documentType = this.documentType ?? (await this.state.storage.get("documentType"))
@@ -77,7 +76,6 @@ export class Backend {
 				documentType ?? "",
 				partitions ?? ["unknown"]
 			)
-			console.log("vvvvvvvvvvvvvvvvvvvvv")
 			return await archivist.reconcile(archiveThreshold)
 		})
 		await this.state.storage.setAlarm(now + this.snooze * 1000)
