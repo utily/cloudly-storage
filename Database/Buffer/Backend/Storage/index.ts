@@ -3,8 +3,6 @@ import * as platform from "../../../../platform"
 import { Document } from "../../../Document"
 import { Portion } from "./Portion"
 export class Storage {
-	private readonly changedResolution = "minutes"
-
 	private constructor(
 		private readonly storage: platform.DurableObjectState["storage"],
 		private readonly portion: Portion,
