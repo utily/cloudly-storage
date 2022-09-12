@@ -13,8 +13,7 @@ export async function store(request: http.Request, context: Context): Promise<ht
 		result = gracely.server.backendFailure("Failed to open Buffer Storage.")
 	else {
 		try {
-			await storage.storeDocuments(document)
-			result = gracely.success.created(document)
+			result = gracely.success.created(await storage.storeDocuments(document))
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
 		}

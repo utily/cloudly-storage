@@ -84,24 +84,39 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		}
 		return result
 	}
+
+	allocateId(document: T & Partial<Document>): Promise<Document & T>
+	allocateId(documents: (T & Partial<Document>)[]): Promise<(Document & T)[]>
+	allocateId(
+		documents: (T & Partial<Document>) | (T & Partial<Document>)[]
+	): Promise<(Document & T) | undefined | (Document & T)[]>
+	async allocateId(
+		documents: (T & Partial<Document>) | (T & Partial<Document>)[]
+	): Promise<(Document & T) | undefined | (Document & T)[]> {
+		let result: (Document & T) | undefined | (Document & T)[]
+		if (!Array.isArray(documents)) {
+			const allocated = await this.archive.allocateId({
+				...documents,
+				created: documents.created ?? isoly.DateTime.now(),
+				changed: isoly.DateTime.now(),
+			})
+			result = allocated
+				? {
+						...documents,
+						...allocated,
+				  }
+				: undefined
+		} else
+			result = (await Promise.all(documents.map(d => this.allocateId(d)))).filter(e => e)
+		return result
+	}
 	store(document: T & Partial<Document>): Promise<(T & Document) | undefined>
-	store(documents: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
+	store(documents: (T & Partial<Document>)[]): Promise<(T & Document)[]>
 	async store(
-		document: (T & Partial<Document>) | (T & Partial<Document>)[]
-	): Promise<(T & Partial<Document>) | undefined | ((T & Document) | undefined)[]> {
-		return await this.buffer.store(
-			(
-				await Promise.all(
-					(Array.isArray(document) ? document : [document]).map<Promise<Document | undefined>>(d =>
-						this.archive.allocateId({
-							...d,
-							created: d.created ?? isoly.DateTime.now(),
-							changed: isoly.DateTime.now(),
-						})
-					)
-				)
-			).filter(d => d) as (T & Document)[]
-		)
+		documents: (T & Partial<Document>) | (T & Partial<Document>)[]
+	): Promise<(T & Document)[] | (T & Document) | undefined> {
+		const toBeStored: (T & Document) | (T & Document)[] | undefined = await this.allocateId(documents)
+		return toBeStored && (await this.buffer.store(toBeStored))
 	}
 	remove(id: Identifier): Promise<boolean>
 	remove(id: Identifier[]): Promise<boolean[]>

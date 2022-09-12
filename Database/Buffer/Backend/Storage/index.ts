@@ -44,12 +44,14 @@ export class Storage {
 			{}
 		)
 		const changedIndex = await this.updateChangedIndex(newdocuments)
-		return await this.portion.put({
+		await this.portion.put({
 			...newdocuments,
 			...suggestedIdIndices,
 			...oldIdIndices,
 			...changedIndex,
 		})
+		const result = Object.values(documents)
+		return result.length == 1 ? result[0] : result
 	}
 	async updateChangedIndex(documents: Record<string, any>): Promise<Record<string, string>> {
 		const oldDocuments = {
@@ -68,7 +70,7 @@ export class Storage {
 			)
 		)
 		const updated = Object.entries(documents).reduce((r: Record<string, string>, [key, document]) => {
-			const indexKey = "changed/" + isoly.DateTime.truncate(document.changed, "minutes")
+			const indexKey = "changed/" + isoly.DateTime.truncate(document.changed, "seconds")
 			return { ...r, [indexKey]: (r[indexKey] ? r[indexKey] + "\n" : "") + key }
 		}, oldCleanedChanged)
 		return updated
@@ -76,7 +78,7 @@ export class Storage {
 
 	private toChanged(documents: { [k: string]: Record<string, any> }): Record<string, string[]> {
 		return Object.entries(documents).reduce((r: Record<string, string[]>, [key, document]) => {
-			const indexKey = "changed/" + isoly.DateTime.truncate(document.changed, "minutes")
+			const indexKey = "changed/" + isoly.DateTime.truncate(document.changed, "seconds")
 			return { ...r, [indexKey]: [...(r[indexKey] ?? []), key] }
 		}, {})
 	}
@@ -87,7 +89,7 @@ export class Storage {
 			const idKey = "id/" + keys
 			const key = await this.storage.get<string>(idKey)
 			const document = key ? await this.storage.get<Record<string, any>>(key) : undefined
-			const changedKey = "changed/" + isoly.DateTime.truncate(document?.changed, "minutes")
+			const changedKey = "changed/" + isoly.DateTime.truncate(document?.changed, "seconds")
 			const changedValue = document?.changed ? await this.storage.get<string>(changedKey) : undefined
 			changedValue && (await this.storage.put(changedKey, changedValue.replace(new RegExp(key + "(\n)?"), "")))
 			result = !!key && (await this.storage.delete([key, idKey])) == 2
@@ -96,7 +98,7 @@ export class Storage {
 			const key = Array.from((await this.portion.get<string>(idKey)).values())
 			const document = Array.from((await this.portion.get<Record<string, any>>(key)).entries())
 			const changedToRemove = document.reduce((r: Record<string, string[]>, [key, document]) => {
-				const changedKey = "changed/" + isoly.DateTime.truncate(document?.changed, "minutes")
+				const changedKey = "changed/" + isoly.DateTime.truncate(document?.changed, "seconds")
 				return { [changedKey]: (r[changedKey] ?? []).concat(key + "(\n)?") }
 			}, {})
 			const a: [string, string][] = Array.from((await this.portion.get<string>(Object.keys(changedToRemove))).entries())

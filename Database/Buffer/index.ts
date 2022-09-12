@@ -71,15 +71,20 @@ export class Buffer<T = any> {
 	async store(document: T & Document & { created?: isoly.DateTime }): Promise<(T & Document) | undefined>
 	async store(document: (T & Document & { created?: isoly.DateTime })[]): Promise<(T & Document)[] | undefined>
 	async store(
-		document: (T & Document & { created?: isoly.DateTime }) | (T & Document)[]
+		document: (T & Document & { created?: isoly.DateTime }) | (T & Document & { created?: isoly.DateTime })[]
+	): Promise<(T & Document) | (T & Document)[] | undefined>
+	async store(
+		document: (T & Document & { created?: isoly.DateTime }) | (T & Document & { created?: isoly.DateTime })[]
 	): Promise<(T & Document) | (T & Document)[] | undefined> {
-		let response: (T & Document)[] | (T & Document) | gracely.Error
-		if (!Array.isArray(document))
-			response = await this.backend
+		let result: (T & Document)[] | (T & Document) | undefined
+		if (!Array.isArray(document)) {
+			const key = this.generateKey(document)
+			const response = await this.backend
 				.open(Configuration.Buffer.getShard(this.configuration, document.id))
-				.post<T & Document>(`/buffer`, { [this.generateKey(document)]: document }, this.header)
-		else
-			response = (
+				.post<T & Document>(`/buffer`, { [key]: document }, this.header)
+			result = gracely.Error.is(response) ? undefined : response
+		} else
+			result = (
 				await Promise.all(
 					Object.entries(
 						Configuration.Buffer.getShard(
@@ -95,7 +100,7 @@ export class Buffer<T = any> {
 					)
 				)
 			).reduce((r, e) => (gracely.Error.is(e) ? r : [e, ...r]), [])
-		return gracely.Error.is(response) ? undefined : response
+		return result
 	}
 	remove(id: string): Promise<boolean>
 	remove(ids: string[]): Promise<boolean[]>
