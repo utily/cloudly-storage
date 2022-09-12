@@ -114,12 +114,27 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				: !Document.is(documents) || kvKey != newKey
 				? { ...documents, ...((await this.allocateId(documents)) ?? {}) }
 				: undefined
-			if (Document.is(document, this.configuration.idLength))
-				await this.backend.doc.set(this.generateKey(document), (result = document))
-			else
-				result = undefined
+			result = document && (await this.set(document))
 		} else
 			result = await Promise.all(documents.map(e => this.store(e, overwrite)))
+		return result
+	}
+	async update(amendment: T & Partial<Document>): Promise<(T & Document) | undefined>
+	async update(amendment: T & Document): Promise<(T & Document) | undefined>
+	async update(amendment: T & Partial<Document>): Promise<(T & Document) | undefined> {
+		const archived = await (amendment.id ? this.load(amendment.id) : undefined)
+		const updated = archived && Document.update(archived, amendment)
+		return updated && (await this.set(updated))
+	}
+	async append(amendment: T & Partial<Document>): Promise<(T & Document) | undefined> {
+		const archived = await (amendment.id ? this.load(amendment.id) : undefined)
+		const appended = archived && Document.append(archived, amendment)
+		return appended && (await this.set(appended))
+	}
+	private async set(document: T & Partial<Document>): Promise<(T & Document) | undefined> {
+		let result: (T & Document) | undefined = undefined
+		if (Document.is(document, this.configuration.idLength))
+			await this.backend.doc.set(this.generateKey(document), (result = document))
 		return result
 	}
 	remove(id: string): Promise<boolean>
