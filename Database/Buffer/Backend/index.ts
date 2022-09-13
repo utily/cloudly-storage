@@ -14,13 +14,14 @@ export class Backend {
 	private idLength: number
 	private snooze: number
 	private archiveTime: number
+	private readonly changedPrecision = "seconds"
 
 	private constructor(private readonly state: DurableObjectState, private environment: Environment) {
 		this.state.blockConcurrencyWhile(async () => {
 			this.partitions = (await this.state.storage.get("partitions")) ?? this.partitions
 			!!(await this.state.storage.getAlarm()) ||
 				(await (async () => {
-					await this.state.storage.setAlarm(this.snooze ? this.snooze * 1000 : 5 * 1000)
+					await this.state.storage.setAlarm(10 * 1000)
 					return true
 				})())
 		})
@@ -28,11 +29,14 @@ export class Backend {
 	async fetch(request: Request): Promise<Response> {
 		this.state.waitUntil(this.configure(request))
 		return this.state.blockConcurrencyWhile(() =>
-			Context.handle(request, { ...(this.environment ?? {}), state: this.state })
+			Context.handle(request, {
+				...(this.environment ?? {}),
+				state: this.state,
+				changedPrecision: this.changedPrecision,
+			})
 		)
 	}
 	async configure(request: Request): Promise<void> {
-		//TODO: Review
 		const snooze = +(request.headers.get("seconds-between-archives") ?? NaN)
 		this.snooze = this.snooze ?? (Number.isNaN(snooze) ? undefined : snooze)
 		const archiveTime = +(request.headers.get("seconds-in-buffer") ?? NaN)
@@ -55,7 +59,7 @@ export class Backend {
 		const now = Date.now()
 		const archiveThreshold = isoly.DateTime.truncate(
 			isoly.DateTime.create(now - this.archiveTime * 1000, "milliseconds"),
-			"milliseconds"
+			this.changedPrecision
 		)
 		this.state.blockConcurrencyWhile(async () => {
 			const idLength = this.idLength ?? (await this.state.storage.get("idLength"))
@@ -63,6 +67,6 @@ export class Backend {
 			const archivist = Archivist.open(this.environment.archive, this.state, partitions ?? ["unknown"], idLength)
 			return await archivist.reconcile(archiveThreshold)
 		})
-		await this.state.storage.setAlarm(this.snooze * 1000)
+		await this.state.storage.setAlarm(now + this.snooze * 1000)
 	}
 }

@@ -5,7 +5,8 @@ import { Portion } from "./Portion"
 export class Storage {
 	private constructor(
 		private readonly storage: platform.DurableObjectState["storage"],
-		private readonly portion: Portion
+		private readonly portion: Portion,
+		public readonly changedPrecision: "seconds" | "minutes" | "hours"
 	) {}
 
 	async load<T>(): Promise<T | undefined>
@@ -92,7 +93,7 @@ export class Storage {
 			)
 		)
 		const updated = Object.entries(documents).reduce((r: Record<string, string>, [key, document]) => {
-			const indexKey = "changed/" + isoly.DateTime.truncate(document.changed, "seconds")
+			const indexKey = "changed/" + isoly.DateTime.truncate(document.changed, this.changedPrecision)
 			return { ...r, [indexKey]: (r[indexKey] ? r[indexKey] + "\n" : "") + key }
 		}, oldCleanedChanged)
 		return updated
@@ -100,7 +101,7 @@ export class Storage {
 
 	private toChanged(documents: { [k: string]: Record<string, any> }): Record<string, string[]> {
 		return Object.entries(documents).reduce((r: Record<string, string[]>, [key, document]) => {
-			const indexKey = "changed/" + isoly.DateTime.truncate(document.changed, "seconds")
+			const indexKey = "changed/" + isoly.DateTime.truncate(document.changed, this.changedPrecision)
 			return { ...r, [indexKey]: [...(r[indexKey] ?? []), key] }
 		}, {})
 	}
@@ -118,7 +119,7 @@ export class Storage {
 			const key = Array.from((await this.portion.get<string>(idKey)).values())
 			const document = Array.from((await this.portion.get<Record<string, any>>(key)).entries())
 			const changedToRemove = document.reduce((r: Record<string, string[]>, [key, document]) => {
-				const changedKey = "changed/" + isoly.DateTime.truncate(document?.changed, "seconds")
+				const changedKey = "changed/" + isoly.DateTime.truncate(document?.changed, this.changedPrecision)
 				return { [changedKey]: (r[changedKey] ?? []).concat(key + "(\n)?") }
 			}, {})
 			const a: [string, string][] = Array.from((await this.portion.get<string>(Object.keys(changedToRemove))).entries())
@@ -140,7 +141,7 @@ export class Storage {
 		return result
 	}
 	private async removeChanged(oldChangedDate: isoly.DateTime, key: string) {
-		const changedKey = "changed/" + oldChangedDate && isoly.DateTime.truncate(oldChangedDate, "seconds")
+		const changedKey = "changed/" + oldChangedDate && isoly.DateTime.truncate(oldChangedDate, this.changedPrecision)
 		const changedValue = oldChangedDate ? await this.storage.get<string>(changedKey) : undefined
 		changedValue && (await this.storage.put(changedKey, changedValue.replace(new RegExp(key + "(\n)?"), "")))
 	}
@@ -153,9 +154,15 @@ export class Storage {
 		return result
 	}
 
-	static open(state: platform.DurableObjectState): Storage
-	static open(state: platform.DurableObjectState | undefined): Storage | undefined
-	static open(state: platform.DurableObjectState | undefined): Storage | undefined {
-		return state ? new Storage(state.storage, Portion.open(state.storage)) : undefined
+	static open(state: platform.DurableObjectState, changedPrecision?: "seconds" | "minutes" | "hours"): Storage
+	static open(
+		state: platform.DurableObjectState | undefined,
+		changedPrecision?: "seconds" | "minutes" | "hours"
+	): Storage | undefined
+	static open(
+		state: platform.DurableObjectState | undefined,
+		changedPrecision?: "seconds" | "minutes" | "hours"
+	): Storage | undefined {
+		return state ? new Storage(state.storage, Portion.open(state.storage), changedPrecision ?? "seconds") : undefined
 	}
 }
