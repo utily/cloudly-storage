@@ -11,7 +11,7 @@ export async function update(request: http.Request, context: Context): Promise<h
 	const archived = body?.archived
 	const storage = context.storage
 	if (!amendment || !amendment.id)
-		result = gracely.client.invalidContent("incomingDocumentument", "An update must be provided.")
+		result = gracely.client.invalidContent("Partial<Document>", "The body must contain a Partial<Document>")
 	else if (!storage)
 		result = gracely.server.backendFailure("Failed to open Buffer Storage.")
 	else {
