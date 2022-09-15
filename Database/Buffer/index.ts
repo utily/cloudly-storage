@@ -2,9 +2,9 @@ import * as gracely from "gracely"
 import * as isoly from "isoly"
 import * as DurableObject from "../../DurableObject"
 import { Configuration } from "../Configuration"
+import { Cursor } from "../Cursor"
 import { Document } from "../Document"
 import { Identifier } from "../Identifier"
-import { Selection } from "../Selection"
 import { Backend as BufferBackend } from "./Backend"
 
 export type Backend = BufferBackend
@@ -42,20 +42,20 @@ export class Buffer<T = any> {
 	load(): Promise<(T & Document)[]>
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
-	load(query: Selection.Query): Promise<((Document & T) | undefined)[]>
-	load(query?: Identifier | Identifier[] | Selection.Query): Promise<Loaded<T>>
-	async load(query?: Identifier | Identifier[] | Selection.Query): Promise<Loaded<T>> {
+	load(cursor?: Cursor): Promise<((Document & T) | undefined)[]>
+	load(cursor?: Identifier | Identifier[] | Cursor): Promise<Loaded<T>>
+	async load(cursor?: Identifier | Identifier[] | Cursor): Promise<Loaded<T>> {
 		let response: Loaded<T> | gracely.Error | undefined
-		if (typeof query == "string") {
+		if (typeof cursor == "string") {
 			response = await this.backend
-				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, query))
-				.get<Loaded<T>>(`/buffer/${encodeURIComponent(query)}`, this.header)
-		} else if (Array.isArray(query)) {
-			response = await this.backend.open(this.partitions).post<Loaded<T>>(`/buffer/prefix`, { id: query }, this.header)
-		} else if (query != null && typeof query == "object") {
+				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, cursor))
+				.get<Loaded<T>>(`/buffer/${encodeURIComponent(cursor)}`, this.header)
+		} else if (Array.isArray(cursor)) {
+			response = await this.backend.open(this.partitions).post<Loaded<T>>(`/buffer/prefix`, { id: cursor }, this.header)
+		} else if (cursor != null && typeof cursor == "object") {
 			const body = {
-				prefix: Selection.Query.extractPrefix(query).map(p => this.generatePrefix(p)),
-				limit: query?.limit,
+				prefix: Cursor.prefix(cursor).map(p => this.generatePrefix(p)),
+				limit: cursor?.limit,
 			}
 			response = await Promise.all(
 				Configuration.Buffer.getShard(this.configuration).map(s =>

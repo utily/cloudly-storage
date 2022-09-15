@@ -5,14 +5,11 @@ import { DurableObjectState, KVNamespace } from "../../../platform"
 import { Key } from "../../Key"
 import { Storage } from "./Storage"
 
-interface ToArchive {
-	changed?: Record<string, string>
-	complete: Record<string, string[]>
-	partial?: [string, string[]]
-}
-
 export class Archivist {
-	private archivizationLimit = 600
+	static #lastArchived: Promise<string | undefined>
+	get lastArchived(): Promise<string | undefined> {
+		return (Archivist.#lastArchived = Archivist.#lastArchived ?? this.state.storage.get("lastArchived"))
+	}
 	private constructor(
 		private readonly backend: {
 			doc: KeyValueStore<Record<string, any> & Document>
@@ -22,88 +19,71 @@ export class Archivist {
 		private readonly storage: Storage,
 		private readonly state: DurableObjectState,
 		private readonly documentType: string,
-		private readonly configurations = { remove: 5 * 60 }
+		public readonly configuration = { remove: 30, limit: 600 }
 	) {}
 	private generateKey(document: Pick<Document, "id" | "created">): string {
 		return `${this.partitions}${document.created}/${document.id}`
 	}
-	async reconcile(threshold: isoly.DateTime): Promise<Document[] | undefined> {
-		const changedIndex = Array.from((await this.state.storage.list<string>({ prefix: "changed/" })).entries())
-		const archived: isoly.DateTime | [string, string] | undefined = await this.state.storage.get<
-			string | [string, string]
-		>("archived")
-		const lastArchived = !archived ? "" : typeof archived == "string" ? archived : Key.getLast(archived[0])
-		archived && (await this.removeArchived(changedIndex, lastArchived))
-		const { complete, partial, changed }: ToArchive = await this.getStaleKeys(threshold, changedIndex, archived)
-		const listed: (Document[] & { changed?: Record<string, string> }) | undefined =
-			(await this.storage.load<Document>([...Object.values(complete).flat(), ...(partial?.[1] ?? [])])) ?? []
-		const stored = listed && listed.length > 0 ? await this.store(listed, changed) : []
-		stored &&
-			!stored.some(e => !e) &&
-			(await this.state.storage.put("archived", partial ? [partial[0], partial[1].slice(-1)[0]] : threshold))
-		return stored
+	async reconcile(threshold: isoly.DateTime): Promise<Document[]> {
+		await this.removeArchived(threshold)
+		return await this.store(threshold)
 	}
-	private async store(documents: Document[], changed?: Record<string, string>): Promise<Document[] | undefined> {
+	private async store(threshold: isoly.DateTime): Promise<Document[]> {
 		const promises: Promise<void>[] = []
 		const result: Document[] = []
-		for (const document of documents) {
-			promises.push(this.backend.doc.set(this.generateKey(document), document))
-			result.push(document)
-		}
-		for (const [key, value] of Object.entries(changed ?? {})) {
+		const { documents, changed } = await this.getStale(threshold)
+		if (documents.length > 0) {
+			for (const document of documents) {
+				promises.push(this.backend.doc.set(this.generateKey(document), document))
+				result.push(document)
+			}
 			promises.push(
 				this.backend.changed.set(
-					key.replace("changed/", "changed/" + this.partitions) + "/" + documents[0].id.substring(0, 2),
-					value.replaceAll(this.documentType + "/doc/", "")
+					`changed/${isoly.DateTime.now()}/${documents[0].id}`,
+					changed.replaceAll(this.documentType + "/doc/", "")
 				)
 			)
+			await Promise.all(promises)
 		}
-		await Promise.all(promises)
 		return result
 	}
-	private async removeArchived(changed: [string, string][], lastArchived: isoly.DateTime): Promise<any> {
-		const keys = []
-		const remove = isoly.DateTime.truncate(
-			isoly.DateTime.previousSecond(lastArchived, this.configurations.remove),
-			"seconds"
+	private async removeArchived(threshold: string): Promise<void> {
+		const lastArchived = await this.lastArchived
+		const archived: isoly.DateTime | undefined = lastArchived ? Key.getAt(lastArchived, -2) : undefined
+		if (archived) {
+			const keys = []
+			const remove = isoly.DateTime.previousSecond(threshold, this.configuration.remove)
+			const changed = Array.from(
+				(await this.state.storage.list<string>({ prefix: "changed/", limit: 2 * this.configuration.limit })).entries()
+			)
+			for (const [key, value] of changed)
+				if (Key.getAt(key, -2) <= remove && Key.getAt(key, -2) <= archived)
+					keys.push("id/" + Key.getLast(value), key, value)
+			await this.storage.remove(keys)
+		}
+	}
+	private async getStale(threshold: string): Promise<{ documents: Document[]; changed: string }> {
+		const changes = Array.from(
+			(
+				await this.state.storage.list<string>({
+					prefix: "changed/",
+					limit: this.configuration.limit,
+					startAfter: await this.lastArchived,
+				})
+			).entries()
 		)
-		for (const [key, value] of changed) {
-			if (Key.getLast(key) < (remove ?? "")) {
-				const docKeys = value.split("\n")
-				const idIndexKey = docKeys.map(e => "id/" + Key.getLast(e))
-				keys.push(...docKeys, ...idIndexKey, key)
+		const staleKeys: string[] = []
+		let lastChanged: string | undefined
+		for (const [key, value] of changes)
+			if (Key.getAt(key, -2) < threshold) {
+				lastChanged = key
+				staleKeys.push(value)
 			}
+		if (lastChanged) {
+			Archivist.#lastArchived = Promise.resolve(lastChanged)
+			await this.state.storage.put<string>("lastArchived", lastChanged)
 		}
-		return await this.storage.remove(keys)
-	}
-	private async getStaleKeys(
-		threshold: string,
-		changes?: [string, string][],
-		archived?: string | [string, string]
-	): Promise<ToArchive> {
-		const result: ToArchive = { complete: {} }
-		let length = 0
-		const [lastArchivedKey, lastArchived] = !archived || typeof archived == "string" ? [] : archived
-		if (changes)
-			for (const [key, value] of changes) {
-				const keyDate = Key.getLast(key)
-				if (
-					(typeof archived == "string" ? archived : Key.getLast(lastArchivedKey ?? "")) <= keyDate &&
-					keyDate < threshold
-				) {
-					const values = value.split("\n")
-					const documentKeys = lastArchived ? values.slice(values.indexOf(lastArchived) + 1) : values
-					if (length + documentKeys.length < this.archivizationLimit) {
-						result.changed = { ...result.changed, [key]: value }
-						result.complete[key] = documentKeys
-						length += documentKeys.length
-					} else {
-						result.partial = [key, documentKeys.slice(0, this.archivizationLimit)]
-						break
-					}
-				}
-			}
-		return result
+		return { documents: await this.storage.load<Document>(staleKeys), changed: staleKeys.join("\n") } ?? {}
 	}
 	static open(
 		keyValueNamespace: KVNamespace | undefined,

@@ -6,78 +6,73 @@ import "./update"
 import "./append"
 import { DurableObjectState } from "../../../platform"
 import { Archivist } from "./Archivist"
+import { Configuration } from "./Configuration"
 import { Context } from "./Context"
 import { Environment } from "./Environment"
 
 export class Backend {
-	private partitions: string[] | undefined
-	private documentType: string | undefined
-	private idLength: number
-	private snooze: number
-	private archiveTime: number
-	private readonly changedPrecision = "seconds"
+	private archivist: Archivist
+	private configuration: Configuration
+	private isAlarm: boolean
+	private setAlarm = () => (this.isAlarm = true)
 
-	private constructor(private readonly state: DurableObjectState, private environment: Environment) {
-		this.state.blockConcurrencyWhile(async () => {
-			this.partitions = (await this.state.storage.get("partitions")) ?? this.partitions
-			!!(await this.state.storage.getAlarm()) ||
-				(await (async () => {
-					await this.state.storage.setAlarm(Date.now() + 10 * 1000)
-					return true
-				})())
-		})
-	}
+	private constructor(private readonly state: DurableObjectState, private environment: Environment) {}
+
 	async fetch(request: Request): Promise<Response> {
-		this.state.waitUntil(this.configure(request))
-		return this.state.blockConcurrencyWhile(() =>
+		const result = this.state.blockConcurrencyWhile(() =>
 			Context.handle(request, {
 				...(this.environment ?? {}),
 				state: this.state,
-				changedPrecision: this.changedPrecision,
+				alarm: { set: this.setAlarm, is: this.isAlarm },
 			})
 		)
+		this.state.waitUntil(this.configure(request))
+		return result
 	}
 	async configure(request: Request): Promise<void> {
-		const snooze = +(request.headers.get("seconds-between-archives") ?? NaN)
-		this.snooze = this.snooze ?? (Number.isNaN(snooze) ? undefined : snooze)
-		const archiveTime = +(request.headers.get("seconds-in-buffer") ?? NaN)
-		this.archiveTime = this.archiveTime ?? (Number.isNaN(archiveTime) ? undefined : archiveTime)
-		const idLength = +(request.headers.get("length") ?? NaN)
-		this.idLength = this.idLength ?? (Number.isNaN(idLength) ? undefined : idLength)
-		this.state.waitUntil(
-			(async (): Promise<any> =>
-				(await this.state.storage.get("idLength")) ??
-				(idLength ? this.state.storage.put("idLength", idLength) : Promise.resolve()))()
+		const configuration = Configuration.from(
+			request,
+			this.configuration ?? (await this.state.storage.get("configuration"))
 		)
-		const documentType = request.headers.get("document-type")
-		!this.documentType &&
-			!(this.documentType = await this.state.storage.get("documentType")) &&
-			documentType &&
-			this.state.waitUntil(this.state.storage.put("documentType", (this.documentType = documentType)))
-		const partitions = request.headers.get("partitions")?.split("/").slice(0, -1)
-		!this.partitions &&
-			!(this.partitions = await this.state.storage.get("partitions")) &&
-			partitions &&
-			this.state.waitUntil(this.state.storage.put("partitions", (this.partitions = partitions)))
+		if (!this.configuration) {
+			await this.state.storage.put("configuration", configuration)
+		}
+		this.configuration = configuration
 	}
 
 	async alarm(): Promise<void> {
 		const now = Date.now()
+		const configuration = this.configuration ?? (await this.state.storage.get("configuration"))
 		const archiveThreshold = isoly.DateTime.truncate(
-			isoly.DateTime.create(now - this.archiveTime * 1000, "milliseconds"),
-			this.changedPrecision
+			isoly.DateTime.create(now - (configuration.archiveTime ?? 60) * 1000, "milliseconds"),
+			"seconds"
 		)
-		this.state.blockConcurrencyWhile(async () => {
-			const partitions = this.partitions ?? (await this.state.storage.get("partitions"))
-			const documentType = this.documentType ?? (await this.state.storage.get("documentType"))
-			const archivist = Archivist.open(
+		const archivist =
+			this.archivist ??
+			(this.archivist = Archivist.open(
 				this.environment.archive,
 				this.state,
-				documentType ?? "",
-				partitions ?? ["unknown"]
-			)
-			return await archivist.reconcile(archiveThreshold)
+				configuration.documentType ?? "unknown",
+				configuration.partitions ?? ["unknown"]
+			))
+		this.state.blockConcurrencyWhile(async () => {
+			const stored = await archivist.reconcile(archiveThreshold)
+			if (stored?.length > 0) {
+				stored?.length == archivist.configuration.limit
+					? await this.state.storage.setAlarm(now + ((configuration.snooze ?? 30) * 1000) / 2)
+					: stored?.length ?? 0 > 0
+					? await this.state.storage.setAlarm(now + (configuration.snooze ?? 30) * 1000)
+					: await this.state.storage.setAlarm(now + 2 * (configuration.snooze ?? 30) * 1000)
+			} else if (
+				(await this.state.storage.list({ prefix: "changed/", limit: 1 })).size == 0 &&
+				(await this.state.storage.list({ prefix: "id/", limit: 1 })).size == 0 &&
+				(await this.state.storage.list({ prefix: configuration.documentType + "/doc/", limit: 1 })).size == 0
+			) {
+				await this.state.storage.deleteAll()
+				this.isAlarm = false
+			}
+
+			return stored
 		})
-		await this.state.storage.setAlarm(now + this.snooze * 1000)
 	}
 }

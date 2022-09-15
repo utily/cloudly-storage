@@ -19,7 +19,7 @@ export type Database<T extends { archive?: Record<string, any>; collection?: Rec
 
 class DatabaseImplementation<T extends Record<string, any>> {
 	constructor(private readonly configuration: Required<Database.Configuration>) {}
-	partition<S = T>(...partition: string[]): Database<S> {
+	partition<S extends T = T>(...partition: string[]): Database<S> {
 		const result = new DatabaseImplementation(this.configuration)
 		const silos: Record<string, Database.Silo | undefined> = {}
 		Object.entries(this.configuration.silos).forEach(([name, c]) =>
@@ -32,7 +32,7 @@ class DatabaseImplementation<T extends Record<string, any>> {
 		return result as Database<S>
 	}
 
-	static create<T>(
+	static create<T extends { archive?: Record<string, any> | undefined; collection?: Record<string, any> | undefined }>(
 		configuration: Required<Database.Configuration>,
 		archive: KeyValueStore<string>,
 		buffer?: DONamespace

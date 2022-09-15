@@ -1,7 +1,8 @@
 import { DurableObjectState, KVNamespace } from "../../../platform"
 
-export interface Environment extends Record<string, undefined | string | DurableObjectState | KVNamespace> {
-	state?: DurableObjectState
+export interface Environment
+	extends Record<string, undefined | boolean | { set: () => boolean; is: boolean } | DurableObjectState | KVNamespace> {
+	state: DurableObjectState
 	archive?: KVNamespace
-	changedPrecision?: "seconds" | "minutes" | "hours"
+	alarm: { set: () => boolean; is: boolean }
 }

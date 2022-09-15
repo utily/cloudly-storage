@@ -16,8 +16,14 @@ export async function update(request: http.Request, context: Context): Promise<h
 		result = gracely.server.backendFailure("Failed to open Buffer Storage.")
 	else {
 		try {
-			const document = await storage.updateDocument<Record<string, any> & Document>(amendment, archived)
+			const document = await context.state.blockConcurrencyWhile(() =>
+				storage.updateDocument<Record<string, any> & Document>(amendment, archived)
+			)
 			result = gracely.success.created(document)
+			if (!context.alarm.is) {
+				context.alarm.set()
+				context.state.waitUntil(context.state.storage.setAlarm(Date.now() + 10 * 1000))
+			}
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
 		}

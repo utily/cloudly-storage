@@ -1,8 +1,10 @@
 import * as isoly from "isoly"
 import { KeyValueStore } from "../KeyValueStore"
 import { Configuration } from "./Configuration"
+import { Cursor } from "./Cursor"
 import { Document } from "./Document"
 import { Identifier } from "./Identifier"
+import { Key } from "./Key"
 import { Selection } from "./Selection"
 import { Silo } from "./Silo"
 
@@ -53,9 +55,9 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
 	load(selection?: Selection): Promise<(Document & T)[] & { locus?: string }>
 	async load(
-		selection: Identifier | Identifier[] | Selection
-	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { locus?: string })> {
-		let result: (T & Document) | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { locus?: string })
+		selection?: Identifier | Identifier[] | Selection
+	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })> {
+		let result: (T & Document) | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })
 		if (typeof selection == "string") {
 			const key = await this.getKey(selection)
 			result = key && key.startsWith(this.partitions) ? (await this.backend.doc.get(key))?.value : undefined
@@ -65,35 +67,92 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			result = await this.list(selection)
 		return result
 	}
-	private async list(selection: Selection): Promise<(Document & T)[] & { locus?: string }> {
-		const query: Selection.Query | undefined = Selection.get(selection)
-		const prefixes: string[] & { type?: "changed" | "created" } = Selection.Query.extractPrefix(query)
-		const responseList: KeyValueStore.ListItem<T & Document, undefined>[] &
-			{
-				cursor?: string | undefined
-			}[] = []
-		let limit = query?.limit ?? Selection.Query.standardLimit
-		let locus: Selection.Locus | undefined
-		for (const prefix of prefixes) {
-			const response = await this.backend.doc.list({
+
+	private async list(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }> {
+		const cursor = Cursor.from(selection)
+		let result: (T & Document)[] & { cursor?: string } & {
+			cursor?: string | undefined
+		}
+		if (cursor?.type == "changed")
+			result = await this.listChanged(cursor)
+		else
+			result = await this.listDocs(cursor)
+		return result
+	}
+
+	private async listDocs(cursor?: Cursor): Promise<(Document & T)[] & { cursor?: string }> {
+		const result: (T & Document)[] & { cursor?: string } & {
+			cursor?: string | undefined
+		} = []
+		let limit = cursor?.limit ?? Selection.standardLimit
+		let newCursor: string | undefined
+		console.log("prefixed: ", JSON.stringify(Cursor.prefix(cursor)))
+		for (const prefix of Cursor.prefix(cursor)) {
+			const loaded = await this.backend.doc.list({
 				prefix: this.partitions + prefix,
 				limit,
-				cursor: query?.cursor,
+				cursor: cursor?.cursor,
 			})
+			const response = loaded.map(item => ({
+				...(item.value ?? {}),
+				...(item.meta ?? {}),
+			})) as (T & Document)[]
+
 			limit -= response.length
-			responseList.push(...response)
-			if (response.cursor) {
-				locus = Selection.Locus.generate({ ...(query ?? {}), cursor: response.cursor })
+			result.push(...response)
+			console.log("loaded.cursor: ", loaded.cursor)
+			if (loaded.cursor) {
+				newCursor = Cursor.serialize({ ...{ ...(cursor ?? { type: "doc" }) }, cursor: loaded.cursor })
 				break
 			}
 		}
-		const result = responseList.map(item => ({
-			...item.value,
-			...(item.meta ?? {}),
-		})) as (T & Document)[] & { locus?: string }
-
-		if (locus && result)
-			result.locus = locus
+		if (newCursor && result)
+			result.cursor = newCursor
+		return result
+	}
+	private async listChanged(cursor: Cursor): Promise<(Document & T)[] & { cursor?: string }> {
+		const result: (T & Document)[] & { cursor?: string } & {
+			cursor?: string | undefined
+		} = []
+		let limit = cursor?.limit ?? Selection.standardLimit
+		console.log("cursor: ", JSON.stringify(cursor, null, 2))
+		const startFrom = !!cursor.range?.start && isoly.DateTime.is(cursor.range?.start) ? cursor.range?.start : undefined
+		console.log("startFrom", startFrom)
+		const prefixes = Cursor.prefix(cursor)
+		let newCursor: string | undefined
+		for (const prefix of prefixes) {
+			const changes = await this.backend.changed.list({
+				prefix: this.partitions + prefix,
+				limit,
+				cursor: cursor?.cursor,
+			})
+			console.log("changes: ", JSON.stringify(changes, null, 2))
+			const changedValues = startFrom
+				? changes.filter(e => {
+						console.log("keytime: ", Key.getTime(e.key))
+						console.log("keytime: ", startFrom)
+						return Key.getTime(e.key) ?? "0" >= startFrom
+				  })
+				: changes
+			console.log("changedValues: ", JSON.stringify(changedValues, null, 2))
+			newCursor = changes.cursor
+			for (const change of changedValues) {
+				const keys = (change?.value ?? "").split("\n")
+				if (keys.length <= limit) {
+					console.log("limit1: ", limit)
+					const loaded = await Promise.all(keys.map(k => this.backend.doc.get(k)))
+					result.push(...loaded.reduce((r: (T & Document)[], e) => (e?.value ? [...r, e.value] : r), []))
+					limit -= keys.length
+				} else {
+					console.log("limit2: ", limit)
+					const start = change.key.split("/").find(e => isoly.DateTime.is(e))
+					cursor.range = start ? { start, end: cursor.range?.end ?? isoly.DateTime.now() } : undefined
+					break
+				}
+			}
+		}
+		if (cursor.range?.start != startFrom)
+			result.cursor = Cursor.serialize({ ...cursor, cursor: newCursor ?? cursor.cursor })
 		return result
 	}
 
@@ -106,11 +165,9 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		if (!Array.isArray(documents)) {
 			if (!this.configuration.retainChanged)
 				documents = { ...documents, changed: isoly.DateTime.now() }
-			const kvKey = Document.is(documents) ? await this.getKey(documents.id) : undefined
-			const newKey = Document.is(documents) ? this.generateKey(documents) : null
 			const document =
-				!Document.is(documents) || kvKey != newKey
-					? { ...documents, ...((await this.allocateId(documents)) ?? {}) }
+				!Document.is(documents) || (await this.getKey(documents.id)) != this.generateKey(documents)
+					? { ...documents, ...(await this.allocateId(documents)) }
 					: undefined
 			result = document && (await this.set(document))
 		} else
@@ -136,7 +193,8 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		if (Document.is(document, this.configuration.idLength)) {
 			const key = this.generateKey(document)
 			await this.backend.doc.set(key, (result = document))
-			const changedKey = this.partitions + isoly.DateTime.truncate(document.changed, "minutes")
+			const changedKey =
+				this.partitions + isoly.DateTime.truncate(isoly.DateTime.truncate(document.changed, "minutes"), "milliseconds")
 			const changed = await this.backend.changed.get(changedKey)
 			!changed?.value?.includes(key) &&
 				(await this.backend.changed.set(changedKey, changed ? changed.value + "\n" + key : key))

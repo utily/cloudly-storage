@@ -8,11 +8,11 @@ import { router } from "../../../router"
 export async function list(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: (gracely.Result & { header: Record<string, string | undefined> }) | gracely.Error
 	const authorization = request.header.authorization
-	const locus: { locus: string } | undefined =
-		typeof request.header.locus == "string" ? { locus: request.header.locus } : undefined
+	const limit = request.search.limit ? +request.search.limit : undefined
+	const selection: { cursor: string; limit?: number } | undefined =
+		typeof request.header.cursor == "string" ? { cursor: request.header.cursor, limit } : undefined
 	const start = request.search.start
 	const end = request.search.end
-	const limit = request.search.limit ? +request.search.limit : undefined
 	const database = context.collection
 	if (!authorization)
 		result = gracely.client.unauthorized()
@@ -32,14 +32,14 @@ export async function list(request: http.Request, context: Context): Promise<htt
 		result = gracely.client.invalidQueryArgument("limit", "number", "limit needs to be a number if defined.")
 	else if (gracely.Error.is(database))
 		result = database
-	else if (locus && !cryptly.Identifier.is(locus.locus))
-		result = gracely.client.malformedHeader("locus", "If defined locus must be a cryptly.Identifier.")
+	else if (selection && !cryptly.Identifier.is(selection.cursor))
+		result = gracely.client.malformedHeader("cursor", "If defined cursor must be a cryptly.Identifier.")
 	else {
 		const listed = await database.users.load(
-			locus ? locus : start && end ? { created: { start, end }, limit } : { limit }
+			selection ? selection : start && end ? { created: { start, end }, limit } : { limit }
 		)
 		const response = gracely.success.ok(listed) ?? gracely.server.databaseFailure()
-		result = { ...response, header: { ...response.header, locus: listed.locus } }
+		result = { ...response, header: { ...response.header, cursor: listed.cursor } }
 	}
 	return result
 }

@@ -6,6 +6,10 @@ import { router } from "./router"
 import { Storage } from "./Storage"
 
 export class Context {
+	#alarm?: { set: () => boolean; is: boolean }
+	get alarm(): { set: () => boolean; is: boolean } {
+		return this.#alarm ?? (this.#alarm = this.environment.alarm)
+	}
 	#state?: DurableObjectState
 	get state() {
 		return this.#state ?? (this.#state = this.environment.state)
