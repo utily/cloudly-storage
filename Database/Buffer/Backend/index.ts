@@ -10,29 +10,37 @@ import { Context } from "./Context"
 import { Environment } from "./Environment"
 
 export class Backend {
-	alarmTime = 10 * 1000
-	partitions?: string[]
-	idLength?: number
+	private partitions: string[] | undefined
+	private idLength: number
+	private snooze: number
+	private archiveTime: number
+	private readonly changedPrecision = "seconds"
+
 	private constructor(private readonly state: DurableObjectState, private environment: Environment) {
 		this.state.blockConcurrencyWhile(async () => {
-			this.partitions = await this.state.storage.get("partitions")
+			this.partitions = (await this.state.storage.get("partitions")) ?? this.partitions
 			!!(await this.state.storage.getAlarm()) ||
 				(await (async () => {
-					await this.state.storage.setAlarm(this.alarmTime)
+					await this.state.storage.setAlarm(10 * 1000)
 					return true
 				})())
 		})
 	}
-
 	async fetch(request: Request): Promise<Response> {
-		this.state.waitUntil(this.configuration(request))
+		this.state.waitUntil(this.configure(request))
 		return this.state.blockConcurrencyWhile(() =>
-			Context.handle(request, { ...(this.environment ?? {}), state: this.state })
+			Context.handle(request, {
+				...(this.environment ?? {}),
+				state: this.state,
+				changedPrecision: this.changedPrecision,
+			})
 		)
 	}
-
-	async configuration(request: Request): Promise<void> {
-		//TODO: Review
+	async configure(request: Request): Promise<void> {
+		const snooze = +(request.headers.get("seconds-between-archives") ?? NaN)
+		this.snooze = this.snooze ?? (Number.isNaN(snooze) ? undefined : snooze)
+		const archiveTime = +(request.headers.get("seconds-in-buffer") ?? NaN)
+		this.archiveTime = this.archiveTime ?? (Number.isNaN(archiveTime) ? undefined : archiveTime)
 		const idLength = +(request.headers.get("length") ?? NaN)
 		this.idLength = this.idLength ?? (Number.isNaN(idLength) ? undefined : idLength)
 		this.state.waitUntil(
@@ -48,11 +56,10 @@ export class Backend {
 	}
 
 	async alarm(): Promise<void> {
-		const archiveTime = 20 * 1000 //TODO: after settlement
 		const now = Date.now()
 		const archiveThreshold = isoly.DateTime.truncate(
-			isoly.DateTime.create(now - archiveTime, "milliseconds"),
-			"seconds"
+			isoly.DateTime.create(now - this.archiveTime * 1000, "milliseconds"),
+			this.changedPrecision
 		)
 		this.state.blockConcurrencyWhile(async () => {
 			const idLength = this.idLength ?? (await this.state.storage.get("idLength"))
@@ -60,8 +67,6 @@ export class Backend {
 			const archivist = Archivist.open(this.environment.archive, this.state, partitions ?? ["unknown"], idLength)
 			return await archivist.reconcile(archiveThreshold)
 		})
-		// TODO: Should be set by some config
-		const snooze = now + archiveTime - 15 * 1000
-		await this.state.storage.setAlarm(snooze)
+		await this.state.storage.setAlarm(now + this.snooze * 1000)
 	}
 }

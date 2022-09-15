@@ -17,12 +17,14 @@ export class Buffer<T = any> {
 	private header: Record<string, string>
 	private constructor(
 		private readonly backend: DurableObject.Namespace,
-		private readonly configuration: Configuration.Buffer,
+		private readonly configuration: Required<Configuration.Buffer>,
 		private readonly partitions = ""
 	) {
 		this.header = {
 			partitions: this.partitions,
-			length: { ...Configuration.Buffer.standard, ...this.configuration }.idLength.toString(),
+			length: this.configuration.idLength.toString(),
+			secondsBetweenArchives: this.configuration.secondsBetweenArchives.toString(),
+			secondsInBuffer: this.configuration.secondsInBuffer.toString(),
 		}
 	}
 	partition(...partition: string[]): Buffer<T> {
@@ -46,10 +48,7 @@ export class Buffer<T = any> {
 		if (typeof query == "string") {
 			response = await this.backend
 				.open(Configuration.Buffer.getShard(this.configuration, query))
-				.get<Loaded<T>>(`/buffer/${encodeURIComponent(query)}`, {
-					partitions: this.partitions,
-					length: { ...Configuration.Buffer.standard, ...this.configuration }.idLength.toString(),
-				})
+				.get<Loaded<T>>(`/buffer/${encodeURIComponent(query)}`, this.header)
 		} else if (Array.isArray(query)) {
 			response = await this.backend.open(this.partitions).post<Loaded<T>>(`/buffer/prefix`, { id: query }, this.header)
 		} else if (query != null && typeof query == "object") {
@@ -103,7 +102,7 @@ export class Buffer<T = any> {
 		return result
 	}
 	async update(
-		amendment: T & Partial<Document> & { id: Document["id"] },
+		amendment: Partial<T & Document> & { id: Document["id"] },
 		archived?: T & Document
 	): Promise<(T & Document) | undefined> {
 		const updated = await this.backend
@@ -112,7 +111,7 @@ export class Buffer<T = any> {
 		return gracely.Error.is(updated) ? undefined : updated
 	}
 	async append(
-		amendment: T & Partial<Document> & { id: Document["id"] },
+		amendment: Partial<T & Document> & { id: Document["id"] },
 		archived?: T & Document
 	): Promise<(T & Document) | undefined> {
 		const updated = await this.backend
@@ -154,6 +153,6 @@ export class Buffer<T = any> {
 		backend: DurableObject.Namespace | undefined,
 		configuration: Required<Configuration.Buffer> = Configuration.Buffer.standard
 	): Buffer<T> | undefined {
-		return backend && new Buffer<T>(backend, configuration, backend.partitions)
+		return backend && new Buffer<T>(backend, { ...Configuration.Buffer.standard, ...configuration }, backend.partitions)
 	}
 }
