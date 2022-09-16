@@ -1,11 +1,11 @@
 # Database
 
 ## Overview
-The technology used in this database are Durable Objects and Key Value stores, there exists a low level abstraction around these technologies in the DurableObject and KeyValueStore folders respectively.
+The technologies used in this database are Durable Objects and Key Value stores; there exists a low level abstraction around these technologies in the DurableObject and KeyValueStore folders respectively.
 
-The main feature is the Database, it contains Silos which are either Archives or Collections. Archives implement the Key Value Store abstraction and utimatly the cloudflare Key value store. 
+The main feature is the Database, it contains Silos which are either Archives or Collections. Archives implement the Key Value Store abstraction and ultimately the cloudflare Key value store. 
 - The Archive is able to store, load and remove documents, loading can be done using a date range or an id of the document.
-- The Collection utilizes a Durable Object abstraction called Buffer and an Archive for long term storage. The Buffer ensures consistency and transactionality while writing. The buffer stored documents for a short timespan and writes documents to the Archive once deemed stale. The buffer will contain several durable objects to increase the number of simultaneous read and writes, these durable objects will use a key-shard, the id of the document will generate a corresponding shard.
+- The Collection utilizes a Durable Object abstraction called Buffer and an Archive for long term storage. The Buffer ensures consistency and transactionality while writing. The buffer stores documents for a short timespan and writes documents to the Archive once deemed stale. The buffer will contain several durable objects to increase the number of simultaneous read and writes, these durable objects will use a key-shard, the id of the document will generate a corresponding shard.
 
 The Database can be partitioned to store data in different layers, this will be useful to list documents for a particular partition. The key for the documents are comprised of `typeName/partition_1/partition_2/.../partition_n/dateTime/documentID` where n is a natural number. The Buffer will divide the data in different durable objects depending on `typeName/partition_1/partition_2/.../partition_n/shard`, and will use the same keys as the Archive to store the documents.
 
@@ -13,9 +13,9 @@ The Database can be partitioned to store data in different layers, this will be 
 
 _figure 1: The architecture of the database._
 
-## Intregration
+## Integration
 - The cloudly-storage package needs to be added in the dependencies of the package.json file and needs to be installed.
-- A keyvalue store needs to be created on the cloudflare account used by the worker in order to use this database in the cloudflare worker.
+- A Key Value store needs to be created on the cloudflare account used by the worker in order to use this database in the cloudflare worker.
 - The durable object class Backend needs to be exported from the main ```index.ts``` file in your worker:
 ```ts
 export { Backend } from "cloudly-storage"
@@ -26,7 +26,7 @@ export default {
 ```
 
 ### wrangler.toml
-The wrangler.toml file needs to include a keyvalue store and a durable object binding:
+The wrangler.toml file needs to include a Key Value store and a durable object binding:
 ```
 kv-namespaces = [
 			{ binding = "archive", id = "id_found_in_the_cloudflare_dashboard", preview_id = "id_found_in_the_cloudflare_dashboard" }
@@ -94,6 +94,18 @@ load(id: Identifier): Promise<(T & Document) | undefined>
 load(ids: Identifier[]): Promise<((Document & T) | undefined)[] & { locus?: string }>
 load(selection?: Selection): Promise<(Document & T)[] & { locus?: string }>
 ```
+### update
+Updates a single document from the database by specifying its id and providing the updates in the body of the request. *The incoming updates will replace* the original content.
+
+```ts
+update(amendment: T & Partial<Document>): Promise<(T & Document) | undefined>
+```
+### append
+Similar to the "update" function, append also updates a single document from the database by specifying its id and providing the updates in the body of the request. *The incoming updates will be appended* to the original content.
+
+```ts
+append(amendment: T & Partial<Document>): Promise<(T & Document) | undefined>
+```
 ### remove
 The remove function will delete the document and return a boolean representing the success of the operation.
 ```ts
@@ -101,17 +113,17 @@ remove(id: Identifier): Promise<boolean>
 remove(id: Identifier[]): Promise<boolean[]>
 ```
 ### partition
-The partition function can be used to create partitions, theoretically infinitly many partitions can be created but don't go crazy with it.
+The partition function can be used to create partitions, theoretically infinitely many partitions can be created but don't go crazy with it.
 ```ts
 partition(...partition: Identifier[]): S 
 ```
-## Indecies
+## indices
 There exists 3 types of keys in the Database, `id`, `changed` and `doc`; each adds functionality to the database.
 The definitions below are based on how they look in the `Archive`; the buffer uses a small variation of these keys where the type of the document as well as the slash following the type is omitted.
 
 ### doc
 The doc-index contains the document the user wants to store/load/update.
-The structure of the doc-key makes it possible, easy and fast to list ceratin a partition and query it on created time with a date range.
+The structure of the doc-key makes it possible, easy and fast to list certain a partition and query it on created time with a date range.
 
 Definition:
 ```ts
@@ -135,7 +147,7 @@ Definition:
 Where the type is the name of the document-type used in the layout when initiating the database and the document is the value the user wants to store and the key is defined above in `doc`.
 
 ### changed 
-The changed-index is multi purposed and is used in the buffer to determine which documents to archive and which archived documents to remove. Its use in the archive is to be able query documents with a daterange representing the last time the document was changed.
+The changed-index is multipurpose and is used in the buffer to determine which documents to archive and which archived documents to remove. Its use in the archive is to query documents with a daterange representing the last time the document was changed.
 Definition: 
 ```ts
 {
