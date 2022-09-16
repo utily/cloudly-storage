@@ -230,12 +230,15 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		backend: KeyValueStore<string, any> | undefined,
 		configuration: Configuration.Archive = Configuration.Archive.standard
 	): Archive<T> | undefined {
+		const expires = isoly.DateTime.create(
+			isoly.TimeSpan.toSeconds({ ...Configuration.Archive.standard, ...configuration }.retention)
+		)
 		return (
 			backend &&
 			new Archive<T>(
 				{
 					doc: KeyValueStore.partition(
-						KeyValueStore.InMeta.create<T, Document>(Document.split, KeyValueStore.Json.create(backend)),
+						KeyValueStore.InMeta.create<T, Document>(Document.split, KeyValueStore.Json.create(backend), expires),
 						"doc/"
 					), // retention expires
 					id: KeyValueStore.partition(KeyValueStore.OnlyMeta.create<string>(backend), "id/"), // retention expires
