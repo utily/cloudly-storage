@@ -23,8 +23,9 @@ export class Buffer<T = any> {
 		this.header = {
 			partitions: this.partitions,
 			length: this.configuration.idLength.toString(),
-			secondsBetweenArchives: this.configuration.secondsBetweenArchives.toString(),
-			secondsInBuffer: this.configuration.secondsInBuffer.toString(),
+			reconciliationInterval: JSON.stringify(this.configuration.reconciliationInterval),
+			reconcileAfter: JSON.stringify(this.configuration.reconcileAfter),
+			superimposeFor: JSON.stringify(this.configuration.superimposeFor),
 			documentType: this.backend.partitions.slice(0, -1),
 		}
 	}
@@ -147,17 +148,14 @@ export class Buffer<T = any> {
 		}
 		return result
 	}
-	static open<T extends object = any>(
-		backend: DurableObject.Namespace,
-		configuration: Required<Configuration.Buffer>
-	): Buffer<T>
+	static open<T extends object = any>(backend: DurableObject.Namespace, configuration: Configuration.Buffer): Buffer<T>
 	static open<T extends object = any>(
 		backend: DurableObject.Namespace | undefined,
-		configuration: Required<Configuration.Buffer>
+		configuration: Configuration.Buffer
 	): Buffer<T> | undefined
 	static open<T extends object = any>(
 		backend: DurableObject.Namespace | undefined,
-		configuration: Required<Configuration.Buffer> = Configuration.Buffer.standard
+		configuration: Configuration.Buffer = Configuration.Buffer.standard
 	): Buffer<T> | undefined {
 		return backend && new Buffer<T>(backend, { ...Configuration.Buffer.standard, ...configuration })
 	}

@@ -16,10 +16,11 @@ export async function store(request: http.Request, context: Context): Promise<ht
 			result = gracely.success.created(
 				await context.state.blockConcurrencyWhile(() => storage.storeDocuments(document))
 			)
-			if (!context.alarm.is) {
-				context.alarm.set()
-				context.state.waitUntil(context.state.storage.setAlarm(Date.now() + 10 * 1000))
-			}
+			console.log(
+				"stored: ",
+				JSON.stringify(Object.fromEntries((await context.state.storage.list()).entries()), null, 2)
+			)
+			await context.setAlarm()
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
 		}

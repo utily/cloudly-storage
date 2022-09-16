@@ -1,18 +1,14 @@
 import { Archive } from "./Archive"
 import { Buffer } from "./Buffer"
 
-type ShardCount = 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256
-
-export interface Collection extends Archive, Buffer {
-	shards?: ShardCount
-	secondsBetweenArchives?: number
-	secondsInBuffer?: number
+export interface Collection extends Buffer, Archive {
+	partitions?: { [key: string]: Collection }
 }
 
 export namespace Collection {
-	export const standard: Required<Collection> = {
-		...Buffer.standard,
+	export type Complete = Required<Omit<Collection, "partitions">> & Pick<Collection, "partitions">
+	export const standard: Required<Omit<Collection, "partitions">> = {
 		...Archive.standard,
-		shards: 4,
+		...Buffer.standard,
 	}
 }

@@ -17,7 +17,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			id: KeyValueStore<string>
 			changed: KeyValueStore<string>
 		},
-		private readonly configuration: Required<Configuration.Archive>,
+		private readonly configuration: Configuration.Archive.Complete,
 		readonly partitions: string = ""
 	) {
 		super()
@@ -86,7 +86,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		} = []
 		let limit = cursor?.limit ?? Selection.standardLimit
 		let newCursor: string | undefined
-		console.log("prefixed: ", JSON.stringify(Cursor.prefix(cursor)))
 		for (const prefix of Cursor.prefix(cursor)) {
 			const loaded = await this.backend.doc.list({
 				prefix: this.partitions + prefix,
@@ -100,7 +99,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 
 			limit -= response.length
 			result.push(...response)
-			console.log("loaded.cursor: ", loaded.cursor)
 			if (loaded.cursor) {
 				newCursor = Cursor.serialize({ ...{ ...(cursor ?? { type: "doc" }) }, cursor: loaded.cursor })
 				break
@@ -116,9 +114,10 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		} = []
 		let limit = cursor?.limit ?? Selection.standardLimit
 		console.log("cursor: ", JSON.stringify(cursor, null, 2))
-		const startFrom = !!cursor.range?.start && isoly.DateTime.is(cursor.range?.start) ? cursor.range?.start : undefined
+		const startFrom = isoly.DateTime.is(cursor.range?.start) ? cursor.range?.start : undefined
 		console.log("startFrom", startFrom)
 		const prefixes = Cursor.prefix(cursor)
+		console.log("PREFOXI: ", JSON.stringify(prefixes, null, 2))
 		let newCursor: string | undefined
 		for (const prefix of prefixes) {
 			const changes = await this.backend.changed.list({
@@ -130,8 +129,8 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			const changedValues = startFrom
 				? changes.filter(e => {
 						console.log("keytime: ", Key.getTime(e.key))
-						console.log("keytime: ", startFrom)
-						return Key.getTime(e.key) ?? "0" >= startFrom
+						console.log("startFrom: ", startFrom)
+						return (Key.getTime(e.key) ?? "0") >= startFrom
 				  })
 				: changes
 			console.log("changedValues: ", JSON.stringify(changedValues, null, 2))
@@ -141,11 +140,13 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				if (keys.length <= limit) {
 					console.log("limit1: ", limit)
 					const loaded = await Promise.all(keys.map(k => this.backend.doc.get(k)))
+					console.log("loaded: ", JSON.stringify(loaded, null, 2))
 					result.push(...loaded.reduce((r: (T & Document)[], e) => (e?.value ? [...r, e.value] : r), []))
 					limit -= keys.length
 				} else {
 					console.log("limit2: ", limit)
-					const start = change.key.split("/").find(e => isoly.DateTime.is(e))
+					const start = Key.getTime(change.key)
+					console.log("start: ", start)
 					cursor.range = start ? { start, end: cursor.range?.end ?? isoly.DateTime.now() } : undefined
 					break
 				}
@@ -159,7 +160,8 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	store(document: T & Partial<Document>): Promise<(T & Document) | undefined>
 	store(documents: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
 	async store(
-		documents: (T & Partial<Document>) | (T & Partial<Document>)[]
+		documents: (T & Partial<Document>) | (T & Partial<Document>)[],
+		expires?: any
 	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
 		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
 		if (!Array.isArray(documents)) {
@@ -215,23 +217,31 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		return result
 	}
 	partition(...partition: string[]): Archive<T> {
-		return new Archive<T>(this.backend, this.configuration, this.partitions + partition.join("/") + "/")
+		return new Archive<T>(
+			this.backend,
+			partition.reduce(
+				(r: Configuration.Archive.Complete, e) => ({ ...r, ...(r.partitions?.[e] ?? {}) }),
+				this.configuration
+			),
+			this.partitions + partition.join("/") + "/"
+		)
 	}
 	static reconfigure<T>(archive: Archive<T>, configuration: Configuration.Archive): Archive<T> {
 		return new Archive<T>(archive.backend, { ...archive.configuration, ...configuration }, archive.partitions)
 	}
 	static open<T extends object = any>(
 		backend: KeyValueStore<string, any>,
-		configuration: Required<Configuration.Archive>
+		configuration: Configuration.Archive
 	): Archive<T>
 	static open<T extends object = any>(
 		backend: KeyValueStore<string, any> | undefined,
-		configuration: Required<Configuration.Archive>
+		configuration: Configuration.Archive
 	): Archive<T> | undefined
 	static open<T extends object = any>(
 		backend: KeyValueStore<string, any> | undefined,
-		configuration: Required<Configuration.Archive> = Configuration.Archive.standard
+		configuration: Configuration.Archive = Configuration.Archive.standard
 	): Archive<T> | undefined {
+		const cpmfog: Configuration.Archive.Complete = { ...Configuration.Archive.standard, ...configuration }
 		return (
 			backend &&
 			new Archive<T>(
@@ -243,7 +253,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 					id: KeyValueStore.partition(KeyValueStore.OnlyMeta.create<string>(backend), "id/"), // retention expires
 					changed: KeyValueStore.partition(KeyValueStore.Json.create<string>(backend), "changed/"), // retention expires
 				},
-				configuration
+				cpmfog
 			)
 		)
 	}

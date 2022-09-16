@@ -12,14 +12,16 @@ type Layout = { archive: { items: Item } }
 
 describe("Archive create, load, list", () => {
 	const configuration: storage.Database.Configuration = {
-		silos: { items: { type: "archive", idLength: 4, retainChanged: true } },
+		silos: { items: { type: "archive", idLength: 4, retainChanged: true, partitions: { axb010: { idLength: 8 } } } },
 	}
 	const database: storage.Database<Layout> | undefined = storage.Database.create<Layout>(configuration)
 	const partition = database?.partition("axb001")
 	const emptyPartition = database?.partition("axb010")
-	const item = { id: "abcd", created: "2022-07-30T00:17:55.730Z", changed: "2022-07-30T00:22:45.450Z", value: 42 }
-	const item2 = { ...item, id: "bcde", created: "2022-07-30T00:17:55.730Z" }
-	const item3 = {
+	const item = { id: "abc1", created: "2022-07-30T00:17:00.000Z", changed: "2022-07-30T00:22:00.000Z", value: 42 }
+	const item2 = { ...item, id: "abd2", created: "2022-07-30T00:17:00.000Z", changed: "2022-07-30T00:22:00.000Z" }
+	const item3 = { ...item, id: "abd3", created: "2022-07-30T00:17:00.000Z", changed: "2022-07-30T00:23:00.000Z" }
+	const item4 = { ...item, id: "abd4", created: "2022-07-30T00:17:00.000Z", changed: "2022-07-30T00:23:00.000Z" }
+	const item5 = {
 		level: 0,
 		id: "qqaa",
 		groups: [],
@@ -35,6 +37,7 @@ describe("Archive create, load, list", () => {
 			},
 		},
 	}
+
 	it("create", async () => {
 		expect(await partition?.items.store(item)).toEqual(item)
 		expect(await partition?.items.store([item2, item3])).toEqual([item2, item3])
@@ -61,12 +64,18 @@ describe("Archive create, load, list", () => {
 		const selection = { created: { start: "2022-07-30", end: "2022-08-01" }, limit: 1 }
 		const listed = await partition?.items.load(selection)
 		expect(listed?.flat()).toEqual([item])
-		expect(listed?.locus).toEqual(
+		expect(listed?.cursor).toEqual(
 			"eyJjcmVhdGVkIjp7InN0YXJ0IjoiMjAyMi0wNy0zMCIsImVuZCI6IjIwMjItMDgtMDEifSwibGltaXQiOjEsImN1cnNvciI6Iml0ZW1zL2RvYy9heGIwMDEvMjAyMi0wNy0zMFQwMDoxNzo1NS43MzBaL2FiY2QifQ"
 		)
-		const listedLocus = await partition?.items.load({ locus: listed?.locus })
+		const listedLocus = await partition?.items.load({ locus: listed?.cursor })
 		expect(listedLocus).toEqual([item2])
-		expect(listedLocus?.locus).toEqual(undefined)
+		expect(listedLocus?.cursor).toEqual(undefined)
+	})
+	it("list using changed query", async () => {
+		const listed = await partition?.items.load({ changed: selection.created, limit: 2 })
+		expect(listed?.flat()).toEqual([item, item2])
+		const listedFromCursor = listed?.cursor ? await partition?.items.load({ cursor: listed?.cursor }) : undefined
+		expect(listedFromCursor?.flat()).toEqual([item3, item4])
 	})
 	it("update, append, loadAll", async () => {
 		const firstAmendment = {
@@ -101,21 +110,21 @@ describe("Archive create, load, list", () => {
 				},
 			},
 		}
-		const item3Updated = {
-			...item3,
+		const item5Updated = {
+			...item5,
 			...firstAmendment,
 			created: item3.created,
-			groups: [...item3.groups, ...firstAmendment.groups],
+			groups: [...item5.groups, ...firstAmendment.groups],
 		}
-		const item3Appended = {
-			...item3Updated,
+		const item5Appended = {
+			...item5Updated,
 			...secondAmendment,
-			created: item3Updated.created,
-			groups: [...item3Updated.groups, ...secondAmendment.groups],
+			created: item5Updated.created,
+			groups: [...item5Updated.groups, ...secondAmendment.groups],
 		}
-		expect(await partition?.items.update(firstAmendment)).toEqual(item3Updated)
-		expect(await partition?.items.append(secondAmendment)).toEqual(item3Appended)
-		expect(await partition?.items.load()).toEqual([item, item2, item3Appended])
+		expect(await partition?.items.update(firstAmendment)).toEqual(item5Updated)
+		expect(await partition?.items.append(secondAmendment)).toEqual(item5Appended)
+		expect(await partition?.items.load()).toEqual([item, item2, item5Appended])
 	})
 	it("remove", async () => {
 		expect(await partition?.items.remove(item.id)).toEqual(true)

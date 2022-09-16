@@ -1,9 +1,12 @@
+import * as isoly from "isoly"
+
 export type Configuration = {
-	archiveTime?: number
+	retention?: number
 	documentType?: string
 	idLength?: number
 	partitions?: string[]
 	snooze?: number
+	removeAfter?: number
 }
 
 export namespace Configuration {
@@ -14,23 +17,32 @@ export namespace Configuration {
 		)
 	}
 	const headers = {
-		archiveTime: (request: Request, configuration?: Configuration): number | undefined => {
-			const archiveTime = +(request.headers.get("seconds-in-buffer") ?? NaN)
-			return !Number.isNaN(archiveTime) ? archiveTime : configuration?.archiveTime
+		retention: (request: Request, configuration?: Configuration): number | undefined => {
+			const retention = JSON.parse(request.headers.get("reconcile-after") ?? "{}")
+			return retention && isoly.TimeSpan.is(retention)
+				? isoly.TimeSpan.toMilliseconds(retention)
+				: configuration?.retention
 		},
 		documentType: (request: Request, configuration?: Configuration): string | undefined => {
 			return request.headers.get("document-type") ?? configuration?.documentType
 		},
 		idLength: (request: Request, configuration?: Configuration): number | undefined => {
-			const archiveTime = +(request.headers.get("length") ?? NaN)
-			return !Number.isNaN(archiveTime) ? archiveTime : configuration?.idLength
+			const idLength = request.headers.get("id-length")
+			return idLength && isoly.TimeSpan.is(idLength) ? isoly.TimeSpan.toMilliseconds(idLength) : configuration?.idLength
 		},
 		partitions: (request: Request, configuration?: Configuration): string[] | undefined => {
 			return request.headers.get("partitions")?.split("/").slice(0, -1) ?? configuration?.partitions
 		},
 		snooze: (request: Request, configuration?: Configuration): number | undefined => {
-			const archiveTime = +(request.headers.get("seconds-between-archives") ?? NaN)
-			return !Number.isNaN(archiveTime) ? archiveTime : configuration?.snooze
+			const snooze = JSON.parse(request.headers.get("reconciliation-interval") ?? "{}")
+			console.log("snooze: ", JSON.stringify(snooze, null, 2))
+			return snooze && isoly.TimeSpan.is(snooze) ? isoly.TimeSpan.toMilliseconds(snooze) : configuration?.snooze
+		},
+		removeAfter: (request: Request, configuration?: Configuration): number | undefined => {
+			const removeAfter = JSON.parse(request.headers.get("superimpose-for") ?? "{}")
+			return removeAfter && isoly.TimeSpan.is(removeAfter)
+				? isoly.TimeSpan.toMilliseconds(removeAfter)
+				: configuration?.removeAfter
 		},
 	}
 }

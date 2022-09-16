@@ -21,7 +21,10 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		return new Collection(
 			this.archive.partition(partition.join("/")),
 			this.buffer.partition(partition.join("/")),
-			this.configuration,
+			partition.reduce(
+				(r: Configuration.Collection.Complete, e) => ({ ...r, ...(r.partitions?.[e] ?? {}) }),
+				this.configuration
+			),
 			this.partitions + partition.join("/") + "/"
 		)
 	}
@@ -145,18 +148,22 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 	static open<T extends object = any>(
 		archive: Archive<T>,
 		buffer: Buffer<T>,
-		configuration: Required<Configuration.Archive>
+		configuration: Configuration.Collection
 	): Collection<T>
 	static open<T extends object = any>(
 		archive: Archive<T> | undefined,
 		buffer: Buffer<T> | undefined,
-		configuration: Required<Configuration.Archive>
+		configuration: Configuration.Collection
 	): Collection<T> | undefined
 	static open<T extends object = any>(
 		archive: Archive<T> | undefined,
 		buffer: Buffer<T> | undefined,
-		configuration: Required<Configuration.Archive> = Configuration.Archive.standard
+		configuration: Configuration.Collection = Configuration.Collection.standard
 	): Collection<T> | undefined {
-		return archive && buffer && new Collection<T>(archive, buffer, configuration)
+		return (
+			archive &&
+			buffer &&
+			new Collection<T>(archive, buffer, { ...Configuration.Collection.standard, ...configuration })
+		)
 	}
 }

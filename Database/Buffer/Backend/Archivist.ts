@@ -39,7 +39,7 @@ export class Archivist {
 			}
 			promises.push(
 				this.backend.changed.set(
-					`changed/${isoly.DateTime.now()}/${documents[0].id}`,
+					`changed/${this.partitions}${isoly.DateTime.now()}/${documents[0].id}`,
 					changed.replaceAll(this.documentType + "/doc/", "")
 				)
 			)

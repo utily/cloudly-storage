@@ -45,12 +45,12 @@ class DatabaseImplementation<T extends Record<string, any>> {
 					silos[name] ??
 					(silos[name] =
 						c.type == "archive"
-							? DBArchive.open(KeyValueStore.partition(archive, name + "/"), { ...configuration, ...c })
+							? DBArchive.open(KeyValueStore.partition(archive, name + "/"), c)
 							: c.type == "collection"
 							? DBCollection.open(
-									DBArchive.open(KeyValueStore.partition(archive, name + "/"), { ...configuration, ...c }),
-									DBBuffer.open(buffer?.partition(name), { ...configuration, ...c }),
-									{ ...configuration, ...c }
+									DBArchive.open(KeyValueStore.partition(archive, name + "/"), c),
+									DBBuffer.open(buffer?.partition(name), c),
+									c
 							  )
 							: undefined),
 			})
@@ -66,14 +66,7 @@ export namespace Database {
 		buffer?: platform.DurableObjectNamespace
 	): Database<T> | undefined {
 		const kv = KeyValueStore.open(archive, "text")
-		return (
-			kv &&
-			DatabaseImplementation.create<T>(
-				{ ...Configuration.Collection.standard, ...configuration },
-				kv,
-				DONamespace.open(buffer)
-			)
-		)
+		return kv && DatabaseImplementation.create<T>(configuration, kv, DONamespace.open(buffer))
 	}
 	export type Archive<T = any> = DBArchive<T> // no export of functions
 	export type Collection<T = any> = DBCollection<T> // no export of functions
