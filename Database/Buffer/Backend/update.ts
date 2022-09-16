@@ -20,7 +20,7 @@ export async function update(request: http.Request, context: Context): Promise<h
 				storage.updateDocument<Record<string, any> & Document>(amendment, archived)
 			)
 			result = gracely.success.created(document)
-			await context.setAlarm()
+			context.state.waitUntil(context.setAlarm())
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
 		}

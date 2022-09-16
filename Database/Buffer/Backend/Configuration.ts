@@ -35,7 +35,6 @@ export namespace Configuration {
 		},
 		snooze: (request: Request, configuration?: Configuration): number | undefined => {
 			const snooze = JSON.parse(request.headers.get("reconciliation-interval") ?? "{}")
-			console.log("snooze: ", JSON.stringify(snooze, null, 2))
 			return snooze && isoly.TimeSpan.is(snooze) ? isoly.TimeSpan.toMilliseconds(snooze) : configuration?.snooze
 		},
 		removeAfter: (request: Request, configuration?: Configuration): number | undefined => {

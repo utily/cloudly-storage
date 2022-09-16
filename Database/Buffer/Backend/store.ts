@@ -16,11 +16,7 @@ export async function store(request: http.Request, context: Context): Promise<ht
 			result = gracely.success.created(
 				await context.state.blockConcurrencyWhile(() => storage.storeDocuments(document))
 			)
-			console.log(
-				"stored: ",
-				JSON.stringify(Object.fromEntries((await context.state.storage.list()).entries()), null, 2)
-			)
-			await context.setAlarm()
+			context.state.waitUntil(context.setAlarm())
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
 		}

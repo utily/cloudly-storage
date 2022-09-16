@@ -47,7 +47,6 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 	> {
 		const o = ListOptions.get(options)
 		const data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
-		console.log("this.backend.list()", JSON.stringify(await this.backend.list(), null, 2))
 		const result: ListItem<V, M>[] & {
 			cursor?: string
 		} = await Promise.all(

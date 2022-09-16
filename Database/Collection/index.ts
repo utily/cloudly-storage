@@ -60,8 +60,6 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 							  })
 							: []
 				}
-				console.log("bufferList: ", JSON.stringify(bufferList, null, 2))
-				console.log("archiveList: ", JSON.stringify(archiveList, null, 2))
 				result = Object.values(
 					archiveList.reduce<(T & Document)[]>(
 						(r, document) => (document ? { [document.id]: document, ...r } : r),
@@ -79,8 +77,6 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				const archive: ((Document & T) | undefined)[] & {
 					cursor?: string | undefined
 				} = await this.archive.load()
-				console.log("archive: ", JSON.stringify(archive))
-				console.log("buffer: ", JSON.stringify(buffer))
 				const combined: Record<string, Document & T> = archive.reduce(
 					(r, document) => ({ ...(document ? { [document.id]: document } : {}), ...r }),
 					buffer

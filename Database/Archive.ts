@@ -113,11 +113,8 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			cursor?: string | undefined
 		} = []
 		let limit = cursor?.limit ?? Selection.standardLimit
-		console.log("cursor: ", JSON.stringify(cursor, null, 2))
 		const startFrom = isoly.DateTime.is(cursor.range?.start) ? cursor.range?.start : undefined
-		console.log("startFrom", startFrom)
 		const prefixes = Cursor.prefix(cursor)
-		console.log("PREFOXI: ", JSON.stringify(prefixes, null, 2))
 		let newCursor: string | undefined
 		for (const prefix of prefixes) {
 			const changes = await this.backend.changed.list({
@@ -125,28 +122,20 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				limit,
 				cursor: cursor?.cursor,
 			})
-			console.log("changes: ", JSON.stringify(changes, null, 2))
 			const changedValues = startFrom
 				? changes.filter(e => {
-						console.log("keytime: ", Key.getTime(e.key))
-						console.log("startFrom: ", startFrom)
 						return (Key.getTime(e.key) ?? "0") >= startFrom
 				  })
 				: changes
-			console.log("changedValues: ", JSON.stringify(changedValues, null, 2))
 			newCursor = changes.cursor
 			for (const change of changedValues) {
 				const keys = (change?.value ?? "").split("\n")
 				if (keys.length <= limit) {
-					console.log("limit1: ", limit)
 					const loaded = await Promise.all(keys.map(k => this.backend.doc.get(k)))
-					console.log("loaded: ", JSON.stringify(loaded, null, 2))
 					result.push(...loaded.reduce((r: (T & Document)[], e) => (e?.value ? [...r, e.value] : r), []))
 					limit -= keys.length
 				} else {
-					console.log("limit2: ", limit)
 					const start = Key.getTime(change.key)
-					console.log("start: ", start)
 					cursor.range = start ? { start, end: cursor.range?.end ?? isoly.DateTime.now() } : undefined
 					break
 				}

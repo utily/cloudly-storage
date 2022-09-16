@@ -15,8 +15,6 @@ export class Backend {
 	private configuration: Configuration | undefined
 	private isAlarm: boolean
 	private setAlarm = async () => {
-		console.log("this.isAlarm: ", this.isAlarm)
-		console.log("this.configuration?.snooze: ", JSON.stringify(this.configuration, null, 2))
 		!this.isAlarm && this.state.waitUntil(this.state.storage.setAlarm(Date.now() + (this.configuration?.snooze ?? 5)))
 		return (this.isAlarm = true)
 	}
@@ -60,41 +58,11 @@ export class Backend {
 			const stored = await archivist.reconcile(
 				isoly.DateTime.create(now - (configuration?.retention ?? 60), "milliseconds")
 			)
-			console.log("left: ", JSON.stringify(await this.state.storage.list({ prefix: "id/" }), null, 2))
-			console.log("stored: ", JSON.stringify(stored, null, 2))
-			console.log(
-				"changed",
-				JSON.stringify(
-					Object.fromEntries((await this.state.storage.list({ prefix: "changed/", limit: 1 })).entries()),
-					null,
-					2
-				)
-			)
-			console.log(
-				"id",
-				JSON.stringify(
-					Object.fromEntries((await this.state.storage.list({ prefix: "id/", limit: 1 })).entries()),
-					null,
-					2
-				)
-			)
-
-			console.log(
-				"doc",
-				JSON.stringify(
-					Object.fromEntries(
-						(await this.state.storage.list({ prefix: configuration?.documentType + "/doc/", limit: 1 })).entries()
-					),
-					null,
-					2
-				)
-			)
 			if (
 				(stored.length == 0 && (await this.state.storage.list({ prefix: "changed/", limit: 1 })).size) == 0 &&
 				(await this.state.storage.list({ prefix: "id/", limit: 1 })).size == 0 &&
 				(await this.state.storage.list({ prefix: configuration?.documentType + "/doc/", limit: 1 })).size == 0
 			) {
-				console.log("yolo")
 				await this.state.storage.deleteAll()
 				this.isAlarm = false
 			} else {
