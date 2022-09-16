@@ -24,7 +24,11 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 					Object.entries({
 						expirationTtl:
 							options?.expires != undefined
-								? Math.max(60, isoly.DateTime.epoch(options.expires) - isoly.DateTime.epoch(isoly.DateTime.now()))
+								? Math.max(
+										60,
+										isoly.DateTime.epoch(options.expires, "seconds") -
+											isoly.DateTime.epoch(isoly.DateTime.now(), "seconds")
+								  )
 								: undefined, // Expiration did not work.
 						metadata: options?.meta,
 					}).filter(([key, value]) => value)
