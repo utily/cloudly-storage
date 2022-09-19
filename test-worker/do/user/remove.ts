@@ -1,18 +1,21 @@
 import * as gracely from "gracely"
 import * as http from "cloudly-http"
 import { Context } from "../../Context"
-import * as model from "../../model"
 import { router } from "../../router"
 
 export async function remove(request: http.Request, context: Context): Promise<http.Response.Like | any> {
-	let result: model.User | gracely.Error
-	const id = request.parameter.id
+	let result: gracely.Result | gracely.Error
+	const id = request.parameter.id ?? (await request.body)
+	const db = context.archive
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
-	else if (!id || id.length != 1 || id < "a" || id > "f")
+	else if (gracely.Error.is(db))
+		result = db
+	else if ((Array.isArray(id) ? id : [id]).some(e => !e || typeof e != "string" || e.length != 4))
 		result = gracely.client.invalidPathArgument("user/:id", "id", "string", "A valid identifier is required.")
 	else
-		result = gracely.server.unavailable("Not implemented yet.")
+		result = gracely.success.ok(await db.users.remove(id))
 	return result
 }
-router.add("DELETE", "/do/user/:id", remove)
+router.add("DELETE", "/db/archive/user/:id", remove)
+router.add("POST", "/db/archive/user/delete", remove)

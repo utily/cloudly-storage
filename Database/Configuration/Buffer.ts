@@ -9,6 +9,7 @@ export interface Buffer {
 	shards?: ShardCount //number of parallel durable objects.
 	reconciliationInterval?: isoly.TimeSpan //time between syncronizing the buffer and the archive.
 	reconcileAfter?: isoly.TimeSpan //time to keep a document in buffer before archiving.
+	retainChanged?: boolean
 	superimposeFor?: isoly.TimeSpan //time documents should be stored in buffer after its beem archived.
 }
 
@@ -18,6 +19,7 @@ export namespace Buffer {
 		shards: 4,
 		reconciliationInterval: { seconds: 30 },
 		reconcileAfter: { seconds: 60 },
+		retainChanged: false,
 		superimposeFor: { seconds: 60 },
 	}
 	export function getShard(configuration: Buffer): string[]

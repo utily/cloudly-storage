@@ -42,9 +42,9 @@ describe("Archive create, load, list", () => {
 	it("create", async () => {
 		expect(await partition?.items.store(item)).toEqual(item)
 		expect(await partition?.items.store(item2)).toEqual(item2)
-		expect(await partition?.items.store(item3)).toEqual(item3)
-		expect(await partition?.items.store(item4)).toEqual(item4)
+		expect(await partition?.items.store([item3, item4])).toEqual([item3, item4])
 		expect(await partition?.items.store(item5)).toEqual(item5)
+		expect(await partition?.items.store(item4)).toEqual(undefined)
 	})
 	it("create again", async () => {
 		expect(await partition?.items.store(item)).toEqual(undefined)

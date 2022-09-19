@@ -9,7 +9,7 @@ export async function append(request: http.Request, context: Context): Promise<h
 	const user = await request.body
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
-	else if (!(typeof user.id == "string") || !(user.id.length == 4))
+	else if ((!Array.isArray(user) && !user.id) || (Array.isArray(user) && user.some(u => !u.id)))
 		result = gracely.client.invalidContent("user", "To append please provide a valid user.")
 	else if (gracely.Error.is(database))
 		result = database

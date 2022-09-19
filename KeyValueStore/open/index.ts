@@ -15,7 +15,7 @@ export function open<V extends ReadableStream = ReadableStream, M = any>(
 	namespace: string | platform.KVNamespace | undefined,
 	type: "stream"
 ): Interface<V, M>
-export function open<V extends string | ArrayBuffer | ReadableStream = string, M = any>(
+export function open<V extends string | ArrayBuffer | ReadableStream = string, M extends object = any>(
 	namespace?: string | platform.KVNamespace,
 	type: "text" | "arrayBuffer" | "stream" = "text"
 ): Interface<V, M> {
