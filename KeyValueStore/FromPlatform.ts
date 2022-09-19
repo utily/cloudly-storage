@@ -12,28 +12,23 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 		private readonly type: "text" | "arrayBuffer" | "stream"
 	) {}
 	async set(key: string, value?: undefined): Promise<void>
-	async set(key: string, value: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void>
-	async set(key: string, value?: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void> {
+	async set(key: string, value: V, options?: { retention?: isoly.TimeSpan; meta?: M }): Promise<void>
+	async set(key: string, value?: V, options?: { retention?: isoly.TimeSpan; meta?: M }): Promise<void> {
 		if (value == undefined)
 			await this.backend.delete(key)
-		else
+		else {
 			await this.backend.put(
 				key,
 				value,
 				Object.fromEntries(
 					Object.entries({
 						expirationTtl:
-							options?.expires != undefined
-								? Math.max(
-										60,
-										isoly.DateTime.epoch(options.expires, "seconds") -
-											isoly.DateTime.epoch(isoly.DateTime.now(), "seconds")
-								  )
-								: undefined, // Expiration did not work.
+							options?.retention != undefined ? Math.max(60, isoly.TimeSpan.toSeconds(options?.retention)) : undefined,
 						metadata: options?.meta,
 					}).filter(([key, value]) => value)
 				)
 			)
+		}
 	}
 	async get(key: string): Promise<{ value: V; meta?: M } | undefined> {
 		const data = await this.backend.getWithMetadata(key, { type: this.type as any })

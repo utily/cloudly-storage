@@ -142,46 +142,97 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	store(document: T & Partial<Document>): Promise<(T & Document) | undefined>
 	store(documents: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
 	async store(
-		documents: (T & Partial<Document>) | (T & Partial<Document>)[],
-		expires?: any
+		documents: (T & Partial<Document>) | (T & Partial<Document>)[]
 	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
-		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
-		if (!Array.isArray(documents)) {
+		let result: (T & Document) | undefined | (T & Document)[] = Array.isArray(documents) ? [] : undefined
+		for (let document of Array.isArray(documents) ? documents : [documents]) {
 			if (!this.configuration.retainChanged)
-				documents = { ...documents, changed: isoly.DateTime.now() }
-			const document =
-				!Document.is(documents) || (await this.getKey(documents.id)) != this.generateKey(documents)
-					? { ...documents, ...(await this.allocateId(documents)) }
-					: undefined
-			result = document && (await this.set(document))
-		} else
-			result = await Promise.all(documents.map(e => this.store(e)))
-		return result
+				document = { ...document, changed: isoly.DateTime.now() }
+			if (!Document.is(document) || (await this.getKey(document.id)) != this.generateKey(document)) {
+				const toBeStored = { ...document, ...(await this.allocateId(document)) } as T & Document
+				Array.isArray(result) ? result.push(toBeStored) : (result = toBeStored)
+			}
+		}
+		return result && (await this.set(result))
 	}
 
 	async update(amendment: Partial<T & Document>): Promise<(T & Document) | undefined>
 	async update(amendment: T & Document): Promise<(T & Document) | undefined>
-	async update(amendment: Partial<T & Document>): Promise<(T & Document) | undefined> {
-		const archived = await (amendment.id ? this.load(amendment.id) : undefined)
-		const updated = archived && Document.update(archived, { ...amendment, created: archived.created })
+	async update(amendments: Partial<T & Document>[]): Promise<((T & Document) | undefined)[]>
+	async update(
+		amendments: Partial<T & Document> | Partial<T & Document>[]
+	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
+		let updated: ((T & Document) | undefined) | (T & Document)[] = []
+		if (Array.isArray(amendments)) {
+			for (const amendment of amendments) {
+				const archived = await (amendment.id ? this.load(amendment.id) : undefined)
+				const document =
+					archived && Document.update<Document & T>(archived, { ...amendment, created: archived.created })
+				document && updated.push(document)
+			}
+		} else {
+			const archived = await (amendments.id ? this.load(amendments.id) : undefined)
+			updated = archived && Document.update(archived, { ...amendments, created: archived.created })
+		}
 		return updated && (await this.set(updated))
 	}
-
-	async append(amendment: Partial<T & Document>): Promise<(T & Document) | undefined> {
-		const archived = await (amendment.id ? this.load(amendment.id) : undefined)
-		const appended = archived && Document.append(archived, { ...amendment, created: archived.created })
-		return appended && (await this.set(appended))
+	async append(amendment: Partial<T & Document>): Promise<(T & Document) | undefined>
+	async append(amendment: T & Document): Promise<(T & Document) | undefined>
+	async append(amendments: Partial<T & Document>[]): Promise<((T & Document) | undefined)[]>
+	async append(
+		amendments: Partial<T & Document> | Partial<T & Document>[]
+	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
+		let updated: ((T & Document) | undefined) | (T & Document)[] = []
+		if (Array.isArray(amendments)) {
+			for (const amendment of amendments) {
+				const archived = await (amendment.id ? this.load(amendment.id) : undefined)
+				const document =
+					archived && Document.append<Document & T>(archived, { ...amendment, created: archived.created })
+				document && updated.push(document)
+			}
+		} else {
+			const archived = await (amendments.id ? this.load(amendments.id) : undefined)
+			updated = archived && Document.append(archived, { ...amendments, created: archived.created })
+		}
+		return updated && (await this.set(updated))
 	}
-	private async set(document: T & Partial<Document>): Promise<(T & Document) | undefined> {
-		let result: (T & Document) | undefined = undefined
-		if (Document.is(document, this.configuration.idLength)) {
-			const key = this.generateKey(document)
-			await this.backend.doc.set(key, (result = document))
+	private async set(document: T & Document): Promise<(T & Document) | undefined>
+	private async set(documents: (T & Document)[]): Promise<((T & Document) | undefined)[]>
+	private async set(
+		documents: (T & Document) | (T & Document)[]
+	): Promise<((T & Document) | undefined) | ((T & Document) | undefined)[]>
+	private async set(
+		documents: (T & Document) | (T & Document)[]
+	): Promise<((T & Document) | undefined) | ((T & Document) | undefined)[]> {
+		let result: (T & Document) | undefined | ((T & Document) | undefined)[] = undefined
+		if (Document.is(documents, this.configuration.idLength)) {
+			const key = this.generateKey(documents)
+			await this.backend.doc.set(key, (result = documents))
 			const changedKey =
-				this.partitions + isoly.DateTime.truncate(isoly.DateTime.truncate(document.changed, "minutes"), "milliseconds")
+				this.partitions + isoly.DateTime.truncate(isoly.DateTime.truncate(documents.changed, "minutes"), "milliseconds")
 			const changed = await this.backend.changed.get(changedKey)
 			!changed?.value?.includes(key) &&
 				(await this.backend.changed.set(changedKey, changed ? changed.value + "\n" + key : key))
+		} else if (Array.isArray(documents) && !documents.some(e => !Document.is(e, this.configuration.idLength))) {
+			const changes: Record<string, string[]> = {}
+			await Promise.all(
+				documents.map(d => {
+					const key = this.generateKey(d)
+					const changedKey =
+						this.partitions + isoly.DateTime.truncate(isoly.DateTime.truncate(d.changed, "minutes"), "milliseconds")
+					changes[changedKey] ? changes[changedKey].push(key) : (changes[changedKey] = [key])
+					return this.backend.doc.set(key, d)
+				})
+			)
+			await Promise.all(
+				Object.entries(changes).map(async ([changedKey, documents]) => {
+					const changed = await this.backend.changed.get(changedKey)
+					const value =
+						(changed ? changed.value + "\n" : "") + documents.filter(d => !changed?.value.includes(d)).join("\n")
+					await this.backend.changed.set(changedKey, value)
+				})
+			)
+			result = documents
 		}
 		return result
 	}
@@ -192,8 +243,10 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		let result: boolean | boolean[]
 		if (typeof ids == "string") {
 			const key = await this.getKey(ids)
-			if ((result = !!key))
-				await this.backend.doc.set(key)
+			if ((result = !!key)) {
+				await this.backend.doc.set(key, undefined)
+				await this.backend.id.set(ids, undefined)
+			}
 		} else
 			result = await Promise.all(ids.map(id => this.remove(id)))
 		return result
@@ -223,21 +276,31 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		backend: KeyValueStore<string, any> | undefined,
 		configuration: Configuration.Archive = Configuration.Archive.standard
 	): Archive<T> | undefined {
-		const expires = isoly.DateTime.create(
-			isoly.TimeSpan.toSeconds({ ...Configuration.Archive.standard, ...configuration }.retention)
-		)
+		const completeConfiguration: Configuration.Archive.Complete = {
+			...Configuration.Archive.standard,
+			...configuration,
+		}
 		return (
 			backend &&
 			new Archive<T>(
 				{
 					doc: KeyValueStore.partition(
-						KeyValueStore.InMeta.create<T, Document>(Document.split, KeyValueStore.Json.create(backend), expires),
-						"doc/"
-					), // retention expires
-					id: KeyValueStore.partition(KeyValueStore.OnlyMeta.create<string>(backend), "id/"), // retention expires
-					changed: KeyValueStore.partition(KeyValueStore.Json.create<string>(backend), "changed/"), // retention expires
+						KeyValueStore.InMeta.create<T, Document>(Document.split, KeyValueStore.Json.create(backend)),
+						"doc/",
+						completeConfiguration.retention
+					),
+					id: KeyValueStore.partition(
+						KeyValueStore.OnlyMeta.create<string>(backend),
+						"id/",
+						completeConfiguration.retention
+					),
+					changed: KeyValueStore.partition(
+						KeyValueStore.Json.create<string>(backend),
+						"changed/",
+						completeConfiguration.retention
+					),
 				},
-				{ ...Configuration.Archive.standard, ...configuration }
+				completeConfiguration
 			)
 		)
 	}

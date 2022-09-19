@@ -96,10 +96,10 @@ export class Buffer<T = any> {
 							this.configuration,
 							document.map(d => d.id)
 						)
-					).map(([key, value]) =>
-						this.backend.open(this.partitions + key).post<(T & Document)[]>(
+					).map(([shard, ids]) =>
+						this.backend.open(this.partitions + shard).post<(T & Document)[]>(
 							`/buffer`,
-							document.reduce((r, d) => (value.includes(d.id) ? { [this.generateKey(d)]: d, ...r } : r), {}),
+							document.reduce((r, d) => (ids.includes(d.id) ? { [this.generateKey(d)]: d, ...r } : r), {}),
 							this.header
 						)
 					)
@@ -111,21 +111,107 @@ export class Buffer<T = any> {
 	async update(
 		amendment: Partial<T & Document> & { id: Document["id"] },
 		archived?: T & Document
-	): Promise<(T & Document) | undefined> {
-		const updated = await this.backend
-			.open(this.partitions + Configuration.Buffer.getShard(this.configuration, amendment.id))
-			.put<T & Document>(`/buffer/document`, { amendment, archived }, this.header)
-		return gracely.Error.is(updated) ? undefined : updated
+	): Promise<(T & Document) | undefined>
+	async update(
+		amendments: (Partial<T & Document> & { id: Document["id"] })[],
+		archived?: Record<string, T & Document>
+	): Promise<((T & Document) | undefined)[]>
+	async update(
+		amendments: (Partial<T & Document> & { id: Document["id"] }) | (Partial<T & Document> & { id: Document["id"] })[],
+		archived?: (T & Document) | Record<string, T & Document>
+	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
+		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
+		if (Array.isArray(amendments))
+			result = await this.change(amendments, archived, "update")
+		else {
+			const updated = await this.backend
+				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, amendments.id))
+				.put<T & Document>(
+					`/buffer/document`,
+					{
+						amendment: {
+							...amendments,
+							changed: this.configuration.retainChanged ? isoly.DateTime.now() : amendments.changed,
+						},
+						archived,
+					},
+					this.header
+				)
+			result = gracely.Error.is(updated) ? undefined : updated
+		}
+		return result
 	}
 	async append(
 		amendment: Partial<T & Document> & { id: Document["id"] },
 		archived?: T & Document
-	): Promise<(T & Document) | undefined> {
-		const updated = await this.backend
-			.open(this.partitions + Configuration.Buffer.getShard(this.configuration, amendment.id))
-			.patch<T & Document>(`/buffer/document`, { amendment, archived }, this.header)
-		return gracely.Error.is(updated) ? undefined : updated
+	): Promise<(T & Document) | undefined>
+	async append(
+		amendments: (Partial<T & Document> & { id: Document["id"] })[],
+		archived?: Record<string, T & Document>
+	): Promise<((T & Document) | undefined)[]>
+	async append(
+		amendments: (Partial<T & Document> & { id: Document["id"] }) | (Partial<T & Document> & { id: Document["id"] })[],
+		archived?: (T & Document) | Record<string, T & Document>
+	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
+		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
+		if (Array.isArray(amendments))
+			result = await this.change(amendments, archived, "append")
+		else {
+			const updated = await this.backend
+				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, amendments.id))
+				.patch<T & Document>(
+					`/buffer/document`,
+					{
+						amendment: {
+							...amendments,
+							changed: this.configuration.retainChanged ? isoly.DateTime.now() : amendments.changed,
+						},
+						archived,
+					},
+					this.header
+				)
+			result = gracely.Error.is(updated) ? undefined : updated
+		}
+		return result
 	}
+	private async change(
+		amendments: (Partial<T & Document> & { id: Document["id"] })[],
+		archived: (T & Document) | Record<string, T & Document> | undefined,
+		type: "update" | "append"
+	): Promise<(T & Document) | ((T & Document) | undefined)[] | undefined> {
+		return (
+			await Promise.all(
+				Object.entries(
+					Configuration.Buffer.getShard(
+						this.configuration,
+						amendments.map(d => d.id)
+					)
+				).map(([shard, keys]) =>
+					this.backend.open(this.partitions + shard)[type == "update" ? "put" : "patch"]<(T & Document)[]>(
+						`/buffer/documents`,
+						amendments.reduce(
+							(r, d) =>
+								keys.includes(d.id)
+									? {
+											...r,
+											[d.id]: {
+												amendment: {
+													...d,
+													changed: this.configuration.retainChanged ? isoly.DateTime.now() : d.changed,
+												},
+												archived: archived?.[d.id as keyof typeof archived],
+											},
+									  }
+									: r,
+							{}
+						),
+						this.header
+					)
+				)
+			)
+		).reduce((r: any[], e) => (gracely.Error.is(e) ? r : [...e, ...r]), [])
+	}
+
 	remove(id: string): Promise<boolean>
 	remove(ids: string[]): Promise<boolean[]>
 	remove(ids: string | string[]): Promise<boolean | boolean[]>

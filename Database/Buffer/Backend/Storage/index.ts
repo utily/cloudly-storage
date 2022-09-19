@@ -68,14 +68,34 @@ export class Storage {
 		const response = key && updated ? await this.storeDocuments({ [key]: updated }) : undefined
 		return response ? updated : undefined
 	}
+	async changeDocuments<T extends Document>(
+		amendments: Record<
+			string,
+			{
+				amendment: T & Partial<Document> & Pick<Document, "id">
+				archived?: T & Document
+			}
+		>,
+		type: "update" | "append"
+	): Promise<((T & Document) | undefined)[]> {
+		let toBeStored: Record<string, T & Document> = {}
+		for (const [id, { amendment, archived }] of Object.entries(amendments)) {
+			const key = await this.storage.get<string>("id/" + id)
+			const old = key ? await this.storage.get<T>(key) : undefined
+			const temp: (T & Document) | undefined = old ?? archived
+			const updated = temp && Document[type]<T & Document>(temp, amendment)
+			toBeStored = key && updated ? { ...toBeStored, [key]: updated } : toBeStored
+		}
+		return Object.values(await this.storeDocuments(toBeStored))
+	}
 	async appendDocument<T extends Document>(
-		append: T & Partial<Document> & Pick<Document, "id">,
+		amendment: T & Partial<Document> & Pick<Document, "id">,
 		archived?: T & Document
 	): Promise<(T & Document) | undefined> {
-		const key = await this.storage.get<string>("id/" + append.id)
+		const key = await this.storage.get<string>("id/" + amendment.id)
 		const old = key ? await this.storage.get<T>(key) : undefined
 		const temp: (T & Document) | undefined = old ?? archived
-		const updated = temp && Document.append<T & Document>(temp, append)
+		const updated = temp && Document.append<T & Document>(temp, amendment)
 		const response = key && updated ? await this.storeDocuments({ [key]: updated }) : undefined
 		return response ? updated : undefined
 	}

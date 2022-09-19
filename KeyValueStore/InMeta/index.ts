@@ -7,21 +7,24 @@ import { ListOptions } from "../ListOptions"
 export namespace InMeta {
 	export function create<V extends object, M extends object>(
 		split: (value: V & M) => [M, V],
-		backend: KeyValueStore<V, M> = Json.create<V, M>(),
-		expires?: isoly.DateTime
+		backend: KeyValueStore<V, M> = Json.create<V, M>()
 	): KeyValueStore<V & M, undefined> {
 		return {
 			set: async (
 				key: string,
 				value?: V & M,
-				options?: { expires?: isoly.DateTime; meta?: undefined }
+				options?: { retention?: isoly.TimeSpan; meta?: undefined }
 			): Promise<void> => {
 				const splitted = value && split(value)
 				await (splitted == undefined
 					? backend.set(key)
-					: backend.set(key, splitted[1], { expires, ...options, meta: splitted[0] }))
+					: backend.set(key, splitted[1], {
+							...options,
+							meta: splitted[0],
+							retention: options?.retention,
+					  }))
 			},
-			get: async (key: string): Promise<{ value: V & M; expires?: isoly.DateTime } | undefined> => {
+			get: async (key: string): Promise<{ value: V & M; retention?: isoly.TimeSpan } | undefined> => {
 				const response = await backend.get(key)
 				return (
 					response &&
