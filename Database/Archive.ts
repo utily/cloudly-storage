@@ -50,7 +50,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	}
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
-	load(selection?: Selection): Promise<(Document & T)[] & { locus?: string }> // TODO: Test
+	load(selection?: Selection): Promise<(Document & T)[] & { locus?: string }>
 	async load(
 		selection: Identifier | Identifier[] | Selection
 	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { locus?: string })> {
@@ -65,7 +65,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		return result
 	}
 	private async list(selection: Selection): Promise<(Document & T)[] & { locus?: string }> {
-		// TODO: test
 		const query: Selection.Query | undefined = Selection.get(selection)
 		const prefixes: string[] = Selection.Query.extractPrefix(query)
 		const responseList: KeyValueStore.ListItem<T & Document, undefined>[] &
@@ -136,7 +135,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		return result
 	}
 	remove(id: string): Promise<boolean>
-	remove(ids: string[]): Promise<boolean[]> // TODO: test
+	remove(ids: string[]): Promise<boolean[]>
 	remove(ids: string | string[]): Promise<boolean | boolean[]>
 	async remove(ids: string | string[]): Promise<boolean | boolean[]> {
 		let result: boolean | boolean[]
