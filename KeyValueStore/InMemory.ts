@@ -37,9 +37,9 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 	> {
 		const o = ListOptions.get(options)
 		const now = isoly.DateTime.now()
-		const partition = Object.entries(this.data).filter(
-			([key, user]) => user && (!o.prefix || key.startsWith(o.prefix)) && (!user.expires || user.expires >= now)
-		) as unknown as [string, user<V, string>][]
+		const partition = Object.entries(this.data).filter(([key, user]) => {
+			return user && (!o.prefix || key.startsWith(o.prefix)) && (!user.expires || user.expires >= now)
+		}) as unknown as [string, user<V, string>][]
 		const start =
 			partition.findIndex(([key, value]) => {
 				return key == o.cursor

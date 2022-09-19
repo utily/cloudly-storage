@@ -18,16 +18,16 @@ describe("Archive create, load, list", () => {
 	const partition = database?.partition("axb001")
 	const emptyPartition = database?.partition("axb010")
 	const item = { id: "abc1", created: "2022-07-30T00:17:00.000Z", changed: "2022-07-30T00:22:00.000Z", value: 42 }
-	const item2 = { ...item, id: "abd2", created: "2022-07-30T00:17:00.000Z", changed: "2022-07-30T00:22:00.000Z" }
-	const item3 = { ...item, id: "abd3", created: "2022-07-30T00:17:00.000Z", changed: "2022-07-30T00:23:00.000Z" }
-	const item4 = { ...item, id: "abd4", created: "2022-07-30T00:17:00.000Z", changed: "2022-07-30T00:23:00.000Z" }
+	const item2 = { ...item, id: "abd2", changed: "2022-07-30T00:22:00.000Z" }
+	const item3 = { ...item, id: "abd3", changed: "2022-07-30T00:24:00.000Z" }
+	const item4 = { ...item, id: "abd4", changed: "2022-07-30T00:25:00.000Z" }
 	const item5 = {
 		level: 0,
 		id: "qqaa",
 		groups: [],
 		name: "Jamess",
 		created: "2022-08-15T15:50:03.649Z",
-		changed: "2022-07-30T00:22:45.450Z",
+		changed: "2022-07-30T00:27:45.450Z",
 		address: {
 			street: "Torsgatan",
 			zip: 7777,
@@ -37,10 +37,14 @@ describe("Archive create, load, list", () => {
 			},
 		},
 	}
+	const selection = { created: { start: "2022-07-30", end: "2022-08-01" }, limit: 2 }
 
 	it("create", async () => {
 		expect(await partition?.items.store(item)).toEqual(item)
-		expect(await partition?.items.store([item2, item3])).toEqual([item2, item3])
+		expect(await partition?.items.store(item2)).toEqual(item2)
+		expect(await partition?.items.store(item3)).toEqual(item3)
+		expect(await partition?.items.store(item4)).toEqual(item4)
+		expect(await partition?.items.store(item5)).toEqual(item5)
 	})
 	it("create again", async () => {
 		expect(await partition?.items.store(item)).toEqual(undefined)
@@ -49,33 +53,35 @@ describe("Archive create, load, list", () => {
 		expect(await emptyPartition?.items.load("abcd")).toEqual(undefined)
 	})
 	it("load by id from partition", async () => {
-		expect(await partition?.items.load("abcd")).toEqual(item)
+		expect(await partition?.items.load("abc1")).toEqual(item)
 	})
 	it("load by id from database", async () => {
-		expect(await database?.items.load("abcd")).toEqual(item)
+		expect(await database?.items.load("abc1")).toEqual(item)
 	})
 	it("load list of ids", async () => {
 		expect(await partition?.items.load([item.id, item2.id])).toEqual([item, item2])
 	})
 	it("list", async () => {
-		expect(await partition?.items.load()).toEqual([item, item2, item3])
+		expect(await partition?.items.load()).toEqual([item, item2, item3, item4, item5])
 	})
 	it("list with limit and prefix", async () => {
-		const selection = { created: { start: "2022-07-30", end: "2022-08-01" }, limit: 1 }
 		const listed = await partition?.items.load(selection)
-		expect(listed?.flat()).toEqual([item])
+		expect(listed?.flat()).toEqual([item, item2])
 		expect(listed?.cursor).toEqual(
-			"eyJjcmVhdGVkIjp7InN0YXJ0IjoiMjAyMi0wNy0zMCIsImVuZCI6IjIwMjItMDgtMDEifSwibGltaXQiOjEsImN1cnNvciI6Iml0ZW1zL2RvYy9heGIwMDEvMjAyMi0wNy0zMFQwMDoxNzo1NS43MzBaL2FiY2QifQ"
+			"eyJsaW1pdCI6MiwicmFuZ2UiOnsic3RhcnQiOiIyMDIyLTA3LTMwIiwiZW5kIjoiMjAyMi0wOC0wMSJ9LCJ0eXBlIjoiZG9jIiwiY3Vyc29yIjoiaXRlbXMvZG9jL2F4YjAwMS8yMDIyLTA3LTMwVDAwOjE3OjAwLjAwMFovYWJkMiJ9"
 		)
-		const listedLocus = await partition?.items.load({ locus: listed?.cursor })
-		expect(listedLocus).toEqual([item2])
+		const listedLocus = listed?.cursor ? await partition?.items.load({ cursor: listed?.cursor }) : undefined
+		expect(listedLocus?.flat()).toEqual([item3, item4])
 		expect(listedLocus?.cursor).toEqual(undefined)
 	})
 	it("list using changed query", async () => {
-		const listed = await partition?.items.load({ changed: selection.created, limit: 2 })
-		expect(listed?.flat()).toEqual([item, item2])
+		const listed = await partition?.items.load({ changed: selection.created, limit: 3 })
+		expect(listed?.flat()).toEqual([item, item2, item3])
+		expect(listed?.cursor).toEqual(
+			"eyJsaW1pdCI6MywicmFuZ2UiOnsic3RhcnQiOiIyMDIyLTA3LTMwVDAwOjI1OjAwLjAwMFoiLCJlbmQiOiIyMDIyLTA4LTAxIn0sInR5cGUiOiJjaGFuZ2VkIn0"
+		)
 		const listedFromCursor = listed?.cursor ? await partition?.items.load({ cursor: listed?.cursor }) : undefined
-		expect(listedFromCursor?.flat()).toEqual([item3, item4])
+		expect(listedFromCursor).toEqual([item4])
 	})
 	it("update, append, loadAll", async () => {
 		const firstAmendment = {
@@ -113,7 +119,7 @@ describe("Archive create, load, list", () => {
 		const item5Updated = {
 			...item5,
 			...firstAmendment,
-			created: item3.created,
+			created: item5.created,
 			groups: [...item5.groups, ...firstAmendment.groups],
 		}
 		const item5Appended = {
@@ -124,11 +130,11 @@ describe("Archive create, load, list", () => {
 		}
 		expect(await partition?.items.update(firstAmendment)).toEqual(item5Updated)
 		expect(await partition?.items.append(secondAmendment)).toEqual(item5Appended)
-		expect(await partition?.items.load()).toEqual([item, item2, item5Appended])
+		expect(await partition?.items.load()).toEqual([item, item2, item3, item4, item5Appended])
 	})
 	it("remove", async () => {
 		expect(await partition?.items.remove(item.id)).toEqual(true)
-		expect(await partition?.items.remove([item2.id, item3.id])).toEqual([true, true])
-		expect(await partition?.items.load()).toEqual([])
+		expect(await partition?.items.remove([item2.id, item3.id, item5.id])).toEqual([true, true, true])
+		expect(await partition?.items.load()).toEqual([item4])
 	})
 })

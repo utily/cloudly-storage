@@ -16,7 +16,7 @@ export class Context {
 	}
 	#storage?: Storage
 	get storage() {
-		return this.#storage ?? (this.#storage = Storage.open(this.environment.state, this.environment.changedPrecision))
+		return this.#storage ?? (this.#storage = Storage.open(this.environment.state))
 	}
 	constructor(public readonly environment: Environment) {}
 	static async handle(request: Request, environment: Environment): Promise<Response> {

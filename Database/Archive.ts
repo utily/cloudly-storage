@@ -53,7 +53,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	}
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
-	load(selection?: Selection): Promise<(Document & T)[] & { locus?: string }>
+	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
 	async load(
 		selection?: Identifier | Identifier[] | Selection
 	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })> {
@@ -230,7 +230,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		backend: KeyValueStore<string, any> | undefined,
 		configuration: Configuration.Archive = Configuration.Archive.standard
 	): Archive<T> | undefined {
-		const cpmfog: Configuration.Archive.Complete = { ...Configuration.Archive.standard, ...configuration }
 		return (
 			backend &&
 			new Archive<T>(
@@ -242,7 +241,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 					id: KeyValueStore.partition(KeyValueStore.OnlyMeta.create<string>(backend), "id/"), // retention expires
 					changed: KeyValueStore.partition(KeyValueStore.Json.create<string>(backend), "changed/"), // retention expires
 				},
-				cpmfog
+				{ ...Configuration.Archive.standard, ...configuration }
 			)
 		)
 	}
