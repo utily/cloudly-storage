@@ -132,6 +132,7 @@ export class Buffer<T = any> {
 						amendment: {
 							...amendments,
 							changed: this.configuration.retainChanged ? isoly.DateTime.now() : amendments.changed,
+							applyTo: amendments.changed,
 						},
 						archived,
 					},
@@ -165,6 +166,7 @@ export class Buffer<T = any> {
 						amendment: {
 							...amendments,
 							changed: this.configuration.retainChanged ? isoly.DateTime.now() : amendments.changed,
+							applyTo: amendments.changed,
 						},
 						archived,
 					},
@@ -198,6 +200,7 @@ export class Buffer<T = any> {
 												amendment: {
 													...d,
 													changed: this.configuration.retainChanged ? isoly.DateTime.now() : d.changed,
+													applyTo: d.changed,
 												},
 												archived: archived?.[d.id as keyof typeof archived],
 											},
