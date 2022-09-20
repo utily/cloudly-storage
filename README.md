@@ -65,7 +65,7 @@ export abstract class Storage {
 	}
 }
 ```
-Here I use the dependency `gracely` to generate errors. Note that the `Storage.environment.archive` & `Storage.environment.BufferBackend` needs to correspond to the bindings defined in wrangler.toml. The initialize function needs to be called with the environment by the worker before utilizing the database.
+Here I use the dependency `gracely` to generate errors. Note that the `Storage.environment.archive` & `Storage.environment.BufferBackend` needs to correspond to the bindings defined in wrangler.toml. The initialize function needs to be called with the environment by the worker before utilizing the database. The types for the configuration can be found in the [configuraion folder](https://github.com/utily/cloudly-storage/tree/rework-changed-index/Database/Configuration).
 
 Now the database can be used by the worker as follows:
 ```ts
@@ -117,7 +117,7 @@ The partition function can be used to create partitions, theoretically infinitel
 ```ts
 partition(...partition: Identifier[]): S 
 ```
-## indices
+## Indicies
 There exists 3 types of keys in the Database, `id`, `changed` and `doc`; each adds functionality to the database.
 The definitions below are based on how they look in the `Archive`; the buffer uses a small variation of these keys where the type of the document as well as the slash following the type is omitted.
 

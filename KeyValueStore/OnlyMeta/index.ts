@@ -22,9 +22,9 @@ export namespace OnlyMeta {
 			list: async (options?: string | ListOptions): Promise<ListItem<V, undefined>[] & { cursor?: string }> => {
 				const response = await backend.list(options)
 				const result: ListItem<V, undefined>[] & { cursor?: string } = await Promise.all(
-					response.map(async user => ({
-						...(({ meta: discard, ...r }) => r)(user),
-						value: { ...user.meta } as V,
+					response.map(async item => ({
+						...(({ meta: discard, ...r }) => r)(item),
+						value: typeof item.meta == "string" || Array.isArray(item.meta) ? item.meta : ({ ...item.meta } as V),
 					}))
 				)
 				if (response.cursor)

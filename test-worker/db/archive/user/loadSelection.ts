@@ -9,8 +9,8 @@ export async function load(request: http.Request, context: Context): Promise<htt
 	let result: (gracely.Result & { header: Record<string, string | undefined> }) | gracely.Error
 	const authorization = request.header.authorization
 	const database = context.archive
-	const locus: { locus: string } | undefined =
-		typeof request.header.locus == "string" ? { locus: request.header.locus } : undefined
+	const cursor: { cursor: string } | undefined =
+		typeof request.header.cursor == "string" ? { cursor: request.header.cursor } : undefined
 	const start = request.search.start
 	const end = request.search.end
 	const limit = request.search.limit ? +request.search.limit : undefined
@@ -30,19 +30,16 @@ export async function load(request: http.Request, context: Context): Promise<htt
 		)
 	else if (limit && Number.isNaN(limit))
 		result = gracely.client.invalidQueryArgument("limit", "number", "limit needs to be a number if defined.")
-	else if (locus && !cryptly.Identifier.is(locus.locus))
-		result = gracely.client.malformedHeader("locus", "If defined locus must be a cryptly.Identifier.")
+	else if (cursor && !cryptly.Identifier.is(cursor.cursor))
+		result = gracely.client.malformedHeader("cursor", "If defined cursor must be a cryptly.Identifier.")
 	else if (gracely.Error.is(database))
 		result = database
 	else {
-		console.log("This is the endpoint I am using")
-		console.log("locus is", locus)
-
 		const listed = await database.users.load(
-			locus ? locus : start && end ? { created: { start, end }, limit } : { limit }
+			cursor ? cursor : start && end ? { created: { start, end }, limit } : { limit }
 		)
 		const response = gracely.success.ok(listed) ?? gracely.server.databaseFailure()
-		result = { ...response, header: { ...response.header, locus: listed.locus } }
+		result = { ...response, header: { ...response.header, cursor: listed.cursor } }
 	}
 	return result
 }

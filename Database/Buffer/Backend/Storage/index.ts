@@ -1,4 +1,3 @@
-import * as isoly from "isoly"
 import * as platform from "../../../../platform"
 import { Document } from "../../../Document"
 import { Portion } from "./Portion"
@@ -9,9 +8,13 @@ export class Storage {
 		public readonly changedPrecision: "seconds" | "minutes" | "hours"
 	) {}
 
+	private changedKey(document: Record<string, any>): string {
+		return "changed/" + document.changed + "/" + document.id
+	}
+
 	async load<T>(): Promise<T | undefined>
 	async load<T>(id: string): Promise<T | undefined>
-	async load<T>(id: string[]): Promise<T[] | undefined>
+	async load<T>(id: string[]): Promise<T[]>
 	async load<T>(prefix: { prefix?: string[]; limit?: number }): Promise<T[] | undefined>
 	async load<T>(id?: string | string[] | { prefix?: string[]; limit?: number }): Promise<T | T[] | undefined>
 	async load<T>(id?: string | string[] | { prefix?: string[]; limit?: number }): Promise<T | T[] | undefined> {
@@ -24,8 +27,8 @@ export class Storage {
 		else if (typeof id == "object" || !id) {
 			result = (
 				await Promise.all(
-					(id && Array.isArray(id.prefix) ? id.prefix : [""])?.map(p =>
-						this.storage.list<T>({ prefix: "doc/" + p, limit: id?.limit }).then(r => Array.from(r.values()))
+					(id && Array.isArray(id.prefix) ? id.prefix : [undefined])?.map(p =>
+						this.storage.list<T>({ prefix: p, limit: id?.limit }).then(r => Array.from(r.values()))
 					)
 				)
 			).flat()
@@ -35,20 +38,20 @@ export class Storage {
 	async storeDocuments<T extends { id: string } & Record<string, any>>(
 		documents: Record<string, T>
 	): Promise<Record<string, any>> {
-		const suggestedIdIndices: Record<string, string> = Object.entries(documents).reduce(
-			(r, [key, document]) => ({ ...r, ["id/" + document.id]: key }),
-			{}
+		const oldIdIndices = Object.fromEntries(
+			(await this.portion.get<string>(Object.values(documents).map(document => "id/" + document.id))).entries()
 		)
-		const oldIdIndices = Object.fromEntries((await this.portion.get<string>(Object.keys(suggestedIdIndices))).entries())
-		const newDocuments = Object.entries(documents).reduce(
-			(r: Record<string, T>, [key, document]) => ({ ...r, [oldIdIndices["id/" + document.id] ?? key]: document }),
-			{}
+		const { newDocuments, idIndices } = Object.entries(documents).reduce(
+			(r: { newDocuments: Record<string, T>; idIndices: Record<string, string> }, [key, document]) => ({
+				newDocuments: { ...r.newDocuments, [oldIdIndices["id/" + document.id] ?? key]: document },
+				idIndices: { ...r.idIndices, ["id/" + document.id]: key },
+			}),
+			{ newDocuments: {}, idIndices: {} }
 		)
 		const changedIndex = await this.updateChangedIndex(newDocuments)
 		await this.portion.put({
 			...newDocuments,
-			...suggestedIdIndices,
-			...oldIdIndices,
+			...idIndices,
 			...changedIndex,
 		})
 		const result = Object.values(documents)
@@ -77,33 +80,9 @@ export class Storage {
 		return response ? updated : undefined
 	}
 	async updateChangedIndex(documents: Record<string, any>): Promise<Record<string, string>> {
-		const oldDocuments = {
-			...documents,
-			...Object.fromEntries((await this.portion.get<Record<string, any>>(Object.keys(documents))).entries()),
-		}
-		const toBeRemoved = this.toChanged(oldDocuments)
-		const oldChanged = await this.portion.get<string>(Object.keys(toBeRemoved))
-		const oldCleanedChanged = await Promise.resolve(oldChanged).then(response =>
-			Array.from(response.entries()).reduce(
-				(r: Record<string, string>, [changedIndexKey, oldValue]) => ({
-					...r,
-					[changedIndexKey]: oldValue.replace(new RegExp(toBeRemoved[changedIndexKey].join("\n?|") + "\n?", "g"), ""),
-				}),
-				{}
-			)
-		)
-		const updated = Object.entries(documents).reduce((r: Record<string, string>, [key, document]) => {
-			const indexKey = "changed/" + isoly.DateTime.truncate(document.changed, this.changedPrecision)
-			return { ...r, [indexKey]: (r[indexKey] ? r[indexKey] + "\n" : "") + key }
-		}, oldCleanedChanged)
-		return updated
-	}
-
-	private toChanged(documents: { [k: string]: Record<string, any> }): Record<string, string[]> {
-		return Object.entries(documents).reduce((r: Record<string, string[]>, [key, document]) => {
-			const indexKey = "changed/" + isoly.DateTime.truncate(document.changed, this.changedPrecision)
-			return { ...r, [indexKey]: [...(r[indexKey] ?? []), key] }
-		}, {})
+		const oldDocuments = Array.from((await this.portion.get<Record<string, any>>(Object.keys(documents))).values())
+		await this.portion.remove(oldDocuments.map(document => this.changedKey(document)))
+		return Object.entries(documents).reduce((r, [key, document]) => ({ ...r, [this.changedKey(document)]: key }), {})
 	}
 
 	async removeDocuments(keys: string | string[]): Promise<boolean | boolean[]> {
@@ -112,39 +91,23 @@ export class Storage {
 			const idKey = "id/" + keys
 			const key = await this.storage.get<string>(idKey)
 			const document = key ? await this.storage.get<Record<string, any>>(key) : undefined
-			document && key && (await this.removeChanged(document.changed, key))
-			result = !!key && (await this.storage.delete([key, idKey])) == 2
+			const changed = document && this.changedKey(document)
+			result = !!key && !!changed && (await this.storage.delete([key, idKey, changed])) == 3
 		} else {
 			const idKey = keys.map(e => "id/" + e)
 			const key = Array.from((await this.portion.get<string>(idKey)).values())
-			const document = Array.from((await this.portion.get<Record<string, any>>(key)).entries())
-			const changedToRemove = document.reduce((r: Record<string, string[]>, [key, document]) => {
-				const changedKey = "changed/" + isoly.DateTime.truncate(document?.changed, this.changedPrecision)
-				return { [changedKey]: (r[changedKey] ?? []).concat(key + "(\n)?") }
-			}, {})
-			const a: [string, string][] = Array.from((await this.portion.get<string>(Object.keys(changedToRemove))).entries())
-			const changedValue = a.reduce(
-				(r: Record<string, string>, [changedKey, changedValue]) => ({
-					...r,
-					[changedKey]: changedValue.replace(new RegExp(changedToRemove[changedKey].join("|") + "(\n)?"), ""),
-				}),
-				{}
-			)
-			await this.portion.put(changedValue)
-			const deleted = await this.portion.remove([...key, ...idKey])
-			result = deleted.reduce(
-				(r: boolean[], d: boolean, i) =>
-					(i + 1) % 2 === 0 ? [...r.slice(0, r.length - 1), r[r.length - 1] && d] : [...r, d],
-				[]
-			)
+			const documents = Array.from((await this.portion.get<Record<string, any>>(key)).entries())
+			const changed = documents.map(document => this.changedKey(document))
+			const deleted = await this.portion.remove([...key, ...idKey, ...changed])
+			result = []
+			const delta = deleted.length / 3
+			for (let index = 0; index < delta; index++) {
+				result.push(deleted[index] && deleted[delta + index] && deleted[2 * delta + index])
+			}
 		}
 		return result
 	}
-	private async removeChanged(oldChangedDate: isoly.DateTime, key: string) {
-		const changedKey = "changed/" + oldChangedDate && isoly.DateTime.truncate(oldChangedDate, this.changedPrecision)
-		const changedValue = oldChangedDate ? await this.storage.get<string>(changedKey) : undefined
-		changedValue && (await this.storage.put(changedKey, changedValue.replace(new RegExp(key + "(\n)?"), "")))
-	}
+
 	async remove(keys: string | string[]): Promise<boolean | boolean[]> {
 		let result: boolean | boolean[]
 		if (typeof keys == "string")

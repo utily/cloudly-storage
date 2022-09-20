@@ -6,13 +6,17 @@ import { router } from "./router"
 import { Storage } from "./Storage"
 
 export class Context {
+	#setAlarm?: () => Promise<boolean>
+	get setAlarm(): () => Promise<boolean> {
+		return this.#setAlarm ?? (this.#setAlarm = this.environment.setAlarm)
+	}
 	#state?: DurableObjectState
 	get state() {
 		return this.#state ?? (this.#state = this.environment.state)
 	}
 	#storage?: Storage
 	get storage() {
-		return this.#storage ?? (this.#storage = Storage.open(this.environment.state, this.environment.changedPrecision))
+		return this.#storage ?? (this.#storage = Storage.open(this.environment.state))
 	}
 	constructor(public readonly environment: Environment) {}
 	static async handle(request: Request, environment: Environment): Promise<Response> {

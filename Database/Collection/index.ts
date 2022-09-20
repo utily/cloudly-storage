@@ -2,6 +2,7 @@ import * as isoly from "isoly"
 import { Archive } from "../Archive"
 import { Buffer } from "../Buffer"
 import { Configuration } from "../Configuration"
+import { Cursor } from "../Cursor"
 import { Document } from "../Document"
 import { Identifier } from "../Identifier"
 import { Selection } from "../Selection"
@@ -20,17 +21,20 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		return new Collection(
 			this.archive.partition(partition.join("/")),
 			this.buffer.partition(partition.join("/")),
-			this.configuration,
+			partition.reduce(
+				(r: Configuration.Collection.Complete, e) => ({ ...r, ...(r.partitions?.[e] ?? {}) }),
+				this.configuration
+			),
 			this.partitions + partition.join("/") + "/"
 		)
 	}
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids?: Identifier[]): Promise<((Document & T) | undefined)[]>
-	load(selection?: Selection): Promise<(Document & T)[] & { locus?: string }>
+	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
 	async load(
-		selection: Identifier | Identifier[] | Selection
-	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { locus?: string })> {
-		let result: ((T & Document) | undefined) | ((Document & T)[] & { locus?: string }) | undefined
+		selection?: Identifier | Identifier[] | Selection
+	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })> {
+		let result: ((T & Document) | undefined) | ((Document & T)[] & { cursor?: string }) | undefined
 		switch (typeof selection) {
 			case "string":
 				const bufferDoc = await this.buffer.load(selection)
@@ -39,19 +43,19 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				break
 			case "object": //TODO: will return configuration.shards * limit
 				let bufferList: (T & Document) | undefined | ((Document & T) | undefined)[]
-				let archiveList: (T & Document) | undefined | (((Document & T) | undefined)[] & { locus?: string })
+				let archiveList: (T & Document) | undefined | (((Document & T) | undefined)[] & { cursor?: string })
 				if (Array.isArray(selection)) {
 					bufferList = await this.buffer.load(selection)
 					archiveList = await this.archive.load(selection)
 				} else {
-					const query: Selection.Query = Selection.get(selection)
-					bufferList = await this.buffer.load(query)
+					const cursor: Cursor | undefined = Cursor.from(selection)
+					bufferList = await this.buffer.load(cursor)
 					const limit =
-						(query && "limit" in query && query.limit ? query.limit : Selection.Query.standardLimit) - bufferList.length
+						(cursor && "limit" in cursor && cursor.limit ? cursor.limit : Selection.standardLimit) - bufferList?.length
 					archiveList =
 						limit > 1
 							? await this.archive.load({
-									...query,
+									...selection,
 									limit,
 							  })
 							: []
@@ -62,24 +66,24 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 						bufferList.reduce((r, document) => (document ? { [document.id]: document, ...r } : r), [])
 					)
 				)
-				if (archiveList.locus)
-					result.locus = archiveList.locus
+				if (archiveList.cursor)
+					result.cursor = archiveList.cursor
 				break
-			case "undefined": // TODO: Add locus in the buffer.
-				const archive: ((Document & T) | undefined)[] & {
-					locus?: string | undefined
-				} = await this.archive.load()
+			case "undefined": // TODO: Add cursor in the buffer.
 				const buffer: Record<string, Document & T> = (await this.buffer.load()).reduce(
 					(r, e) => ({ [e.id]: e, ...r }),
 					{}
 				)
+				const archive: ((Document & T) | undefined)[] & {
+					cursor?: string | undefined
+				} = await this.archive.load()
 				const combined: Record<string, Document & T> = archive.reduce(
 					(r, document) => ({ ...(document ? { [document.id]: document } : {}), ...r }),
 					buffer
 				)
 				result = Object.values(combined)
-				if (archive.locus)
-					result.locus = archive.locus
+				if (archive.cursor)
+					result.cursor = archive.cursor
 				break
 		}
 		return result
@@ -140,18 +144,22 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 	static open<T extends object = any>(
 		archive: Archive<T>,
 		buffer: Buffer<T>,
-		configuration: Required<Configuration.Archive>
+		configuration: Configuration.Collection
 	): Collection<T>
 	static open<T extends object = any>(
 		archive: Archive<T> | undefined,
 		buffer: Buffer<T> | undefined,
-		configuration: Required<Configuration.Archive>
+		configuration: Configuration.Collection
 	): Collection<T> | undefined
 	static open<T extends object = any>(
 		archive: Archive<T> | undefined,
 		buffer: Buffer<T> | undefined,
-		configuration: Required<Configuration.Archive> = Configuration.Archive.standard
+		configuration: Configuration.Collection = Configuration.Collection.standard
 	): Collection<T> | undefined {
-		return archive && buffer && new Collection<T>(archive, buffer, configuration)
+		return (
+			archive &&
+			buffer &&
+			new Collection<T>(archive, buffer, { ...Configuration.Collection.standard, ...configuration })
+		)
 	}
 }

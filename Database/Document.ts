@@ -20,7 +20,7 @@ export namespace Document {
 	export function split<T>(document: Document): [Document, T]
 	export function split<T>(document: Partial<Document>): [Partial<Document>, T]
 	export function split<T>(document: Partial<Document>): [Partial<Document>, T] {
-		const { id, created, changed, purged: purged, ...remainder } = document
+		const { id, created, changed, purged, ...remainder } = document
 		return [{ id, created, changed, purged }, remainder as T]
 	}
 	export function update<T extends Record<string, any> = Document>(original: T, appendee: Partial<T>): T | undefined {

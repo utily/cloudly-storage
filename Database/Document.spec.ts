@@ -87,10 +87,7 @@ describe("merge tests", () => {
 			changed: "",
 		}
 
-		const appended = Document.append<TestType>(original, amendment)
-		console.log(appended)
-
-		expect(appended).toEqual(expectedObj)
+		expect(Document.append<TestType>(original, amendment)).toEqual(expectedObj)
 	})
 	it("Add deep new object", () => {
 		const original = {

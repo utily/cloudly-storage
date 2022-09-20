@@ -19,7 +19,7 @@ export type Database<T extends { archive?: Record<string, any>; collection?: Rec
 
 class DatabaseImplementation<T extends Record<string, any>> {
 	constructor(private readonly configuration: Required<Database.Configuration>) {}
-	partition<S = T>(...partition: string[]): Database<S> {
+	partition<S extends T = T>(...partition: string[]): Database<S> {
 		const result = new DatabaseImplementation(this.configuration)
 		const silos: Record<string, Database.Silo | undefined> = {}
 		Object.entries(this.configuration.silos).forEach(([name, c]) =>
@@ -32,7 +32,7 @@ class DatabaseImplementation<T extends Record<string, any>> {
 		return result as Database<S>
 	}
 
-	static create<T>(
+	static create<T extends { archive?: Record<string, any> | undefined; collection?: Record<string, any> | undefined }>(
 		configuration: Required<Database.Configuration>,
 		archive: KeyValueStore<string>,
 		buffer?: DONamespace
@@ -45,12 +45,12 @@ class DatabaseImplementation<T extends Record<string, any>> {
 					silos[name] ??
 					(silos[name] =
 						c.type == "archive"
-							? DBArchive.open(KeyValueStore.partition(archive, name + "/"), { ...configuration, ...c })
+							? DBArchive.open(KeyValueStore.partition(archive, name + "/"), c)
 							: c.type == "collection"
 							? DBCollection.open(
-									DBArchive.open(KeyValueStore.partition(archive, name + "/"), { ...configuration, ...c }),
-									DBBuffer.open(buffer?.partition(name), { ...configuration, ...c }),
-									{ ...configuration, ...c }
+									DBArchive.open(KeyValueStore.partition(archive, name + "/"), c),
+									DBBuffer.open(buffer?.partition(name), c),
+									c
 							  )
 							: undefined),
 			})
@@ -65,15 +65,8 @@ export namespace Database {
 		archive?: platform.KVNamespace | undefined,
 		buffer?: platform.DurableObjectNamespace
 	): Database<T> | undefined {
-		const a = KeyValueStore.open(archive, "text")
-		return (
-			a &&
-			DatabaseImplementation.create<T>(
-				{ ...Configuration.Collection.standard, ...configuration },
-				a,
-				DONamespace.open(buffer)
-			)
-		)
+		const kv = KeyValueStore.open(archive, "text")
+		return kv && DatabaseImplementation.create<T>(configuration, kv, DONamespace.open(buffer))
 	}
 	export type Archive<T = any> = DBArchive<T> // no export of functions
 	export type Collection<T = any> = DBCollection<T> // no export of functions

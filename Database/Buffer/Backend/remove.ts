@@ -16,7 +16,7 @@ export async function remove(request: http.Request, context: Context): Promise<h
 		result = gracely.server.backendFailure("Failed to open Buffer Storage.")
 	else {
 		try {
-			result = gracely.success.ok(await storage.removeDocuments(id ?? ids))
+			result = gracely.success.ok(await context.state.blockConcurrencyWhile(() => storage.removeDocuments(id ?? ids)))
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
 		}

@@ -21,7 +21,7 @@ export default {
 		clearScreen: false,
 	},
 	onwarn: warning => {
-		if ( warning.code !== 'THIS_IS_UNDEFINED' )
+		if ( warning.code != 'THIS_IS_UNDEFINED' )
 			console.warn( warning.message );
 	},
 }

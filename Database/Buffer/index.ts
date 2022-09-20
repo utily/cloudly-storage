@@ -2,9 +2,9 @@ import * as gracely from "gracely"
 import * as isoly from "isoly"
 import * as DurableObject from "../../DurableObject"
 import { Configuration } from "../Configuration"
+import { Cursor } from "../Cursor"
 import { Document } from "../Document"
 import { Identifier } from "../Identifier"
-import { Selection } from "../Selection"
 import { Backend as BufferBackend } from "./Backend"
 
 export type Backend = BufferBackend
@@ -23,45 +23,52 @@ export class Buffer<T = any> {
 		this.header = {
 			partitions: this.partitions,
 			length: this.configuration.idLength.toString(),
-			secondsBetweenArchives: this.configuration.secondsBetweenArchives.toString(),
-			secondsInBuffer: this.configuration.secondsInBuffer.toString(),
+			reconciliationInterval: JSON.stringify(this.configuration.reconciliationInterval),
+			reconcileAfter: JSON.stringify(this.configuration.reconcileAfter),
+			superimposeFor: JSON.stringify(this.configuration.superimposeFor),
+			documentType: this.backend.partitions.slice(0, -1),
 		}
 	}
 	partition(...partition: string[]): Buffer<T> {
-		return new Buffer<T>(
-			this.backend.partition(...partition),
-			this.configuration,
-			this.partitions + partition.join("/") + "/"
-		)
+		return new Buffer<T>(this.backend, this.configuration, this.partitions + partition.join("/") + "/")
 	}
 	private generateKey(document: Pick<Document, "id" | "created">): Key {
-		return `doc/${this.partitions}${document.created}/${document.id}`
+		return `${this.backend.partitions}doc/${this.partitions}${document.created}/${document.id}`
+	}
+
+	private generatePrefix(prefix?: string): string {
+		return this.backend.partitions + "doc/" + this.partitions + (prefix ?? "")
 	}
 
 	load(): Promise<(T & Document)[]>
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
-	load(query: Selection.Query): Promise<((Document & T) | undefined)[]>
-	load(query?: Identifier | Identifier[] | Selection.Query): Promise<Loaded<T>>
-	async load(query?: Identifier | Identifier[] | Selection.Query): Promise<Loaded<T>> {
+	load(cursor?: Cursor): Promise<((Document & T) | undefined)[]>
+	load(cursor?: Identifier | Identifier[] | Cursor): Promise<Loaded<T>>
+	async load(cursor?: Identifier | Identifier[] | Cursor): Promise<Loaded<T>> {
 		let response: Loaded<T> | gracely.Error | undefined
-		if (typeof query == "string") {
+		if (typeof cursor == "string") {
 			response = await this.backend
-				.open(Configuration.Buffer.getShard(this.configuration, query))
-				.get<Loaded<T>>(`/buffer/${encodeURIComponent(query)}`, this.header)
-		} else if (Array.isArray(query)) {
-			response = await this.backend.open(this.partitions).post<Loaded<T>>(`/buffer/prefix`, { id: query }, this.header)
-		} else if (query != null && typeof query == "object") {
-			const body = { prefix: Selection.Query.extractPrefix(query).map(p => this.partitions + p), limit: query?.limit }
+				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, cursor))
+				.get<Loaded<T>>(`/buffer/${encodeURIComponent(cursor)}`, this.header)
+		} else if (Array.isArray(cursor)) {
+			response = await this.backend.open(this.partitions).post<Loaded<T>>(`/buffer/prefix`, { id: cursor }, this.header)
+		} else if (cursor != null && typeof cursor == "object") {
+			const body = {
+				prefix: Cursor.prefix(cursor).map(p => this.generatePrefix(p)),
+				limit: cursor?.limit,
+			}
 			response = await Promise.all(
 				Configuration.Buffer.getShard(this.configuration).map(s =>
-					this.backend.open(s).post<Loaded<T>>("/buffer/prefix", body, this.header)
+					this.backend.open(this.partitions + s).post<Loaded<T>>("/buffer/prefix", body, this.header)
 				)
 			).then(r => r.flatMap(e => (gracely.Error.is(e) ? [] : e)))
 		} else
 			response = await Promise.all(
 				Configuration.Buffer.getShard(this.configuration).map(shard =>
-					this.backend.open(shard).get<Loaded<T>>(`/buffer`, this.header)
+					this.backend
+						.open(this.partitions + shard)
+						.post<Loaded<T>>("/buffer/prefix", { prefix: this.generatePrefix() }, this.header)
 				)
 			).then(r => r.flatMap(e => (gracely.Error.is(e) ? [] : e)))
 		return gracely.Error.is(response) ? undefined : response
@@ -78,7 +85,7 @@ export class Buffer<T = any> {
 		if (!Array.isArray(document)) {
 			const key = this.generateKey(document)
 			const response = await this.backend
-				.open(Configuration.Buffer.getShard(this.configuration, document.id))
+				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, document.id))
 				.post<T & Document>(`/buffer`, { [key]: document }, this.header)
 			result = gracely.Error.is(response) ? undefined : response
 		} else {
@@ -90,7 +97,7 @@ export class Buffer<T = any> {
 							document.map(d => d.id)
 						)
 					).map(([key, value]) =>
-						this.backend.open(key).post<(T & Document)[]>(
+						this.backend.open(this.partitions + key).post<(T & Document)[]>(
 							`/buffer`,
 							document.reduce((r, d) => (value.includes(d.id) ? { [this.generateKey(d)]: d, ...r } : r), {}),
 							this.header
@@ -106,7 +113,7 @@ export class Buffer<T = any> {
 		archived?: T & Document
 	): Promise<(T & Document) | undefined> {
 		const updated = await this.backend
-			.open(Configuration.Buffer.getShard(this.configuration, amendment.id))
+			.open(this.partitions + Configuration.Buffer.getShard(this.configuration, amendment.id))
 			.put<T & Document>(`/buffer/document`, { amendment, archived }, this.header)
 		return gracely.Error.is(updated) ? undefined : updated
 	}
@@ -115,7 +122,7 @@ export class Buffer<T = any> {
 		archived?: T & Document
 	): Promise<(T & Document) | undefined> {
 		const updated = await this.backend
-			.open(Configuration.Buffer.getShard(this.configuration, amendment.id))
+			.open(this.partitions + Configuration.Buffer.getShard(this.configuration, amendment.id))
 			.patch<T & Document>(`/buffer/document`, { amendment, archived }, this.header)
 		return gracely.Error.is(updated) ? undefined : updated
 	}
@@ -128,31 +135,28 @@ export class Buffer<T = any> {
 		if (Array.isArray(ids))
 			result = (
 				await Promise.all(
-					Object.entries(Configuration.Buffer.getShard(this.configuration, ids)).map(([shard, keys]) =>
-						this.backend.open(shard).post<boolean[]>(`/buffer/delete`, keys)
+					Object.entries(this.partitions + Configuration.Buffer.getShard(this.configuration, ids)).map(
+						([shard, keys]) => this.backend.open(shard).post<boolean[]>(`/buffer/delete`, keys)
 					)
 				)
 			).flatMap<boolean>(e => (!gracely.Error.is(e) ? e : false))
 		else {
 			const response = await this.backend
-				.open(Configuration.Buffer.getShard(this.configuration, ids))
+				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, ids))
 				.delete<number>(`/buffer/${ids}`)
 			result = !gracely.Error.is(response)
 		}
 		return result
 	}
-	static open<T extends object = any>(
-		backend: DurableObject.Namespace,
-		configuration: Required<Configuration.Buffer>
-	): Buffer<T>
+	static open<T extends object = any>(backend: DurableObject.Namespace, configuration: Configuration.Buffer): Buffer<T>
 	static open<T extends object = any>(
 		backend: DurableObject.Namespace | undefined,
-		configuration: Required<Configuration.Buffer>
+		configuration: Configuration.Buffer
 	): Buffer<T> | undefined
 	static open<T extends object = any>(
 		backend: DurableObject.Namespace | undefined,
-		configuration: Required<Configuration.Buffer> = Configuration.Buffer.standard
+		configuration: Configuration.Buffer = Configuration.Buffer.standard
 	): Buffer<T> | undefined {
-		return backend && new Buffer<T>(backend, { ...Configuration.Buffer.standard, ...configuration }, backend.partitions)
+		return backend && new Buffer<T>(backend, { ...Configuration.Buffer.standard, ...configuration })
 	}
 }
