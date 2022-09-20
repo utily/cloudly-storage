@@ -37,9 +37,8 @@ export class Backend {
 			request,
 			this.configuration ?? (await this.state.storage.get("configuration"))
 		)
-		if (!this.configuration) {
+		if (!this.configuration)
 			await this.state.storage.put("configuration", configuration)
-		}
 		this.configuration = configuration
 	}
 

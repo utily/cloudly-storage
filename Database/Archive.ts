@@ -70,14 +70,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 
 	private async list(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }> {
 		const cursor = Cursor.from(selection)
-		let result: (T & Document)[] & { cursor?: string } & {
-			cursor?: string | undefined
-		}
-		if (cursor?.type == "changed")
-			result = await this.listChanged(cursor)
-		else
-			result = await this.listDocs(cursor)
-		return result
+		return cursor?.type == "changed" ? await this.listChanged(cursor) : await this.listDocs(cursor)
 	}
 
 	private async listDocs(cursor?: Cursor): Promise<(Document & T)[] & { cursor?: string }> {
