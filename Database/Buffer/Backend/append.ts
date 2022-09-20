@@ -16,7 +16,7 @@ export async function update(request: http.Request, context: Context): Promise<h
 		result = gracely.server.backendFailure("Failed to open Buffer Storage.")
 	else {
 		try {
-			const document = await storage.appendDocument<Record<string, any> & Document>(amendment, archived)
+			const document = await storage.changeDocument<Record<string, any> & Document>(amendment, "append", archived)
 			result = gracely.success.created(document)
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
