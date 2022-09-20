@@ -16,12 +16,18 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 	// eslint-disable-next-line @typescript-eslint/no-empty-function
 	private constructor(private retention?: isoly.TimeSpan) {}
 	async set(key: string, value?: undefined): Promise<void>
-	async set(key: string, value: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void>
-	async set(key: string, value?: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void> {
+	async set(key: string, value: V, options?: { retention?: isoly.TimeSpan; meta?: M }): Promise<void>
+	async set(key: string, value?: V, options?: { retention?: isoly.TimeSpan; meta?: M }): Promise<void> {
 		if (value == undefined)
 			delete this.data[key]
 		else
-			this.data[key] = { value, ...options, meta: options?.meta && JSON.stringify(options.meta) }
+			this.data[key] = {
+				value,
+				meta: options?.meta && JSON.stringify(options.meta),
+				expires: options?.retention
+					? isoly.DateTime.create(Date.now() + isoly.TimeSpan.toMilliseconds(options?.retention), "milliseconds")
+					: undefined,
+			}
 	}
 	async get(key: string): Promise<{ value: V; meta?: M } | undefined> {
 		let result = this.data[key]
