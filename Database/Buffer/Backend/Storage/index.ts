@@ -1,6 +1,7 @@
 import * as isoly from "isoly"
 import * as platform from "../../../../platform"
 import { Document } from "../../../Document"
+import { Key } from "../../../Key"
 import { Portion } from "./Portion"
 
 export class Storage {
@@ -14,30 +15,66 @@ export class Storage {
 		return "changed/" + document.changed + "/" + document.id
 	}
 
-	async load<T>(): Promise<T | undefined>
-	async load<T>(id: string): Promise<T | undefined>
-	async load<T>(id: string[]): Promise<T[]>
-	async load<T>(prefix: { prefix?: string[]; limit?: number }): Promise<T[] | undefined>
-	async load<T>(id?: string | string[] | { prefix?: string[]; limit?: number }): Promise<T | T[] | undefined>
-	async load<T>(id?: string | string[] | { prefix?: string[]; limit?: number }): Promise<T | T[] | undefined> {
-		let result: T | T[] | undefined
+	async load<T extends Document & Record<string, any>>(): Promise<T | undefined>
+	async load<T extends Document & Record<string, any>>(id: string, lock?: isoly.TimeSpan): Promise<T | undefined>
+	async load<T extends Document & Record<string, any>>(id: string[], lock?: isoly.TimeSpan): Promise<T[]>
+	async load<T extends Document & Record<string, any>>(selection: {
+		prefix?: string[]
+		limit?: number
+	}): Promise<T[] | undefined>
+	async load<T extends Document & Record<string, any>>(
+		id?: string | string[] | { prefix?: string[]; limit?: number },
+		lock?: isoly.TimeSpan
+	): Promise<T | T[] | undefined>
+	async load<T extends Document & Record<string, any>>(
+		id?: string | string[] | { prefix?: string[]; limit?: number },
+		lock?: isoly.TimeSpan
+	): Promise<T | T[] | undefined> {
+		let result: T | T[] | undefined = undefined
 		if (typeof id == "string") {
-			const key = await this.storage.get<string>("id/" + id)
-			result = key ? await this.storage.get<T>(key) : undefined
-		} else if (Array.isArray(id))
-			result = Array.from((await this.portion.get<T>(id)).values())
-		else if (typeof id == "object" || !id) {
+			const locked = lock ? await this.storage.get<string>("lock/" + id) : undefined
+			if (!(lock && locked && locked > isoly.DateTime.now())) {
+				const key = await this.storage.get<string>("id/" + id)
+				result = key ? await this.storage.get<T>(key) : undefined
+				lock &&
+					(await this.storage.put(
+						"lock/" + id,
+						isoly.DateTime.create(isoly.TimeSpan.toMilliseconds(lock) + Date.now())
+					))
+			}
+		} else if (Array.isArray(id)) {
+			if (lock) {
+				const locks = Object.fromEntries((await this.portion.get<string>(id.map(i => "lock/" + id))).entries())
+				id = id.filter(i => (locks["lock/" + i] ?? "") < isoly.DateTime.now())
+			}
+			const listed = Object.fromEntries((await this.portion.get<T>(id)).entries())
+			lock &&
+				(await this.portion.put<T>(
+					Object.keys(listed).reduce(
+						(r, k) => ({
+							...r,
+							["lock/" + Key.getLast(k)]: isoly.DateTime.create(isoly.TimeSpan.toMilliseconds(lock) + Date.now()),
+						}),
+						{}
+					)
+				))
+			result = Object.values(listed)
+		} else if (typeof id == "object" || !id) {
+			const limit = id?.limit
 			result = (
 				await Promise.all(
 					(id && Array.isArray(id.prefix) ? id.prefix : [undefined])?.map(p =>
-						this.storage.list<T>({ prefix: p, limit: id?.limit }).then(r => Array.from(r.values()))
+						this.storage.list<T>({ prefix: p, limit }).then(r => Array.from(r.values()))
 					)
 				)
 			).flat()
 		}
 		return result
 	}
-	async storeDocuments<T extends { id: string } & Record<string, any>>(documents: Record<string, T>): Promise<T | T[]> {
+	async storeDocuments<T extends { id: string } & Record<string, any>>(
+		documents: Record<string, T>,
+		unlock?: true
+	): Promise<T | T[]> {
 		const oldIdIndices = Object.fromEntries(
 			(await this.portion.get<string>(Object.values(documents).map(document => "id/" + document.id))).entries()
 		)
@@ -48,7 +85,7 @@ export class Storage {
 			}),
 			{ newDocuments: {}, idIndices: {} }
 		)
-		const changedIndex = await this.updateChangedIndex(newDocuments)
+		const changedIndex = await this.updateChangedIndex(newDocuments, unlock)
 		await this.portion.put({
 			...newDocuments,
 			...idIndices,
@@ -66,7 +103,8 @@ export class Storage {
 				archived?: T & Document
 			}
 		>,
-		type: "update" | "append"
+		type: "update" | "append",
+		unlock?: true
 	): Promise<((T & Document) | undefined)[]> {
 		let toBeStored: Record<string, T & Document> = {}
 		for (const [id, { amendment, archived }] of Object.entries(amendments)) {
@@ -84,13 +122,14 @@ export class Storage {
 				toBeStored = key && updated ? { ...toBeStored, [key]: updated } : toBeStored
 			}
 		}
-		const result = await this.storeDocuments(toBeStored)
+		const result = await this.storeDocuments(toBeStored, unlock)
 		return Array.isArray(result) ? result : [result]
 	}
 	async changeDocument<T extends Document & Record<string, any>>(
 		amendment: T & Partial<Document> & Pick<Document, "id">,
 		type: "update" | "append",
-		archived?: T & Document
+		archived?: T & Document,
+		unlock?: true
 	): Promise<(T & Document) | undefined> {
 		const key = await this.storage.get<string>("id/" + amendment.id)
 		const temp = key ? await this.storage.get<T>(key) : undefined
@@ -105,35 +144,37 @@ export class Storage {
 					changed:
 						amendment.changed == old.changed ? isoly.DateTime.nextMillisecond(amendment.changed) : amendment.changed,
 				})
-			response = key && updated ? await this.storeDocuments({ [key]: updated }) : undefined
+			response = key && updated ? await this.storeDocuments({ [key]: updated }, unlock) : undefined
 		}
 		return response ? updated : undefined
 	}
-	async updateChangedIndex(documents: Record<string, any>): Promise<Record<string, string>> {
-		const oldDocuments = Array.from((await this.portion.get<Record<string, any>>(Object.keys(documents))).values())
-		await this.portion.remove(oldDocuments.map(document => this.changedKey(document)))
+	async updateChangedIndex(documents: Record<string, any>, unlock?: true): Promise<Record<string, string>> {
+		const ids = Object.keys(documents)
+		const oldDocuments = Array.from((await this.portion.get<Record<string, any>>(ids)).values())
+		await this.portion.remove([
+			...oldDocuments.map(document => this.changedKey(document)),
+			...(unlock ? ids.map(i => "lock/" + i) : []),
+		])
 		return Object.entries(documents).reduce((r, [key, document]) => ({ ...r, [this.changedKey(document)]: key }), {})
 	}
 
-	async removeDocuments(keys: string | string[]): Promise<boolean | boolean[]> {
+	async removeDocuments(ids: string | string[]): Promise<boolean | boolean[]> {
 		let result: boolean | boolean[] = false
-		if (typeof keys == "string") {
-			const idKey = "id/" + keys
+		if (typeof ids == "string") {
+			const idKey = "id/" + ids
+			const lockKey = "lock/" + ids
 			const key = await this.storage.get<string>(idKey)
 			const document = key ? await this.storage.get<Record<string, any>>(key) : undefined
 			const changed = document && this.changedKey(document)
-			result = !!key && !!changed && (await this.storage.delete([key, idKey, changed])) == 3
+			result = !!key && !!changed && (await this.storage.delete([key, idKey, changed, lockKey])) == 4
 		} else {
-			const idKey = keys.map(e => "id/" + e)
+			const idKey = ids.map(e => "id/" + e)
+			const lockKey = ids.map(e => "lock/" + e)
 			const key = Array.from((await this.portion.get<string>(idKey)).values())
 			const documents = Array.from((await this.portion.get<Record<string, any>>(key)).entries())
 			const changed = documents.map(document => this.changedKey(document))
-			const deleted = await this.portion.remove([...key, ...idKey, ...changed])
-			result = []
-			const delta = deleted.length / 3
-			for (let index = 0; index < delta; index++) {
-				result.push(deleted[index] && deleted[delta + index] && deleted[2 * delta + index])
-			}
+			const deleted = await this.portion.remove([...key, ...idKey, ...changed, ...lockKey])
+			result = deleted.slice(0)
 		}
 		return result
 	}

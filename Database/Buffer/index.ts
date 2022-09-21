@@ -41,18 +41,23 @@ export class Buffer<T = any> {
 	}
 
 	load(): Promise<(T & Document)[]>
-	load(id: Identifier): Promise<(T & Document) | undefined>
-	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
+	load(id: Identifier, options?: { lock?: isoly.DateSpan }): Promise<(T & Document) | undefined>
+	load(ids: Identifier[], options?: { lock?: isoly.DateSpan }): Promise<((Document & T) | undefined)[]>
 	load(cursor?: Cursor): Promise<((Document & T) | undefined)[]>
 	load(cursor?: Identifier | Identifier[] | Cursor): Promise<Loaded<T>>
-	async load(cursor?: Identifier | Identifier[] | Cursor): Promise<Loaded<T>> {
+	async load(cursor?: Identifier | Identifier[] | Cursor, options?: { lock?: isoly.DateSpan }): Promise<Loaded<T>> {
 		let response: Loaded<T> | gracely.Error | undefined
 		if (typeof cursor == "string") {
 			response = await this.backend
 				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, cursor))
-				.get<Loaded<T>>(`/buffer/${encodeURIComponent(cursor)}`, this.header)
+				.get<Loaded<T>>(`/buffer/${encodeURIComponent(cursor)}`, {
+					...this.header,
+					lock: JSON.stringify(options?.lock),
+				})
 		} else if (Array.isArray(cursor)) {
-			response = await this.backend.open(this.partitions).post<Loaded<T>>(`/buffer/prefix`, { id: cursor }, this.header)
+			response = await this.backend
+				.open(this.partitions)
+				.post<Loaded<T>>(`/buffer/prefix`, { id: cursor }, { ...this.header, lock: JSON.stringify(options?.lock) })
 		} else if (cursor != null && typeof cursor == "object") {
 			const body = {
 				prefix: Cursor.prefix(cursor).map(p => this.generatePrefix(p)),
@@ -110,19 +115,22 @@ export class Buffer<T = any> {
 	}
 	async update(
 		amendment: Partial<T & Document> & { id: Document["id"] },
-		archived?: T & Document
+		archived?: T & Document,
+		unlock?: true
 	): Promise<(T & Document) | undefined>
 	async update(
 		amendments: (Partial<T & Document> & { id: Document["id"] })[],
-		archived?: Record<string, T & Document>
+		archived?: Record<string, T & Document>,
+		unlock?: true
 	): Promise<((T & Document) | undefined)[]>
 	async update(
 		amendments: (Partial<T & Document> & { id: Document["id"] }) | (Partial<T & Document> & { id: Document["id"] })[],
-		archived?: (T & Document) | Record<string, T & Document>
+		archived?: (T & Document) | Record<string, T & Document>,
+		unlock?: true
 	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
 		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
 		if (Array.isArray(amendments))
-			result = await this.change(amendments, archived, "update")
+			result = await this.change(amendments, archived, "update", unlock)
 		else {
 			const updated = await this.backend
 				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, amendments.id))
@@ -144,19 +152,22 @@ export class Buffer<T = any> {
 	}
 	async append(
 		amendment: Partial<T & Document> & { id: Document["id"] },
-		archived?: T & Document
+		archived?: T & Document,
+		unlock?: true
 	): Promise<(T & Document) | undefined>
 	async append(
 		amendments: (Partial<T & Document> & { id: Document["id"] })[],
-		archived?: Record<string, T & Document>
+		archived?: Record<string, T & Document>,
+		unlock?: true
 	): Promise<((T & Document) | undefined)[]>
 	async append(
 		amendments: (Partial<T & Document> & { id: Document["id"] }) | (Partial<T & Document> & { id: Document["id"] })[],
-		archived?: (T & Document) | Record<string, T & Document>
+		archived?: (T & Document) | Record<string, T & Document>,
+		unlock?: true
 	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
 		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
 		if (Array.isArray(amendments))
-			result = await this.change(amendments, archived, "append")
+			result = await this.change(amendments, archived, "append", unlock)
 		else {
 			const updated = await this.backend
 				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, amendments.id))
@@ -170,7 +181,7 @@ export class Buffer<T = any> {
 						},
 						archived,
 					},
-					this.header
+					{ ...this.header, unlock: unlock?.toString() }
 				)
 			result = gracely.Error.is(updated) ? undefined : updated
 		}
@@ -179,7 +190,8 @@ export class Buffer<T = any> {
 	private async change(
 		amendments: (Partial<T & Document> & { id: Document["id"] })[],
 		archived: (T & Document) | Record<string, T & Document> | undefined,
-		type: "update" | "append"
+		type: "update" | "append",
+		unlock?: true
 	): Promise<(T & Document) | ((T & Document) | undefined)[] | undefined> {
 		return (
 			await Promise.all(
@@ -208,7 +220,7 @@ export class Buffer<T = any> {
 									: r,
 							{}
 						),
-						this.header
+						{ ...this.header, unlock: unlock?.toString() }
 					)
 				)
 			)

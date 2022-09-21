@@ -28,16 +28,17 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			this.partitions + partition.join("/") + "/"
 		)
 	}
-	load(id: Identifier): Promise<(T & Document) | undefined>
-	load(ids?: Identifier[]): Promise<((Document & T) | undefined)[]>
+	load(id: Identifier, options?: { lock?: isoly.TimeSpan }): Promise<(T & Document) | undefined>
+	load(ids?: Identifier[], options?: { lock?: isoly.TimeSpan }): Promise<((Document & T) | undefined)[]>
 	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
 	async load(
-		selection?: Identifier | Identifier[] | Selection
+		selection?: Identifier | Identifier[] | Selection,
+		options?: { lock?: isoly.TimeSpan }
 	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })> {
 		let result: ((T & Document) | undefined) | ((Document & T)[] & { cursor?: string }) | undefined
 		switch (typeof selection) {
 			case "string":
-				const bufferDoc = await this.buffer.load(selection)
+				const bufferDoc = await this.buffer.load(selection, options)
 				const archiveDoc = await this.archive.load(selection)
 				result = bufferDoc ? bufferDoc : archiveDoc
 				break
@@ -45,7 +46,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				let bufferList: (T & Document) | undefined | ((Document & T) | undefined)[]
 				let archiveList: (T & Document) | undefined | (((Document & T) | undefined)[] & { cursor?: string })
 				if (Array.isArray(selection)) {
-					bufferList = await this.buffer.load(selection)
+					bufferList = await this.buffer.load(selection, options)
 					archiveList = await this.archive.load(selection)
 				} else {
 					const cursor: Cursor | undefined = Cursor.from(selection)
@@ -122,10 +123,17 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		const toBeStored: (T & Document) | (T & Document)[] | undefined = await this.allocateId(documents)
 		return toBeStored && (await this.buffer.store(toBeStored))
 	}
-	async update(amendment: Partial<T & Document> & Pick<Document, "id">): Promise<(T & Document) | undefined>
-	async update(amendments: (Partial<T & Document> & Pick<Document, "id">)[]): Promise<((T & Document) | undefined)[]>
 	async update(
-		amendments: (Partial<T & Document> & Pick<Document, "id">) | (Partial<T & Document> & Pick<Document, "id">)[]
+		amendment: Partial<T & Document> & Pick<Document, "id">,
+		unlock?: true
+	): Promise<(T & Document) | undefined>
+	async update(
+		amendments: (Partial<T & Document> & Pick<Document, "id">)[],
+		unlock?: true
+	): Promise<((T & Document) | undefined)[]>
+	async update(
+		amendments: (Partial<T & Document> & Pick<Document, "id">) | (Partial<T & Document> & Pick<Document, "id">)[],
+		unlock?: true
 	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
 		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
 		if (Array.isArray(amendments)) {
@@ -133,18 +141,24 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				const loaded = await this.archive.load(a.id)
 				return { ...r, ...(loaded ? { [a.id]: loaded } : {}) }
 			}, {})
-			result = await this.buffer.update(amendments, archived)
+			result = await this.buffer.update(amendments, archived, unlock)
 		} else {
-			const keys = amendments.id
-			const archived = await this.archive.load(keys)
-			result = await this.buffer.update(amendments, archived)
+			const archived = await this.archive.load(amendments.id)
+			result = await this.buffer.update(amendments, archived, unlock)
 		}
 		return result
 	}
-	async append(amendment: Partial<T & Document> & Pick<Document, "id">): Promise<(T & Document) | undefined>
-	async append(amendments: (Partial<T & Document> & Pick<Document, "id">)[]): Promise<((T & Document) | undefined)[]>
 	async append(
-		amendments: (Partial<T & Document> & Pick<Document, "id">) | (Partial<T & Document> & Pick<Document, "id">)[]
+		amendment: Partial<T & Document> & Pick<Document, "id">,
+		unlock?: true
+	): Promise<(T & Document) | undefined>
+	async append(
+		amendments: (Partial<T & Document> & Pick<Document, "id">)[],
+		unlock?: true
+	): Promise<((T & Document) | undefined)[]>
+	async append(
+		amendments: (Partial<T & Document> & Pick<Document, "id">) | (Partial<T & Document> & Pick<Document, "id">)[],
+		unlock?: true
 	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
 		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
 		if (Array.isArray(amendments)) {
@@ -152,11 +166,10 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				const loaded = await this.archive.load(a.id)
 				return { ...r, ...(loaded ? { [a.id]: loaded } : {}) }
 			}, {})
-			result = await this.buffer.append(amendments, archived)
+			result = await this.buffer.append(amendments, archived, unlock)
 		} else {
-			const keys = amendments.id
-			const archived = await this.archive.load(keys)
-			result = await this.buffer.append(amendments, archived)
+			const archived = await this.archive.load(amendments.id)
+			result = await this.buffer.append(amendments, archived, unlock)
 		}
 		return result
 	}
