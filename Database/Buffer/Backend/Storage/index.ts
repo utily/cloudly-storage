@@ -1,6 +1,8 @@
+import * as isoly from "isoly"
 import * as platform from "../../../../platform"
 import { Document } from "../../../Document"
 import { Portion } from "./Portion"
+
 export class Storage {
 	private constructor(
 		private readonly storage: platform.DurableObjectState["storage"],
@@ -35,9 +37,7 @@ export class Storage {
 		}
 		return result
 	}
-	async storeDocuments<T extends { id: string } & Record<string, any>>(
-		documents: Record<string, T>
-	): Promise<Record<string, any>> {
+	async storeDocuments<T extends { id: string } & Record<string, any>>(documents: Record<string, T>): Promise<T | T[]> {
 		const oldIdIndices = Object.fromEntries(
 			(await this.portion.get<string>(Object.values(documents).map(document => "id/" + document.id))).entries()
 		)
@@ -57,26 +57,56 @@ export class Storage {
 		const result = Object.values(documents)
 		return result.length == 1 ? result[0] : result
 	}
-	async updateDocument<T extends Document>(
-		append: T & Partial<Document> & Pick<Document, "id">,
-		archived?: T & Document
-	): Promise<(T & Document) | undefined> {
-		const key = await this.storage.get<string>("id/" + append.id)
-		const old = key ? await this.storage.get<T>(key) : undefined
-		const temp: (T & Document) | undefined = old ?? archived
-		const updated = temp && Document.update<T & Document>(temp, append)
-		const response = key && updated ? await this.storeDocuments({ [key]: updated }) : undefined
-		return response ? updated : undefined
+
+	async changeDocuments<T extends Document & Record<string, any>>(
+		amendments: Record<
+			string,
+			{
+				amendment: T & Partial<Document> & Pick<Document, "id">
+				archived?: T & Document
+			}
+		>,
+		type: "update" | "append"
+	): Promise<((T & Document) | undefined)[]> {
+		let toBeStored: Record<string, T & Document> = {}
+		for (const [id, { amendment, archived }] of Object.entries(amendments)) {
+			const key = await this.storage.get<string>("id/" + id)
+			const temp = key ? await this.storage.get<T>(key) : undefined
+			const old: (T & Document) | undefined = temp ?? archived
+			if (!amendment.applyTo || temp?.changed == amendment.applyTo) {
+				const updated =
+					old &&
+					Document[type]<T & Document>(old, {
+						...(({ applyTo, ...rest }): T => rest as T)(amendment),
+						changed:
+							amendment.changed == old.changed ? isoly.DateTime.nextMillisecond(amendment.changed) : amendment.changed,
+					})
+				toBeStored = key && updated ? { ...toBeStored, [key]: updated } : toBeStored
+			}
+		}
+		const result = await this.storeDocuments(toBeStored)
+		return Array.isArray(result) ? result : [result]
 	}
-	async appendDocument<T extends Document>(
-		append: T & Partial<Document> & Pick<Document, "id">,
+	async changeDocument<T extends Document & Record<string, any>>(
+		amendment: T & Partial<Document> & Pick<Document, "id">,
+		type: "update" | "append",
 		archived?: T & Document
 	): Promise<(T & Document) | undefined> {
-		const key = await this.storage.get<string>("id/" + append.id)
-		const old = key ? await this.storage.get<T>(key) : undefined
-		const temp: (T & Document) | undefined = old ?? archived
-		const updated = temp && Document.append<T & Document>(temp, append)
-		const response = key && updated ? await this.storeDocuments({ [key]: updated }) : undefined
+		const key = await this.storage.get<string>("id/" + amendment.id)
+		const temp = key ? await this.storage.get<T>(key) : undefined
+		const old = temp ?? archived
+		let response
+		let updated
+		if (!amendment.applyTo || temp?.changed == amendment.applyTo) {
+			updated =
+				old &&
+				Document[type]<T>(old, {
+					...(({ applyTo, ...rest }): T => rest as T)(amendment),
+					changed:
+						amendment.changed == old.changed ? isoly.DateTime.nextMillisecond(amendment.changed) : amendment.changed,
+				})
+			response = key && updated ? await this.storeDocuments({ [key]: updated }) : undefined
+		}
 		return response ? updated : undefined
 	}
 	async updateChangedIndex(documents: Record<string, any>): Promise<Record<string, string>> {

@@ -122,13 +122,43 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		const toBeStored: (T & Document) | (T & Document)[] | undefined = await this.allocateId(documents)
 		return toBeStored && (await this.buffer.store(toBeStored))
 	}
-	async update(amendment: Partial<T & Document> & { id: Document["id"] }): Promise<(T & Document) | undefined> {
-		const archived = await this.archive.load(amendment.id)
-		return this.buffer.update({ ...amendment, changed: isoly.DateTime.now() }, archived)
+	async update(amendment: Partial<T & Document> & Pick<Document, "id">): Promise<(T & Document) | undefined>
+	async update(amendments: (Partial<T & Document> & Pick<Document, "id">)[]): Promise<((T & Document) | undefined)[]>
+	async update(
+		amendments: (Partial<T & Document> & Pick<Document, "id">) | (Partial<T & Document> & Pick<Document, "id">)[]
+	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
+		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
+		if (Array.isArray(amendments)) {
+			const archived: Record<string, T & Document> = amendments.reduce(async (r, a) => {
+				const loaded = await this.archive.load(a.id)
+				return { ...r, ...(loaded ? { [a.id]: loaded } : {}) }
+			}, {})
+			result = await this.buffer.update(amendments, archived)
+		} else {
+			const keys = amendments.id
+			const archived = await this.archive.load(keys)
+			result = await this.buffer.update(amendments, archived)
+		}
+		return result
 	}
-	async append(amendment: Partial<T & Document> & { id: Document["id"] }): Promise<(T & Document) | undefined> {
-		const archived = await this.archive.load(amendment.id)
-		return this.buffer.append({ ...amendment, changed: isoly.DateTime.now() }, archived)
+	async append(amendment: Partial<T & Document> & Pick<Document, "id">): Promise<(T & Document) | undefined>
+	async append(amendments: (Partial<T & Document> & Pick<Document, "id">)[]): Promise<((T & Document) | undefined)[]>
+	async append(
+		amendments: (Partial<T & Document> & Pick<Document, "id">) | (Partial<T & Document> & Pick<Document, "id">)[]
+	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
+		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
+		if (Array.isArray(amendments)) {
+			const archived: Record<string, T & Document> = amendments.reduce(async (r, a) => {
+				const loaded = await this.archive.load(a.id)
+				return { ...r, ...(loaded ? { [a.id]: loaded } : {}) }
+			}, {})
+			result = await this.buffer.append(amendments, archived)
+		} else {
+			const keys = amendments.id
+			const archived = await this.archive.load(keys)
+			result = await this.buffer.append(amendments, archived)
+		}
+		return result
 	}
 	remove(id: Identifier): Promise<boolean>
 	remove(id: Identifier[]): Promise<boolean[]>

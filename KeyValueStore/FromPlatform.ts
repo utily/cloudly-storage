@@ -12,24 +12,23 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 		private readonly type: "text" | "arrayBuffer" | "stream"
 	) {}
 	async set(key: string, value?: undefined): Promise<void>
-	async set(key: string, value: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void>
-	async set(key: string, value?: V, options?: { expires?: isoly.DateTime; meta?: M }): Promise<void> {
+	async set(key: string, value: V, options?: { retention?: isoly.TimeSpan; meta?: M }): Promise<void>
+	async set(key: string, value?: V, options?: { retention?: isoly.TimeSpan; meta?: M }): Promise<void> {
 		if (value == undefined)
 			await this.backend.delete(key)
-		else
+		else {
 			await this.backend.put(
 				key,
 				value,
 				Object.fromEntries(
 					Object.entries({
 						expirationTtl:
-							options?.expires != undefined
-								? Math.max(60, isoly.DateTime.epoch(options.expires) - isoly.DateTime.epoch(isoly.DateTime.now()))
-								: undefined, // Expiration did not work.
+							options?.retention != undefined ? Math.max(60, isoly.TimeSpan.toSeconds(options?.retention)) : undefined,
 						metadata: options?.meta,
 					}).filter(([key, value]) => value)
 				)
 			)
+		}
 	}
 	async get(key: string): Promise<{ value: V; meta?: M } | undefined> {
 		const data = await this.backend.getWithMetadata(key, { type: this.type as any })
@@ -51,17 +50,17 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 			cursor?: string
 		} = await Promise.all(
 			data.keys
-				.map(async user => ({
-					key: user.name,
-					expires: user.expiration ? isoly.DateTime.create(user.expiration) : undefined,
-					meta: user.metadata as M,
+				.map(async item => ({
+					key: item.name,
+					expires: item.expiration ? isoly.DateTime.create(item.expiration) : undefined,
+					meta: item.metadata as M,
 				}))
 				.map(
 					o.values
 						? i =>
-								i.then(async user => ({
-									...user,
-									value: await this.backend.get(user.key, { type: this.type as any }),
+								i.then(async item => ({
+									...item,
+									value: await this.backend.get(item.key, { type: this.type as any }),
 								}))
 						: i => i
 				)

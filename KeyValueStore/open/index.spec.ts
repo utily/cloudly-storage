@@ -11,16 +11,18 @@ describe("KeyValueStore.open", () => {
 		expect(await store.list()).toEqual([{ key: "alpha", value: "1" }])
 	})
 	it("expires", async () => {
-		const now = isoly.DateTime.now()
-		const future = isoly.DateTime.nextMinute(now)
-		const past = isoly.DateTime.previousMinute(now)
+		const futureRetention = { minutes: 1 }
+		const pastRetention = { minutes: -1 }
 		const store = storage.KeyValueStore.open()
-		await store.set("alpha", "1", { expires: future })
+		await store.set("alpha", "1", { retention: futureRetention })
 		expect(await store.get("alpha")).toEqual({ value: "1" })
-		expect(await store.list()).toEqual([{ key: "alpha", value: "1", expires: future }])
-		await store.set("beta", "2", { expires: past })
+		const listed = await store.list()
+		expect(listed.map(e => ({ key: e.key, value: e.value }))).toEqual([{ key: "alpha", value: "1" }])
+		expect(listed.every(e => (e?.expires ?? "") > isoly.DateTime.now())).toBeTruthy()
+		await store.set("beta", "2", { retention: pastRetention })
 		expect(await store.get("beta")).toEqual(undefined)
-		expect(await store.list()).toEqual([{ key: "alpha", value: "1", expires: future }])
+		expect(listed.map(e => ({ key: e.key, value: e.value }))).toEqual([{ key: "alpha", value: "1" }])
+		expect(listed.every(e => (e?.expires ?? "") > isoly.DateTime.now())).toBeTruthy()
 	})
 	it("list w/o values", async () => {
 		const store = storage.KeyValueStore.open()

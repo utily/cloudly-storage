@@ -7,16 +7,14 @@ import { router } from "./router"
 export async function update(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: gracely.Result
 	const body = await request.body
-	const amendment = body?.amendment
-	const archived = body?.archived
 	const storage = context.storage
-	if (!amendment || !amendment.id)
-		result = gracely.client.invalidContent("Partial<Document>", "The body must contain a Partial<Document>")
+	if (!body)
+		result = gracely.client.invalidContent("Partial<Document>[]", "The body must contain a Partial<Document>[]")
 	else if (!storage)
 		result = gracely.server.backendFailure("Failed to open Buffer Storage.")
 	else {
 		try {
-			const document = await storage.changeDocument<Record<string, any> & Document>(amendment, "append", archived)
+			const document = await storage.changeDocuments<Record<string, any> & Document>(body, "append")
 			result = gracely.success.created(document)
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
@@ -25,4 +23,4 @@ export async function update(request: http.Request, context: Context): Promise<h
 	return result
 }
 
-router.add("PATCH", "/buffer/document", update)
+router.add("PATCH", "/buffer/documents", update)

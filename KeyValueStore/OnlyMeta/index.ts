@@ -7,10 +7,14 @@ import { open as kvOpen } from "../open"
 export namespace OnlyMeta {
 	export function create<V = any>(backend: KeyValueStore<string, V> = kvOpen<"", V>()): KeyValueStore<V, undefined> {
 		return {
-			set: async (key: string, value?: V, options?: { expires?: isoly.DateTime; meta?: undefined }): Promise<void> => {
+			set: async (
+				key: string,
+				value?: V,
+				options?: { retention?: isoly.DateSpan; meta?: undefined }
+			): Promise<void> => {
 				await (value == undefined ? backend.set(key) : backend.set(key, "", { ...options, meta: value }))
 			},
-			get: async (key: string): Promise<{ value: V; expires?: isoly.DateTime } | undefined> => {
+			get: async (key: string): Promise<{ value: V; retention?: isoly.DateSpan } | undefined> => {
 				const response = await backend.get(key)
 				return (
 					response &&

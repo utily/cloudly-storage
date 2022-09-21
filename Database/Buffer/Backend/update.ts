@@ -17,7 +17,7 @@ export async function update(request: http.Request, context: Context): Promise<h
 	else {
 		try {
 			const document = await context.state.blockConcurrencyWhile(() =>
-				storage.updateDocument<Record<string, any> & Document>(amendment, archived)
+				storage.changeDocument<Record<string, any> & Document>(amendment, "update", archived)
 			)
 			result = gracely.success.created(document)
 			context.state.waitUntil(context.setAlarm())
