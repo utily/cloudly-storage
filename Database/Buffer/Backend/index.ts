@@ -44,19 +44,14 @@ export class Backend {
 
 	async alarm(): Promise<void> {
 		const now = Date.now()
-		const configuration = this.configuration ?? (await this.state.storage.get("configuration"))
+		const configuration = {
+			...Configuration.standard,
+			...(this.configuration ?? (await this.state.storage.get("configuration")) ?? {}),
+		}
 		const archivist =
-			this.archivist ??
-			(this.archivist = Archivist.open(
-				this.environment.archive,
-				this.state,
-				configuration?.documentType ?? "unknown",
-				configuration?.partitions ?? ["unknown"]
-			))
+			this.archivist ?? (this.archivist = Archivist.open(this.environment.archive, this.state, configuration))
 		this.state.blockConcurrencyWhile(async () => {
-			const stored = await archivist.reconcile(
-				isoly.DateTime.create(now - (configuration?.retention ?? 60), "milliseconds")
-			)
+			const stored = await archivist.reconcile(isoly.DateTime.create(now, "milliseconds"))
 			if (
 				(stored.length == 0 && (await this.state.storage.list({ prefix: "changed/", limit: 1 })).size) == 0 &&
 				(await this.state.storage.list({ prefix: "id/", limit: 1 })).size == 0 &&
@@ -65,11 +60,11 @@ export class Backend {
 				await this.state.storage.deleteAll()
 				this.isAlarm = false
 			} else {
-				stored?.length == archivist.configuration?.limit
-					? await this.state.storage.setAlarm(now + (configuration?.snooze ?? 30) / 2)
+				stored?.length == archivist?.limit
+					? await this.state.storage.setAlarm(now + (configuration?.snooze ?? 30000) / 2)
 					: (stored?.length ?? 0) > 0
-					? await this.state.storage.setAlarm(now + (configuration?.snooze ?? 30))
-					: await this.state.storage.setAlarm(now + 2 * (configuration?.snooze ?? 30))
+					? await this.state.storage.setAlarm(now + (configuration?.snooze ?? 300000))
+					: await this.state.storage.setAlarm(now + 2 * (configuration?.snooze ?? 300000))
 			}
 
 			return stored

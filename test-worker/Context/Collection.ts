@@ -19,6 +19,7 @@ export namespace Collection {
 						reconcileAfter: { seconds: 30 },
 						superimposeFor: { seconds: 30 },
 						reconciliationInterval: { seconds: 10 },
+						retention: { minutes: 2 },
 					},
 				},
 			},

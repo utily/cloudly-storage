@@ -17,16 +17,16 @@ export class Buffer<T = any> {
 	private header: Record<string, string>
 	private constructor(
 		private readonly backend: DurableObject.Namespace,
-		private readonly configuration: Required<Configuration.Buffer>,
+		private readonly configuration: Configuration.Buffer.Complete,
 		private readonly partitions = ""
 	) {
 		this.header = {
 			partitions: this.partitions,
-			length: this.configuration.idLength.toString(),
 			reconciliationInterval: JSON.stringify(this.configuration.reconciliationInterval),
 			reconcileAfter: JSON.stringify(this.configuration.reconcileAfter),
 			superimposeFor: JSON.stringify(this.configuration.superimposeFor),
 			documentType: this.backend.partitions.slice(0, -1),
+			retention: JSON.stringify(this.configuration.retention),
 		}
 	}
 	partition(...partition: string[]): Buffer<T> {
