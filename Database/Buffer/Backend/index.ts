@@ -15,7 +15,8 @@ export class Backend {
 	private configuration: Configuration | undefined
 	private isAlarm: boolean
 	private setAlarm = async () => {
-		!this.isAlarm && this.state.waitUntil(this.state.storage.setAlarm(Date.now() + (this.configuration?.snooze ?? 5)))
+		!this.isAlarm &&
+			this.state.waitUntil(this.state.storage.setAlarm(Date.now() + (this.configuration?.snooze ?? 10000)))
 		return (this.isAlarm = true)
 	}
 
@@ -66,7 +67,6 @@ export class Backend {
 					? await this.state.storage.setAlarm(now + (configuration?.snooze ?? 300000))
 					: await this.state.storage.setAlarm(now + 2 * (configuration?.snooze ?? 300000))
 			}
-
 			return stored
 		})
 	}

@@ -21,6 +21,7 @@ export async function update(request: http.Request, context: Context): Promise<h
 				unlock
 			)
 			result = gracely.success.created(document)
+			context.state.waitUntil(context.setAlarm())
 		} catch (error) {
 			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
 		}
