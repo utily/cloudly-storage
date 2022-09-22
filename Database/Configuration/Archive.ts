@@ -9,14 +9,10 @@ export interface Archive {
 }
 
 export namespace Archive {
-	export type Complete = Required<Omit<Archive, "partitions">> & Pick<Archive, "partitions">
+	export type Complete = Required<Omit<Archive, "partitions" | "retention">> & Pick<Archive, "partitions" | "retention">
 	export const Complete = {}
 	export const standard: Complete = {
 		idLength: Identifier.Length.standard,
 		retainChanged: false,
-		retention: {
-			minutes: 1,
-			seconds: 10,
-		},
 	}
 }

@@ -6,8 +6,8 @@ export interface Collection extends Buffer, Archive {
 }
 
 export namespace Collection {
-	export type Complete = Required<Omit<Collection, "partitions">> & Pick<Collection, "partitions">
-	export const standard: Required<Omit<Collection, "partitions">> = {
+	export type Complete = Buffer.Complete & Archive.Complete
+	export const standard: Complete = {
 		...Archive.standard,
 		...Buffer.standard,
 	}

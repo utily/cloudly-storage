@@ -33,7 +33,7 @@ export class Storage {
 		let result: T | T[] | undefined = undefined
 		if (typeof id == "string") {
 			const locked = lock ? await this.storage.get<string>("lock/" + id) : undefined
-			if (!(lock && locked && locked > isoly.DateTime.now())) {
+			if (!(locked && locked > isoly.DateTime.now())) {
 				const key = await this.storage.get<string>("id/" + id)
 				result = key ? await this.storage.get<T>(key) : undefined
 				lock &&

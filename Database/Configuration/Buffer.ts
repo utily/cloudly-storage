@@ -14,7 +14,8 @@ export interface Buffer {
 }
 
 export namespace Buffer {
-	export const standard: Required<Buffer> = {
+	export type Complete = Required<Buffer>
+	export const standard: Complete = {
 		idLength: Identifier.Length.standard,
 		shards: 4,
 		reconciliationInterval: { seconds: 30 },

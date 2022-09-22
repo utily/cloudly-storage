@@ -23,7 +23,7 @@ export async function load(request: http.Request, context: Context): Promise<htt
 			"ids",
 			"Ids in buffer must be of type { prefix: string } | string[] | string | undefined"
 		)
-	else if (!isoly.TimeSpan.is(lock)) {
+	else if (lock && !isoly.TimeSpan.is(lock)) {
 		result = gracely.client.malformedHeader("lock", "Header lock must be of type isoly.Timespan | undefined.")
 	} else if (!storage)
 		result = gracely.server.backendFailure("Failed to open Buffer Storage.")
