@@ -1,27 +1,25 @@
 import * as cryptly from "cryptly"
 import * as isoly from "isoly"
-import { Identifier } from "../Identifier"
 
 type ShardCount = 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256
 
 export interface Buffer {
-	idLength?: Identifier.Length
 	shards?: ShardCount //number of parallel durable objects.
 	reconciliationInterval?: isoly.TimeSpan //time between syncronizing the buffer and the archive.
 	reconcileAfter?: isoly.TimeSpan //time to keep a document in buffer before archiving.
 	retainChanged?: boolean
 	superimposeFor?: isoly.TimeSpan //time documents should be stored in buffer after its beem archived.
+	retention?: isoly.TimeSpan
 }
 
 export namespace Buffer {
-	export type Complete = Required<Buffer>
+	export type Complete = Required<Omit<Buffer, "retention">> & Pick<Buffer, "retention">
 	export const standard: Complete = {
-		idLength: Identifier.Length.standard,
 		shards: 4,
 		reconciliationInterval: { seconds: 30 },
-		reconcileAfter: { seconds: 60 },
+		reconcileAfter: { minutes: 5 },
 		retainChanged: false,
-		superimposeFor: { seconds: 60 },
+		superimposeFor: { minutes: 5 },
 	}
 	export function getShard(configuration: Buffer): string[]
 	export function getShard(configuration: Buffer, id: string): string

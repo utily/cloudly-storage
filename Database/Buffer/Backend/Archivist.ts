@@ -3,6 +3,7 @@ import { Document } from "../../../Database/Document"
 import { KeyValueStore } from "../../../KeyValueStore"
 import { DurableObjectState, KVNamespace } from "../../../platform"
 import { Key } from "../../Key"
+import { Configuration } from "./Configuration"
 import { Storage } from "./Storage"
 
 export class Archivist {
@@ -15,14 +16,13 @@ export class Archivist {
 			doc: KeyValueStore<Record<string, any> & Document>
 			changed: KeyValueStore<string>
 		},
-		private readonly partitions: string,
 		private readonly storage: Storage,
 		private readonly state: DurableObjectState,
-		private readonly documentType: string,
-		public readonly configuration = { remove: 30, limit: 600 }
+		private readonly configuration: Configuration.Complete,
+		public readonly limit = 600
 	) {}
 	private generateKey(document: Pick<Document, "id" | "created">): string {
-		return `${this.partitions}${document.created}/${document.id}`
+		return `${this.configuration.partitions}${document.created}/${document.id}`
 	}
 	async reconcile(threshold: isoly.DateTime): Promise<Document[]> {
 		await this.removeArchived(threshold)
@@ -34,13 +34,16 @@ export class Archivist {
 		const { documents, changed } = await this.getStale(threshold)
 		if (documents.length > 0) {
 			for (const document of documents) {
-				promises.push(this.backend.doc.set(this.generateKey(document), document))
+				promises.push(
+					this.backend.doc.set(this.generateKey(document), document, { retention: this.configuration.timeToLive })
+				)
 				result.push(document)
 			}
 			promises.push(
 				this.backend.changed.set(
-					`changed/${this.partitions}${isoly.DateTime.now()}/${documents[0].id}`,
-					changed.replaceAll(this.documentType + "/doc/", "")
+					`changed/${this.configuration.partitions}${isoly.DateTime.now()}/${documents[0].id}`,
+					changed.replaceAll(this.configuration.documentType + "/doc/", ""),
+					{ retention: this.configuration.timeToLive }
 				)
 			)
 			await Promise.all(promises)
@@ -52,9 +55,9 @@ export class Archivist {
 		const archived: isoly.DateTime | undefined = lastArchived ? Key.getAt(lastArchived, -2) : undefined
 		if (archived) {
 			const keys = []
-			const remove = isoly.DateTime.previousSecond(threshold, this.configuration.remove)
+			const remove = isoly.DateTime.previousSecond(threshold, this.configuration.removeAfter)
 			const changed = Array.from(
-				(await this.state.storage.list<string>({ prefix: "changed/", limit: 2 * this.configuration.limit })).entries()
+				(await this.state.storage.list<string>({ prefix: "changed/", limit: 2 * this.limit })).entries()
 			)
 			for (const [key, value] of changed)
 				if (Key.getAt(key, -2) <= remove && Key.getAt(key, -2) <= archived)
@@ -67,7 +70,7 @@ export class Archivist {
 			(
 				await this.state.storage.list<string>({
 					prefix: "changed/",
-					limit: this.configuration.limit,
+					limit: this.limit,
 					startAfter: await this.lastArchived,
 				})
 			).entries()
@@ -88,22 +91,18 @@ export class Archivist {
 	static open(
 		keyValueNamespace: KVNamespace | undefined,
 		state: DurableObjectState,
-		documentType: string,
-		partitions: string[]
+		configuration: Configuration.Complete
 	): Archivist {
 		const kv = KeyValueStore.Json.create(
-			KeyValueStore.partition(KeyValueStore.open(keyValueNamespace, "text"), documentType + "/")
+			KeyValueStore.partition(
+				KeyValueStore.open(keyValueNamespace, "text"),
+				(configuration?.documentType ?? "unknown") + "/"
+			)
 		)
 		const doc = KeyValueStore.partition(
 			KeyValueStore.InMeta.create<Record<string, any>, Document>(Document.split, kv),
 			"doc/"
 		)
-		return new Archivist(
-			{ doc, changed: kv },
-			partitions ? partitions.join("/") + "/" : "",
-			Storage.open(state),
-			state,
-			documentType
-		)
+		return new Archivist({ doc, changed: kv }, Storage.open(state), state, configuration)
 	}
 }

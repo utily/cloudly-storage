@@ -16,7 +16,11 @@ export namespace Configuration {
 		export type Complete = ConfigurationArchive.Complete
 	}
 	export type Buffer = ConfigurationBuffer
-	export const Buffer = ConfigurationBuffer
+	export namespace Buffer {
+		export const getShard = ConfigurationBuffer.getShard
+		export const standard = ConfigurationBuffer.standard
+		export type Complete = ConfigurationBuffer.Complete
+	}
 
 	export type Collection = ConfigurationCollection
 	export namespace Collection {
