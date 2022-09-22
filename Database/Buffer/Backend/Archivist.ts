@@ -58,7 +58,7 @@ export class Archivist {
 			)
 			for (const [key, value] of changed)
 				if (Key.getAt(key, -2) <= remove && Key.getAt(key, -2) <= archived)
-					keys.push("id/" + Key.getLast(value), key, value)
+					keys.push("lock/" + Key.getLast(value), "id/" + Key.getLast(value), key, value)
 			await this.storage.remove(keys)
 		}
 	}
