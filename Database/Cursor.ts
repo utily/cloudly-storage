@@ -28,17 +28,29 @@ export namespace Cursor {
 		return result.length == 0 ? [""] : result
 	}
 
+	function limit(limit?: number): number | undefined {
+		return !limit || limit > Selection.standardLimit || limit == -1 ? Selection.standardLimit : limit
+	}
+
 	export function from(selection: Selection | any): Cursor | undefined {
 		let result: Cursor | undefined = undefined
 		switch (Selection.type(selection)) {
 			case "created":
-				result = { limit: selection.limit, range: selection.created, type: "doc" }
+				result = {
+					limit: limit(selection.limit),
+					range: selection.created,
+					type: "doc",
+				}
 				break
 			case "changed":
-				result = { limit: selection.limit, range: selection.changed, type: "changed" }
+				result = { limit: limit(selection.limit), range: selection.changed, type: "changed" }
 				break
 			case "cursor":
-				result = { type: "doc", ...parse(selection.cursor), ...(selection.limit ? { limit: selection.limit } : {}) }
+				result = {
+					type: "doc",
+					...parse(selection.cursor),
+					...(selection.limit ? { limit: limit(selection.limit) } : {}),
+				}
 				break
 			default:
 				break
