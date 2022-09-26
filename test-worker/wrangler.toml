@@ -7,8 +7,7 @@ workers_dev = true
 routes = ["https://example.com/item*"]
 
 kv_namespaces = [
-  { binding = "archive", id = "f783c34180ed4dbe852fc706f10f0c9d", preview_id = "f783c34180ed4dbe852fc706f10f0c9d" },
-  { binding = "kvStore", id = "f783c34180ed4dbe852fc706f10f0c9d", preview_id = "f783c34180ed4dbe852fc706f10f0c9d" }
+  { binding = "archive", id = "429fa89f123548ddaf4fba0591b367e8", preview_id = "429fa89f123548ddaf4fba0591b367e8" },
 ]
 
 vars = { }
@@ -34,8 +33,7 @@ port = 7212
 workers_dev = true
 account_id = "f86ca9874dda1e291a86b8c1c48186e2"
 kv_namespaces = [
-  { binding = "archive", id = "f783c34180ed4dbe852fc706f10f0c9d", preview_id = "f783c34180ed4dbe852fc706f10f0c9d" },
-  { binding = "kvStore", id = "f783c34180ed4dbe852fc706f10f0c9d", preview_id = "f783c34180ed4dbe852fc706f10f0c9d" }
+  { binding = "archive", id = "429fa89f123548ddaf4fba0591b367e8", preview_id = "429fa89f123548ddaf4fba0591b367e8" },
 ]
 
 [env.development.durable_objects]
