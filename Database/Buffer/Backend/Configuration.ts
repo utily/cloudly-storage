@@ -27,9 +27,7 @@ export namespace Configuration {
 	const headers = {
 		retention: (request: Request, configuration?: Configuration): number | undefined => {
 			const retention = JSON.parse(request.headers.get("reconcile-after") ?? "{}")
-			return retention && isoly.TimeSpan.is(retention)
-				? isoly.TimeSpan.toMilliseconds(retention)
-				: configuration?.retention
+			return retention && isoly.TimeSpan.is(retention) ? isoly.TimeSpan.toSeconds(retention) : configuration?.retention
 		},
 		documentType: (request: Request, configuration?: Configuration): string | undefined => {
 			return request.headers.get("document-type") ?? configuration?.documentType
