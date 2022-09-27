@@ -33,8 +33,7 @@ export class Context {
 		return (
 			this.#collection ??
 			(this.#collection =
-				Collection.create(this.environment)?.partition("testtest") ??
-				gracely.server.databaseFailure("Failed to open collection."))
+				Collection.create(this.environment) ?? gracely.server.databaseFailure("Failed to open collection."))
 		)
 	}
 	#archive?: Archive | gracely.Error

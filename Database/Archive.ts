@@ -46,7 +46,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 						changed: document.changed,
 				  }
 		if (result && !(await this.backend.id.get(result.id)))
-			await this.backend.id.set(result.id, this.generateKey(result))
+			await this.backend.id.set(result.id, this.generateKey(result), { retention: this.configuration.retention })
 		else
 			result = document.id == undefined ? await this.allocateId(document) : undefined
 		return result
@@ -207,12 +207,13 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		let result: (T & Document) | undefined | ((T & Document) | undefined)[] = undefined
 		if (Document.is(documents, this.configuration.idLength)) {
 			const key = this.generateKey(documents)
-			await this.backend.doc.set(key, (result = documents))
+			await this.backend.doc.set(key, (result = documents), { retention: this.configuration.retention })
 			const changedKey =
 				this.partitions + isoly.DateTime.truncate(isoly.DateTime.truncate(documents.changed, "minutes"), "milliseconds")
 			const changed = await this.backend.changed.get(changedKey)
 			!changed?.value?.includes(key) &&
-				(await this.backend.changed.set(changedKey, changed ? changed.value + "\n" + key : key))
+				(await this.backend.changed.set(changedKey, changed ? changed.value + "\n" + key : key),
+				{ retention: this.configuration.retention })
 		} else if (Array.isArray(documents) && !documents.some(e => !Document.is(e, this.configuration.idLength))) {
 			const changes: Record<string, string[]> = {}
 			await Promise.all(
@@ -221,7 +222,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 					const changedKey =
 						this.partitions + isoly.DateTime.truncate(isoly.DateTime.truncate(d.changed, "minutes"), "milliseconds")
 					changes[changedKey] ? changes[changedKey].push(key) : (changes[changedKey] = [key])
-					return this.backend.doc.set(key, d)
+					return this.backend.doc.set(key, d, { retention: this.configuration.retention })
 				})
 			)
 			await Promise.all(
@@ -229,7 +230,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 					const changed = await this.backend.changed.get(changedKey)
 					const value =
 						(changed ? changed.value + "\n" : "") + documents.filter(d => !changed?.value.includes(d)).join("\n")
-					await this.backend.changed.set(changedKey, value)
+					await this.backend.changed.set(changedKey, value, { retention: this.configuration.retention })
 				})
 			)
 			result = documents
