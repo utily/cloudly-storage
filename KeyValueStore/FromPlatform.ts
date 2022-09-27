@@ -16,7 +16,7 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 	async set(key: string, value?: V, options?: { retention?: isoly.TimeSpan; meta?: M }): Promise<void> {
 		if (value == undefined)
 			await this.backend.delete(key)
-		else {
+		else
 			await this.backend.put(
 				key,
 				value,
@@ -28,7 +28,6 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 					}).filter(([key, value]) => value)
 				)
 			)
-		}
 	}
 	async get(key: string): Promise<{ value: V; meta?: M } | undefined> {
 		const data = await this.backend.getWithMetadata(key, { type: this.type as any })
