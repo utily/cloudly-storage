@@ -24,7 +24,8 @@ export class Archivist {
 	private generateKey(document: Pick<Document, "id" | "created">): string {
 		return `${this.configuration.partitions}${document.created}/${document.id}`
 	}
-	async reconcile(threshold: isoly.DateTime): Promise<Document[]> {
+	async reconcile(now: isoly.DateTime): Promise<Document[]> {
+		const threshold = isoly.DateTime.previousSecond(now, this.configuration.retention)
 		await this.removeArchived(threshold)
 		return await this.store(threshold)
 	}
