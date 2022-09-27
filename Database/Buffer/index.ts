@@ -30,7 +30,14 @@ export class Buffer<T = any> {
 		}
 	}
 	partition(...partition: string[]): Buffer<T> {
-		return new Buffer<T>(this.backend, this.configuration, this.partitions + partition.join("/") + "/")
+		return new Buffer<T>(
+			this.backend,
+			partition.reduce(
+				(r: Configuration.Collection.Complete, e) => ({ ...r, ...(r.partitions?.[e] ?? {}) }),
+				this.configuration
+			),
+			this.partitions + partition.join("/") + "/"
+		)
 	}
 	private generateKey(document: Pick<Document, "id" | "created">): Key {
 		return `${this.backend.partitions}doc/${this.partitions}${document.created}/${document.id}`

@@ -8,6 +8,7 @@ export async function create(request: http.Request, context: Context): Promise<h
 	let result: gracely.Result
 	const database = context.collection
 	const user: model.User = await request.body
+	const partition = request.search.partition
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
 	else if ((!Array.isArray(user) && !model.User.is(user)) || (Array.isArray(user) && user.some(u => !model.User.is(u))))
@@ -15,7 +16,8 @@ export async function create(request: http.Request, context: Context): Promise<h
 	else if (gracely.Error.is(database))
 		result = database
 	else {
-		const response = Array.isArray(user) ? await database.users.store(user) : await database.users.store(user)
+		const partitioned = partition ? database.partition(partition) : database
+		const response = Array.isArray(user) ? await partitioned.users.store(user) : await partitioned.users.store(user)
 		result = response ? gracely.success.created(response) : gracely.server.databaseFailure()
 	}
 	return result

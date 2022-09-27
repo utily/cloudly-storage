@@ -20,6 +20,9 @@ export namespace Collection {
 						superimposeFor: { minutes: 1 },
 						reconciliationInterval: { seconds: 10 },
 						retention: { minutes: 10 },
+						partitions: {
+							testtest: { retention: { minutes: 1 }, reconcileAfter: { seconds: 10 }, retainChanged: false },
+						},
 					},
 				},
 			},
