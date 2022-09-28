@@ -1,12 +1,11 @@
 import * as isoly from "isoly"
 import * as platform from "../../../../platform"
 import { Document } from "../../../Document"
-import { Key } from "../../../Key"
 import { Portion } from "./Portion"
 
 export class Storage {
 	private constructor(
-		private readonly storage: platform.DurableObjectState["storage"],
+		private readonly state: platform.DurableObjectState,
 		private readonly portion: Portion,
 		public readonly changedPrecision: "seconds" | "minutes" | "hours"
 	) {}
@@ -15,56 +14,35 @@ export class Storage {
 		return "changed/" + document.changed + "/" + document.id
 	}
 
-	async load<T extends Document & Record<string, any>>(): Promise<T | undefined>
-	async load<T extends Document & Record<string, any>>(id: string, lock?: isoly.TimeSpan): Promise<T | undefined>
-	async load<T extends Document & Record<string, any>>(id: string[], lock?: isoly.TimeSpan): Promise<T[]>
-	async load<T extends Document & Record<string, any>>(selection: {
-		prefix?: string[]
-		limit?: number
-	}): Promise<T[] | undefined>
+	async load<T extends Document & Record<string, any>>(id: string[], lock?: isoly.DateTime): Promise<T[]>
 	async load<T extends Document & Record<string, any>>(
 		id?: string | string[] | { prefix?: string[]; limit?: number },
-		lock?: isoly.TimeSpan
+		lock?: isoly.DateTime
 	): Promise<T | T[] | undefined>
 	async load<T extends Document & Record<string, any>>(
 		id?: string | string[] | { prefix?: string[]; limit?: number },
-		lock?: isoly.TimeSpan
+		lock?: isoly.DateTime
 	): Promise<T | T[] | undefined> {
 		let result: T | T[] | undefined = undefined
 		if (typeof id == "string") {
-			const locked = lock ? await this.storage.get<string>("lock/" + id) : undefined
-			if (!(locked && locked > isoly.DateTime.now())) {
-				const key = await this.storage.get<string>("id/" + id)
-				result = key ? await this.storage.get<T>(key) : undefined
-				lock &&
-					(await this.storage.put(
-						"lock/" + id,
-						isoly.DateTime.create(isoly.TimeSpan.toMilliseconds(lock) + Date.now())
-					))
+			id = await this.locked(id, lock)
+			console.log("id: ", id)
+			if (id == "locked")
+				result = { id } as T
+			else {
+				const key = await this.state.storage.get<string>("id/" + id)
+				result = key ? await this.state.storage.get<T>(key) : undefined
 			}
 		} else if (Array.isArray(id)) {
-			if (lock) {
-				const locks = Object.fromEntries((await this.portion.get<string>(id.map(i => "lock/" + id))).entries())
-				id = id.filter(i => (locks["lock/" + i] ?? "") < isoly.DateTime.now())
-			}
+			id = await this.locked(id, lock)
 			const listed = Object.fromEntries((await this.portion.get<T>(id)).entries())
-			lock &&
-				(await this.portion.put<T>(
-					Object.keys(listed).reduce(
-						(r, k) => ({
-							...r,
-							["lock/" + Key.getLast(k)]: isoly.DateTime.create(isoly.TimeSpan.toMilliseconds(lock) + Date.now()),
-						}),
-						{}
-					)
-				))
 			result = Object.values(listed)
 		} else if (typeof id == "object" || !id) {
 			const limit = id?.limit
 			result = (
 				await Promise.all(
 					(id && Array.isArray(id.prefix) ? id.prefix : [undefined])?.map(p =>
-						this.storage.list<T>({ prefix: p, limit }).then(r => Array.from(r.values()))
+						this.state.storage.list<T>({ prefix: p, limit }).then(r => Array.from(r.values()))
 					)
 				)
 			).flat()
@@ -104,22 +82,27 @@ export class Storage {
 			}
 		>,
 		type: "update" | "append",
+		prefix: string,
 		unlock?: true
 	): Promise<((T & Document) | undefined)[]> {
 		let toBeStored: Record<string, T & Document> = {}
 		for (const [id, { amendment, archived }] of Object.entries(amendments)) {
-			const key = await this.storage.get<string>("id/" + id)
-			const temp = key ? await this.storage.get<T>(key) : undefined
+			const key = await this.state.storage.get<string>("id/" + id)
+			const temp = key ? await this.state.storage.get<T>(key) : undefined
 			const old: (T & Document) | undefined = temp ?? archived
 			if (!amendment.applyTo || temp?.changed == amendment.applyTo) {
+				delete amendment.applyTo
 				const updated =
 					old &&
 					Document[type]<T & Document>(old, {
-						...(({ applyTo, ...rest }): T => rest as T)(amendment),
+						...amendment,
 						changed:
-							amendment.changed == old.changed ? isoly.DateTime.nextMillisecond(amendment.changed) : amendment.changed,
+							(amendment.changed == old.changed
+								? isoly.DateTime.nextMillisecond(amendment.changed)
+								: amendment.changed) ?? old.changed,
 					})
-				toBeStored = key && updated ? { ...toBeStored, [key]: updated } : toBeStored
+				toBeStored =
+					key && updated ? { ...toBeStored, [key ?? `${prefix}${updated.created}/${updated.id}`]: updated } : toBeStored
 			}
 		}
 		const result = await this.storeDocuments(toBeStored, unlock)
@@ -128,23 +111,29 @@ export class Storage {
 	async changeDocument<T extends Document & Record<string, any>>(
 		amendment: T & Partial<Document> & Pick<Document, "id">,
 		type: "update" | "append",
+		prefix: string,
 		archived?: T & Document,
 		unlock?: true
 	): Promise<(T & Document) | undefined> {
-		const key = await this.storage.get<string>("id/" + amendment.id)
-		const temp = key ? await this.storage.get<T>(key) : undefined
+		const key = await this.state.storage.get<string>("id/" + amendment.id)
+		const temp = key ? await this.state.storage.get<T>(key) : undefined
 		const old = temp ?? archived
 		let response
 		let updated
-		if (!amendment.applyTo || temp?.changed == amendment.applyTo) {
+		if (!amendment.applyTo || old?.changed == amendment.applyTo) {
+			delete amendment.applyTo
 			updated =
 				old &&
 				Document[type]<T>(old, {
-					...(({ applyTo, ...rest }): T => rest as T)(amendment),
+					...amendment,
 					changed:
-						amendment.changed == old.changed ? isoly.DateTime.nextMillisecond(amendment.changed) : amendment.changed,
+						(amendment.changed == old.changed
+							? isoly.DateTime.nextMillisecond(amendment.changed)
+							: amendment.changed) ?? old.changed,
 				})
-			response = key && updated ? await this.storeDocuments({ [key]: updated }, unlock) : undefined
+			response = updated
+				? await this.storeDocuments({ [key ?? `${prefix}${updated.created}/${updated.id}`]: updated }, unlock)
+				: undefined
 		}
 		return response ? updated : undefined
 	}
@@ -163,10 +152,10 @@ export class Storage {
 		if (typeof ids == "string") {
 			const idKey = "id/" + ids
 			const lockKey = "lock/" + ids
-			const key = await this.storage.get<string>(idKey)
-			const document = key ? await this.storage.get<Record<string, any>>(key) : undefined
+			const key = await this.state.storage.get<string>(idKey)
+			const document = key ? await this.state.storage.get<Record<string, any>>(key) : undefined
 			const changed = document && this.changedKey(document)
-			result = !!key && !!changed && (await this.storage.delete([key, idKey, changed, lockKey])) == 4
+			result = !!key && !!changed && (await this.state.storage.delete([key, idKey, changed, lockKey])) == 4
 		} else {
 			const idKey = ids.map(e => "id/" + e)
 			const lockKey = ids.map(e => "lock/" + e)
@@ -182,10 +171,44 @@ export class Storage {
 	async remove(keys: string | string[]): Promise<boolean | boolean[]> {
 		let result: boolean | boolean[]
 		if (typeof keys == "string")
-			result = !!keys && (await this.storage.delete(keys))
+			result = !!keys && (await this.state.storage.delete(keys))
 		else
 			result = await this.portion.remove(keys)
 		return result
+	}
+
+	private async locked(id: string, lock?: isoly.DateTime): Promise<string>
+	private async locked(id: string[], lock?: isoly.DateTime): Promise<string[]>
+	private async locked(id: string | string[], lock?: isoly.DateTime): Promise<string | string[]> {
+		return !isoly.DateTime.is(lock)
+			? id
+			: typeof id == "string"
+			? await this.state.blockConcurrencyWhile(async () => {
+					const locked = await this.state.storage.get<string>("lock/" + id)
+					console.log("lock: ", lock)
+					const result = !locked || locked < isoly.DateTime.now() ? id : "locked"
+					console.log("id: ", id)
+					result != "locked" && (await this.state.storage.put("lock/" + id, lock))
+					console.log("result: ", result)
+					return result
+			  })
+			: Array.isArray(id)
+			? await this.state.blockConcurrencyWhile(async () => {
+					const ids = id as string[]
+					const locks = Object.fromEntries((await this.portion.get<string>(ids.map(i => "lock/" + i))).entries())
+					id = ids.filter(i => (locks["lock/" + i] ?? "") < isoly.DateTime.now())
+					await this.portion.put(
+						id.reduce(
+							(r, k) => ({
+								...r,
+								["lock/" + k]: lock,
+							}),
+							{}
+						)
+					)
+					return id
+			  })
+			: id
 	}
 
 	static open(state: platform.DurableObjectState, changedPrecision?: "seconds" | "minutes" | "hours"): Storage
@@ -197,6 +220,6 @@ export class Storage {
 		state: platform.DurableObjectState | undefined,
 		changedPrecision?: "seconds" | "minutes" | "hours"
 	): Storage | undefined {
-		return state ? new Storage(state.storage, Portion.open(state.storage), changedPrecision ?? "seconds") : undefined
+		return state ? new Storage(state, Portion.open(state.storage), changedPrecision ?? "seconds") : undefined
 	}
 }

@@ -40,7 +40,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			case "string":
 				const bufferDoc = await this.buffer.load(selection, options)
 				const archiveDoc = await this.archive.load(selection)
-				result = bufferDoc ? bufferDoc : archiveDoc
+				result = bufferDoc?.id == "locked" ? undefined : bufferDoc ? bufferDoc : archiveDoc
 				break
 			case "object": //TODO: will return configuration.shards * limit
 				let bufferList: (T & Document) | undefined | ((Document & T) | undefined)[]

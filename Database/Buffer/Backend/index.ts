@@ -24,14 +24,11 @@ export class Backend {
 
 	async fetch(request: Request): Promise<Response> {
 		await this.configure(request)
-		const result = this.state.blockConcurrencyWhile(() =>
-			Context.handle(request, {
-				...(this.environment ?? {}),
-				state: this.state,
-				setAlarm: this.setAlarm,
-			})
-		)
-		return result
+		return Context.handle(request, {
+			...(this.environment ?? {}),
+			state: this.state,
+			setAlarm: this.setAlarm,
+		})
 	}
 	async configure(request: Request): Promise<void> {
 		const configuration = Configuration.from(

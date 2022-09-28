@@ -6,6 +6,7 @@ import { router } from "../../../router"
 export async function append(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: gracely.Result
 	const database = context.collection
+	const partition = request.search.partition
 	const user = await request.body
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
@@ -14,7 +15,8 @@ export async function append(request: http.Request, context: Context): Promise<h
 	else if (gracely.Error.is(database))
 		result = database
 	else {
-		const response = await database.users.append(user)
+		const partitioned = partition ? database.partition(partition) : database
+		const response = await partitioned.users.append(user, true)
 		result = response
 			? gracely.success.created(response)
 			: gracely.server.databaseFailure("Unable to append to user, probably doesn't exists.")
