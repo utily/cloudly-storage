@@ -26,7 +26,6 @@ export class Storage {
 		let result: T | T[] | undefined = undefined
 		if (typeof id == "string") {
 			id = await this.locked(id, lock)
-			console.log("id: ", id)
 			if (id == "locked")
 				result = { id } as T
 			else {
@@ -185,11 +184,8 @@ export class Storage {
 			: typeof id == "string"
 			? await this.state.blockConcurrencyWhile(async () => {
 					const locked = await this.state.storage.get<string>("lock/" + id)
-					console.log("lock: ", lock)
 					const result = !locked || locked < isoly.DateTime.now() ? id : "locked"
-					console.log("id: ", id)
 					result != "locked" && (await this.state.storage.put("lock/" + id, lock))
-					console.log("result: ", result)
 					return result
 			  })
 			: Array.isArray(id)
