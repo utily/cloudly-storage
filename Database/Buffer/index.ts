@@ -59,12 +59,23 @@ export class Buffer<T = any> {
 				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, cursor))
 				.get<Loaded<T>>(`/buffer/${encodeURIComponent(cursor)}`, {
 					...this.header,
-					lock: JSON.stringify(options?.lock),
+					...(options?.lock
+						? { lock: isoly.DateTime.create(Date.now() + isoly.TimeSpan.toMilliseconds(options?.lock), "milliseconds") }
+						: {}),
 				})
 		} else if (Array.isArray(cursor)) {
-			response = await this.backend
-				.open(this.partitions)
-				.post<Loaded<T>>(`/buffer/prefix`, { id: cursor }, { ...this.header, lock: JSON.stringify(options?.lock) })
+			response = await this.backend.open(this.partitions).post<Loaded<T>>(
+				`/buffer/prefix`,
+				{ id: cursor },
+				{
+					...this.header,
+					...(options?.lock
+						? {
+								lock: isoly.DateTime.create(Date.now() + isoly.TimeSpan.toMilliseconds(options?.lock), "milliseconds"),
+						  }
+						: {}),
+				}
+			)
 		} else if (cursor != null && typeof cursor == "object") {
 			const body = {
 				prefix: Cursor.prefix(cursor).map(p => this.generatePrefix(p)),
@@ -151,7 +162,7 @@ export class Buffer<T = any> {
 						},
 						archived,
 					},
-					this.header
+					{ ...this.header, ...(unlock ? { unlock: unlock.toString() } : {}) }
 				)
 			result = gracely.Error.is(updated) ? undefined : updated
 		}
@@ -188,7 +199,7 @@ export class Buffer<T = any> {
 						},
 						archived,
 					},
-					{ ...this.header, unlock: unlock?.toString() }
+					{ ...this.header, ...(unlock ? { unlock: unlock.toString() } : {}) }
 				)
 			result = gracely.Error.is(updated) ? undefined : updated
 		}
@@ -227,7 +238,7 @@ export class Buffer<T = any> {
 									: r,
 							{}
 						),
-						{ ...this.header, unlock: unlock?.toString() }
+						{ ...this.header, ...(unlock ? { unlock: unlock.toString() } : {}) }
 					)
 				)
 			)

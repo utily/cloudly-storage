@@ -53,16 +53,18 @@ export class Archivist {
 	}
 	private async removeArchived(threshold: string): Promise<void> {
 		const lastArchived = await this.lastArchived
-		const archived: isoly.DateTime | undefined = lastArchived ? Key.getAt(lastArchived, -2) : undefined
+		const archived: isoly.DateTime | undefined = lastArchived ? Key.getTime(lastArchived) : undefined
 		if (archived) {
 			const keys = []
 			const remove = isoly.DateTime.previousSecond(threshold, this.configuration.removeAfter)
 			const changed = Array.from(
 				(await this.state.storage.list<string>({ prefix: "changed/", limit: 2 * this.limit })).entries()
 			)
-			for (const [key, value] of changed)
-				if (Key.getAt(key, -2) <= remove && Key.getAt(key, -2) <= archived)
+			for (const [key, value] of changed) {
+				const time = Key.getTime(key)
+				if (time && time <= remove && time <= archived)
 					keys.push("lock/" + Key.getLast(value), "id/" + Key.getLast(value), key, value)
+			}
 			await this.storage.remove(keys)
 		}
 	}
@@ -78,11 +80,14 @@ export class Archivist {
 		)
 		const staleKeys: string[] = []
 		let lastChanged: string | undefined
-		for (const [key, value] of changes)
-			if (Key.getAt(key, -2) < threshold) {
-				lastChanged = key
+		for (const [key, value] of changes) {
+			const time = Key.getTime(key)
+			if ((time ?? "") < threshold) {
+				lastChanged = time ? key : lastChanged
 				staleKeys.push(value)
-			}
+			} else
+				break
+		}
 		if (lastChanged) {
 			Archivist.#lastArchived = Promise.resolve(lastChanged)
 			await this.state.storage.put<string>("lastArchived", lastChanged)

@@ -29,7 +29,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		)
 	}
 	load(id: Identifier, options?: { lock?: isoly.TimeSpan }): Promise<(T & Document) | undefined>
-	load(ids?: Identifier[], options?: { lock?: isoly.TimeSpan }): Promise<((Document & T) | undefined)[]>
+	load(ids?: Identifier[]): Promise<((Document & T) | undefined)[]>
 	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
 	async load(
 		selection?: Identifier | Identifier[] | Selection,
@@ -40,7 +40,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			case "string":
 				const bufferDoc = await this.buffer.load(selection, options)
 				const archiveDoc = await this.archive.load(selection)
-				result = bufferDoc ? bufferDoc : archiveDoc
+				result = bufferDoc?.id == "locked" ? undefined : bufferDoc ? bufferDoc : archiveDoc
 				break
 			case "object": //TODO: will return configuration.shards * limit
 				let bufferList: (T & Document) | undefined | ((Document & T) | undefined)[]
