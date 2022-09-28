@@ -142,7 +142,7 @@ export class Storage {
 		const oldDocuments = Array.from((await this.portion.get<Record<string, any>>(ids)).values())
 		await this.portion.remove([
 			...oldDocuments.map(document => this.changedKey(document)),
-			...(unlock ? ids.map(i => "lock/" + i) : []),
+			...(unlock ? oldDocuments.map(document => "lock/" + document.id) : []),
 		])
 		return Object.entries(documents).reduce((r, [key, document]) => ({ ...r, [this.changedKey(document)]: key }), {})
 	}
