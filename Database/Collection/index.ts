@@ -29,7 +29,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		)
 	}
 	load(id: Identifier, options?: { lock?: isoly.TimeSpan }): Promise<(T & Document) | undefined>
-	load(ids?: Identifier[], options?: { lock?: isoly.TimeSpan }): Promise<((Document & T) | undefined)[]>
+	load(ids?: Identifier[]): Promise<((Document & T) | undefined)[]>
 	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
 	async load(
 		selection?: Identifier | Identifier[] | Selection,
