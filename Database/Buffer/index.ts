@@ -131,118 +131,41 @@ export class Buffer<T = any> {
 		}
 		return result
 	}
-	async update(
-		amendment: Partial<T & Document> & { id: Document["id"] },
-		archived?: T & Document,
-		unlock?: true
-	): Promise<(T & Document) | undefined>
-	async update(
-		amendments: (Partial<T & Document> & { id: Document["id"] })[],
-		archived?: Record<string, T & Document>,
-		unlock?: true
-	): Promise<((T & Document) | undefined)[]>
-	async update(
-		amendments: (Partial<T & Document> & { id: Document["id"] }) | (Partial<T & Document> & { id: Document["id"] })[],
-		archived?: (T & Document) | Record<string, T & Document>,
-		unlock?: true
-	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
-		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
-		if (Array.isArray(amendments))
-			result = await this.change(amendments, archived, "update", unlock)
-		else {
-			const updated = await this.backend
-				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, amendments.id))
-				.put<T & Document>(
-					`/buffer/document`,
-					{
-						amendment: {
-							...amendments,
-							changed: this.configuration.retainChanged ? isoly.DateTime.now() : amendments.changed,
-							applyTo: amendments.changed,
-						},
-						archived,
-					},
-					{ ...this.header, ...(unlock ? { unlock: unlock.toString() } : {}) }
-				)
-			result = gracely.Error.is(updated) ? undefined : updated
-		}
-		return result
-	}
-	async append(
-		amendment: Partial<T & Document> & { id: Document["id"] },
-		archived?: T & Document,
-		unlock?: true
-	): Promise<(T & Document) | undefined>
-	async append(
-		amendments: (Partial<T & Document> & { id: Document["id"] })[],
-		archived?: Record<string, T & Document>,
-		unlock?: true
-	): Promise<((T & Document) | undefined)[]>
-	async append(
-		amendments: (Partial<T & Document> & { id: Document["id"] }) | (Partial<T & Document> & { id: Document["id"] })[],
-		archived?: (T & Document) | Record<string, T & Document>,
-		unlock?: true
-	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
-		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
-		if (Array.isArray(amendments))
-			result = await this.change(amendments, archived, "append", unlock)
-		else {
-			const updated = await this.backend
-				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, amendments.id))
-				.patch<T & Document>(
-					`/buffer/document`,
-					{
-						amendment: {
-							...amendments,
-							changed: this.configuration.retainChanged ? isoly.DateTime.now() : amendments.changed,
-							applyTo: amendments.changed,
-						},
-						archived,
-					},
-					{ ...this.header, ...(unlock ? { unlock: unlock.toString() } : {}) }
-				)
-			result = gracely.Error.is(updated) ? undefined : updated
-		}
-		return result
-	}
-	private async change(
-		amendments: (Partial<T & Document> & { id: Document["id"] })[],
-		archived: (T & Document) | Record<string, T & Document> | undefined,
+
+	async change(
+		amendments: Record<string, Partial<T & Document> & { id: Document["id"] }>,
+		archived: Record<string, (T & Document) | undefined> | undefined,
 		type: "update" | "append",
 		unlock?: true
 	): Promise<(T & Document) | ((T & Document) | undefined)[] | undefined> {
-		return (
+		const shards = Configuration.Buffer.getShard(this.configuration, Object.keys(amendments))
+		const response = (
 			await Promise.all(
-				Object.entries(
-					Configuration.Buffer.getShard(
-						this.configuration,
-						amendments.map(d => d.id)
-					)
-				).map(([shard, keys]) =>
+				Object.entries(shards).map(([shard, keys]) =>
 					this.backend.open(this.partitions + shard)[type == "update" ? "put" : "patch"]<(T & Document)[]>(
 						`/buffer/documents`,
-						amendments.reduce(
-							(r, d) =>
-								keys.includes(d.id)
-									? {
-											...r,
-											[d.id]: {
-												amendment: {
-													...d,
-													changed: this.configuration.retainChanged ? isoly.DateTime.now() : d.changed,
-													applyTo: d.changed,
-												},
-												archived: archived?.[d.id as keyof typeof archived],
-											},
-									  }
-									: r,
-							{}
+						keys.reduce(
+							(r, id) => [
+								...r,
+								[
+									{
+										...amendments[id],
+										changed: !this.configuration.retainChanged ? isoly.DateTime.now() : amendments[id].changed,
+										applyTo: amendments[id].changed,
+									},
+									archived?.[id],
+								],
+							],
+							[]
 						),
 						{ ...this.header, ...(unlock ? { unlock: unlock.toString() } : {}) }
 					)
 				)
 			)
-		).reduce((r: any[], e) => (gracely.Error.is(e) ? r : [...e, ...r]), [])
+		).reduce((r: any[], e) => {
+			return gracely.Error.is(e) ? r : [...e, ...r]
+		}, [])
+		return Object.keys(amendments).length == 1 && response ? response[0] : response
 	}
 
 	remove(id: string): Promise<boolean>
