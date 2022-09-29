@@ -14,12 +14,11 @@ export namespace Collection {
 					users: {
 						type: "collection",
 						idLength: 4,
-						retainChanged: true,
-						shards: 1,
-						reconcileAfter: { minutes: 1 },
-						superimposeFor: { minutes: 1 },
+						shards: 2,
+						reconcileAfter: { seconds: 10 },
+						superimposeFor: { seconds: 15 },
 						reconciliationInterval: { seconds: 10 },
-						retention: { minutes: 10 },
+						retention: { hours: 1 },
 						partitions: {
 							testtest: { retention: { minutes: 1 }, reconcileAfter: { seconds: 10 }, retainChanged: false },
 						},

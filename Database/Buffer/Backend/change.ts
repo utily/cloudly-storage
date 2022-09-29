@@ -7,16 +7,14 @@ import { router } from "./router"
 export async function update(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: gracely.Result
 	const body = await request.body
-	const amendment = body?.amendment
-	const archived = body?.archived
-	const storage = context.storage
-	const unlock = request.header.unlock == "true" || undefined
 	const prefix =
 		typeof request.header.documentType == "string" && typeof request.header.partitions == "string"
 			? request.header.documentType + "/" + request.header.partitions
 			: undefined
-	if (!amendment || !amendment.id)
-		result = gracely.client.invalidContent("Partial<Document>", "The body must contain a Partial<Document>")
+	const storage = context.storage
+	const unlock = request.header.unlock == "true" || undefined
+	if (!body)
+		result = gracely.client.invalidContent("Partial<Document>[]", "The body must contain a Partial<Document>[]")
 	else if (!storage)
 		result = gracely.server.backendFailure("Failed to open Buffer Storage.")
 	else if (!prefix)
@@ -27,11 +25,10 @@ export async function update(request: http.Request, context: Context): Promise<h
 	else {
 		try {
 			const document = await context.state.blockConcurrencyWhile(() =>
-				storage.changeDocument<Record<string, any> & Document>(
-					amendment,
+				storage.changeDocuments<Record<string, any> & Document>(
+					body,
 					request.method == "PUT" ? "update" : "append",
 					prefix,
-					archived,
 					unlock
 				)
 			)
@@ -44,5 +41,5 @@ export async function update(request: http.Request, context: Context): Promise<h
 	return result
 }
 
-router.add("PATCH", "/buffer/document", update)
-router.add("PUT", "/buffer/document", update)
+router.add("PUT", "/buffer/documents", update)
+router.add("PATCH", "/buffer/documents", update)

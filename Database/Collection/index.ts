@@ -135,18 +135,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		amendments: (Partial<T & Document> & Pick<Document, "id">) | (Partial<T & Document> & Pick<Document, "id">)[],
 		unlock?: true
 	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
-		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
-		if (Array.isArray(amendments)) {
-			const archived: Record<string, T & Document> = amendments.reduce(async (r, a) => {
-				const loaded = await this.archive.load(a.id)
-				return { ...r, ...(loaded ? { [a.id]: loaded } : {}) }
-			}, {})
-			result = await this.buffer.update(amendments, archived, unlock)
-		} else {
-			const archived = await this.archive.load(amendments.id)
-			result = await this.buffer.update(amendments, archived, unlock)
-		}
-		return result
+		return this.change(amendments, "update", unlock)
 	}
 	async append(
 		amendment: Partial<T & Document> & Pick<Document, "id">,
@@ -160,16 +149,26 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		amendments: (Partial<T & Document> & Pick<Document, "id">) | (Partial<T & Document> & Pick<Document, "id">)[],
 		unlock?: true
 	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
+		return this.change(amendments, "append", unlock)
+	}
+	private async change(
+		amendments: (Partial<T & Document> & Pick<Document, "id">) | (Partial<T & Document> & Pick<Document, "id">)[],
+		type: "append" | "update",
+		unlock?: true
+	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
 		let result: (T & Document) | undefined | ((T & Document) | undefined)[]
 		if (Array.isArray(amendments)) {
-			const archived: Record<string, T & Document> = amendments.reduce(async (r, a) => {
-				const loaded = await this.archive.load(a.id)
-				return { ...r, ...(loaded ? { [a.id]: loaded } : {}) }
-			}, {})
-			result = await this.buffer.append(amendments, archived, unlock)
+			const changes: Record<string, Partial<T & Document> & Pick<Document, "id">> = {}
+			const archived: Record<string, (T & Document) | undefined> = {}
+			for await (const amendment of amendments) {
+				const loaded = await this.archive.load(amendment.id)
+				changes[amendment.id] = amendment
+				archived[amendment.id] = loaded ? loaded : undefined
+			}
+			result = await this.buffer.change(changes, archived, type, unlock)
 		} else {
 			const archived = await this.archive.load(amendments.id)
-			result = await this.buffer.append(amendments, archived, unlock)
+			result = await this.buffer.change({ [amendments.id]: amendments }, { [amendments.id]: archived }, type, unlock)
 		}
 		return result
 	}
