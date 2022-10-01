@@ -1,3 +1,4 @@
+import * as cryptly from "cryptly"
 import * as isoly from "isoly"
 import { Archive } from "../Archive"
 import { Buffer } from "../Buffer"
@@ -22,7 +23,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			this.archive.partition(partition.join("/")),
 			this.buffer.partition(partition.join("/")),
 			partition.reduce(
-				(r: Configuration.Collection.Complete, e) => ({ ...r, ...(r.partitions?.[e] ?? {}) }),
+				(r: Configuration.Collection.Complete, e) => ({ ...r, partitions: undefined, ...(r.partitions?.[e] ?? {}) }),
 				this.configuration
 			),
 			this.partitions + partition.join("/") + "/"
@@ -100,11 +101,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 	): Promise<(Document & T) | undefined | (Document & T)[]> {
 		let result: (Document & T) | undefined | (Document & T)[]
 		if (!Array.isArray(documents)) {
-			const allocated = await this.archive.allocateId({
-				...documents,
-				created: documents.created ?? isoly.DateTime.now(),
-				changed: isoly.DateTime.now(),
-			})
+			const allocated = await this.archive.allocateId(documents)
 			result = allocated
 				? {
 						...documents,
@@ -115,6 +112,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			result = (await Promise.all(documents.map(d => this.allocateId(d)))).filter(e => e)
 		return result
 	}
+
 	store(document: T & Partial<Document>): Promise<(T & Document) | undefined>
 	store(documents: (T & Partial<Document>)[]): Promise<(T & Document)[]>
 	async store(
@@ -183,6 +181,24 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		)
 		return Array.isArray(ids) ? result : result.some(e => e == true)
 	}
+
+	replace(document: T & Partial<Document>): Promise<(T & Document) | undefined>
+	replace(documents: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
+	async replace(
+		documents: (T & Partial<Document>) | (T & Partial<Document>)[]
+	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
+		const update = (document: T & Partial<Document>) => ({
+			...document,
+			id: document.id ?? cryptly.Identifier.generate(this.configuration.idLength),
+			created: document.created ?? isoly.DateTime.now(),
+			changed: this.configuration.retainChanged && document.changed ? document.changed : isoly.DateTime.now(),
+		})
+		const toStore: (T & Document) | (T & Document)[] = Array.isArray(documents)
+			? documents.map<T & Document>(update)
+			: update(documents)
+		return await this.buffer.store(toStore)
+	}
+
 	static open<T extends object = any>(
 		archive: Archive<T>,
 		buffer: Buffer<T>,

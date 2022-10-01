@@ -110,7 +110,7 @@ export class Buffer<T = any> {
 			const response = await this.backend
 				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, document.id))
 				.post<T & Document>(`/buffer`, { [key]: document }, this.header)
-			result = gracely.Error.is(response) ? undefined : response
+			result = Array.isArray(response) ? response[0] : undefined
 		} else {
 			result = (
 				await Promise.all(
@@ -190,6 +190,7 @@ export class Buffer<T = any> {
 		}
 		return result
 	}
+
 	static open<T extends object = any>(backend: DurableObject.Namespace, configuration: Configuration.Buffer): Buffer<T>
 	static open<T extends object = any>(
 		backend: DurableObject.Namespace | undefined,

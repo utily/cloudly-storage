@@ -51,10 +51,11 @@ export class Storage {
 	async storeDocuments<T extends { id: string } & Record<string, any>>(
 		documents: Record<string, T>,
 		unlock?: true
-	): Promise<T | T[]> {
+	): Promise<T[]> {
 		const oldIdIndices = Object.fromEntries(
 			(await this.portion.get<string>(Object.values(documents).map(document => "id/" + document.id))).entries()
 		)
+		console.log("here3")
 		const { newDocuments, idIndices } = Object.entries(documents).reduce(
 			(r: { newDocuments: Record<string, T>; idIndices: Record<string, string> }, [key, document]) => ({
 				newDocuments: { ...r.newDocuments, [oldIdIndices["id/" + document.id] ?? key]: document },
@@ -62,49 +63,45 @@ export class Storage {
 			}),
 			{ newDocuments: {}, idIndices: {} }
 		)
+		console.log("here2")
 		const changedIndex = await this.updateChangedIndex(newDocuments, unlock)
+		console.log("here1")
 		await this.portion.put({
 			...newDocuments,
 			...idIndices,
 			...changedIndex,
 		})
+		console.log("here0: ", documents)
 		const result = Object.values(documents)
-		return result.length == 1 ? result[0] : result
+		console.log("here: ")
+		return result
 	}
 
 	async changeDocuments<T extends Document & Record<string, any>>(
-		changes: [T & Partial<Document> & Pick<Document, "id">, T & Document][],
+		amendments: [T & Partial<Document> & Pick<Document, "id">, T & Document][],
 		type: "update" | "append",
 		prefix: string,
-		unlock?: true
-	): Promise<((T & Document) | undefined)[]> {
-		return await Promise.all(
-			changes.map(([amendment, archived]) => this.changeDocument(amendment, type, prefix, archived, unlock))
-		)
-	}
-	async changeDocument<T extends Document & Record<string, any>>(
-		amendment: T & Partial<Document> & Pick<Document, "id">,
-		type: "update" | "append",
-		prefix: string,
-		archived?: T & Document,
 		unlock?: true
 	): Promise<(T & Document) | undefined> {
-		const key = await this.state.storage.get<string>("id/" + amendment.id)
-		const temp = key ? await this.state.storage.get<T>(key) : undefined
-		const old = temp ?? archived
-		let response
-		let updated
-		if (!amendment.applyTo || old?.changed == amendment.applyTo) {
-			delete amendment.applyTo
-			updated =
-				old &&
-				Document[type]<T>(old, {
-					...amendment,
-					changed:
-						(amendment.changed == old.changed
-							? isoly.DateTime.nextMillisecond(amendment.changed)
-							: amendment.changed) ?? old.changed,
-				})
+		const toStore = {}
+		for (const [amendment, archived] of amendments) {
+			const key = await this.state.storage.get<string>("id/" + amendment.id)
+			const temp = key ? await this.state.storage.get<T>(key) : undefined
+			const old = temp ?? archived
+			let response
+			let updated
+			if (!amendment.applyTo || old?.changed == amendment.applyTo) {
+				delete amendment.applyTo
+				updated =
+					old &&
+					Document[type]<T>(old, {
+						...amendment,
+						changed:
+							(amendment.changed == old.changed
+								? isoly.DateTime.nextMillisecond(amendment.changed)
+								: amendment.changed) ?? old.changed,
+					})
+			}
 			response = updated
 				? await this.storeDocuments({ [key ?? `${prefix}${updated.created}/${updated.id}`]: updated }, unlock)
 				: undefined

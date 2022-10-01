@@ -7,8 +7,9 @@ export async function store(request: http.Request, context: Context): Promise<ht
 	let result: gracely.Result
 	const document: Record<string, any> = await request.body
 	const storage = context.storage
+	console.log("djiajdi: ", document)
 	if (!document)
-		result = gracely.client.invalidContent("Item", "Body is not a valid item.")
+		result = gracely.client.invalidContent("Item", "Body is not a valid Document.")
 	else if (!storage)
 		result = gracely.server.backendFailure("Failed to open Buffer Storage.")
 	else {

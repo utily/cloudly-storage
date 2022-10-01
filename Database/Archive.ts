@@ -34,7 +34,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		if (document.created == undefined)
 			document = { ...document, created: isoly.DateTime.now() }
 		if (document.changed == undefined)
-			document = { ...document, changed: document.created }
+			document = { ...document, changed: isoly.DateTime.now() }
 		let result =
 			(document.id != undefined && !Identifier.is(document.id, this.configuration.idLength)) ||
 			!isoly.DateTime.is(document.created) ||
@@ -157,45 +157,21 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		return result && (await this.set(result))
 	}
 
-	async update(amendment: Partial<T & Document>): Promise<(T & Document) | undefined>
-	async update(amendment: T & Document): Promise<(T & Document) | undefined>
-	async update(amendments: Partial<T & Document>[]): Promise<((T & Document) | undefined)[]>
-	async update(
-		amendments: Partial<T & Document> | Partial<T & Document>[]
+	replace(document: T & Partial<Document>): Promise<(T & Document) | undefined>
+	replace(documents: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
+	async replace(
+		documents: (T & Partial<Document>) | (T & Partial<Document>)[]
 	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
-		let updated: ((T & Document) | undefined) | (T & Document)[] = []
-		if (Array.isArray(amendments)) {
-			for (const amendment of amendments) {
-				const archived = await (amendment.id ? this.load(amendment.id) : undefined)
-				const document =
-					archived && Document.update<Document & T>(archived, { ...amendment, created: archived.created })
-				document && updated.push(document)
+		let result: (T & Document) | undefined | (T & Document)[] = Array.isArray(documents) ? [] : undefined
+		for (let document of Array.isArray(documents) ? documents : [documents]) {
+			if (!this.configuration.retainChanged || !document.changed)
+				document = { ...document, changed: isoly.DateTime.now() }
+			if (Document.is(document)) {
+				await this.backend.id.set(document.id, this.generateKey(document), { retention: this.configuration.retention })
+				Array.isArray(result) ? result.push(document) : (result = document)
 			}
-		} else {
-			const archived = await (amendments.id ? this.load(amendments.id) : undefined)
-			updated = archived && Document.update(archived, { ...amendments, created: archived.created })
 		}
-		return updated && (await this.set(updated))
-	}
-	async append(amendment: Partial<T & Document>): Promise<(T & Document) | undefined>
-	async append(amendment: T & Document): Promise<(T & Document) | undefined>
-	async append(amendments: Partial<T & Document>[]): Promise<((T & Document) | undefined)[]>
-	async append(
-		amendments: Partial<T & Document> | Partial<T & Document>[]
-	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
-		let updated: ((T & Document) | undefined) | (T & Document)[] = []
-		if (Array.isArray(amendments)) {
-			for (const amendment of amendments) {
-				const archived = await (amendment.id ? this.load(amendment.id) : undefined)
-				const document =
-					archived && Document.append<Document & T>(archived, { ...amendment, created: archived.created })
-				document && updated.push(document)
-			}
-		} else {
-			const archived = await (amendments.id ? this.load(amendments.id) : undefined)
-			updated = archived && Document.append(archived, { ...amendments, created: archived.created })
-		}
-		return updated && (await this.set(updated))
+		return result && (await this.set(result))
 	}
 	private async set(document: T & Document): Promise<(T & Document) | undefined>
 	private async set(documents: (T & Document)[]): Promise<((T & Document) | undefined)[]>
