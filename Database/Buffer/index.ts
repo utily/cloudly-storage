@@ -150,7 +150,10 @@ export class Buffer<T = any> {
 								[
 									{
 										...amendments[id],
-										changed: !this.configuration.retainChanged ? isoly.DateTime.now() : amendments[id].changed,
+										changed:
+											!this.configuration.retainChanged || !amendments[id].changed
+												? isoly.DateTime.now()
+												: amendments[id].changed,
 										applyTo: amendments[id].changed,
 									},
 									archived?.[id],

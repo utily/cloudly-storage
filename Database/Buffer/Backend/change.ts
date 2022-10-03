@@ -9,7 +9,7 @@ export async function update(request: http.Request, context: Context): Promise<h
 	const body = await request.body
 	const prefix =
 		typeof request.header.documentType == "string" && typeof request.header.partitions == "string"
-			? request.header.documentType + "/" + request.header.partitions
+			? request.header.documentType + "/doc/" + request.header.partitions
 			: undefined
 	const storage = context.storage
 	const unlock = request.header.unlock == "true" || undefined

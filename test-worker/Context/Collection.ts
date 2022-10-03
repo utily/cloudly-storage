@@ -20,7 +20,7 @@ export namespace Collection {
 						reconciliationInterval: { seconds: 10 },
 						retention: { hours: 1 },
 						partitions: {
-							testtest: { retention: { minutes: 1 }, reconcileAfter: { seconds: 10 }, retainChanged: false },
+							testtest: { retention: { minutes: 30 }, reconcileAfter: { seconds: 10 } },
 						},
 					},
 				},
