@@ -34,7 +34,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		if (document.created == undefined)
 			document = { ...document, created: isoly.DateTime.now() }
 		if (document.changed == undefined)
-			document = { ...document, changed: document.created }
+			document = { ...document, changed: isoly.DateTime.now() }
 		let result =
 			(document.id != undefined && !Identifier.is(document.id, this.configuration.idLength)) ||
 			!isoly.DateTime.is(document.created) ||
@@ -257,7 +257,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		return new Archive<T>(
 			this.backend,
 			partition.reduce(
-				(r: Configuration.Archive.Complete, e) => ({ ...r, ...(r.partitions?.[e] ?? {}) }),
+				(r: Configuration.Archive.Complete, e) => ({ ...r, partitions: undefined, ...(r.partitions?.[e] ?? {}) }),
 				this.configuration
 			),
 			this.partitions + partition.join("/") + "/"

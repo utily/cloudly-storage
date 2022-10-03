@@ -20,8 +20,7 @@ export namespace User {
 			value.groups.every((e: any) => typeof e == "string") &&
 			value.name &&
 			typeof value.name == "string" &&
-			value.created &&
-			isoly.DateTime.is(value.created)
+			(value.created == undefined || isoly.DateTime.is(value.created))
 		)
 	}
 }

@@ -22,7 +22,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			this.archive.partition(partition.join("/")),
 			this.buffer.partition(partition.join("/")),
 			partition.reduce(
-				(r: Configuration.Collection.Complete, e) => ({ ...r, ...(r.partitions?.[e] ?? {}) }),
+				(r: Configuration.Collection.Complete, e) => ({ ...r, partitions: undefined, ...(r.partitions?.[e] ?? {}) }),
 				this.configuration
 			),
 			this.partitions + partition.join("/") + "/"
@@ -100,11 +100,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 	): Promise<(Document & T) | undefined | (Document & T)[]> {
 		let result: (Document & T) | undefined | (Document & T)[]
 		if (!Array.isArray(documents)) {
-			const allocated = await this.archive.allocateId({
-				...documents,
-				created: documents.created ?? isoly.DateTime.now(),
-				changed: isoly.DateTime.now(),
-			})
+			const allocated = await this.archive.allocateId(documents)
 			result = allocated
 				? {
 						...documents,
