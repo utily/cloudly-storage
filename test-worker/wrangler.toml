@@ -1,5 +1,6 @@
 compatibility_date = "2022-07-27"
 type = "javascript"
+main = "dist/index.mjs"
 name = "cloudly-storage-test-worker"
 account_id = "f86ca9874dda1e291a86b8c1c48186e2"
 zone_id = "55e42f9e4cf20c081726c799a7a41f22"
@@ -13,7 +14,7 @@ kv_namespaces = [
 vars = { }
 
 [build]
-command = "npm install && npm run build"
+command = "node build.js"
 
 [durable_objects]
 bindings = [
@@ -21,10 +22,14 @@ bindings = [
 	{ name = "Do", class_name = "Do" },
 ]
 
+[miniflare]
+kv_persist = true
+cache_persist = true
+durable_objects_persist = true
+
 
 [build.upload]
 format = "modules"
-main = "./_worker.js"
 
 [dev]
 port = 7212

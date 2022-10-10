@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
     "outDir": "./dist/",
-    "target": "es2019",
-    "module": "es2015",
+    "target": "esnext",
+    "module": "esnext",
     "sourceMap": true,
     "experimentalDecorators": true,
     "esModuleInterop": true,
-		"lib": ["es2019", "webworker"],
+		"lib": ["esnext"],
 		"noImplicitAny": true,
 		"removeComments": true,
 		"preserveConstEnums": true,
@@ -18,8 +18,9 @@
 		"alwaysStrict": true,
 		"strict": true,
 		"allowJs": true,
-    "types": ["@cloudflare/workers-types","node","jest"]
+    "types": ["@cloudflare/workers-types", "node", "jest", "globals"]
 	},
+  "include": ["**/*", "globals.d.ts"],
 	"typeAcquisition": {
 		"enable": true
 	}
