@@ -10,7 +10,7 @@
 		"url": "https://github.com/utily/cloudly-storage/issues"
 	},
 	"homepage": "https://github.com/utily",
-	"main": "dist/_worker.js",
+	"main": "dist/index.js",
 	"typings": "dist/index.d.ts",
 	"type": "module",
 	"git": {
@@ -29,7 +29,7 @@
 		"transpile": "tsc --project tsconfig.test.json",
 		"deploy": "wrangler login && wrangler publish; wrangler logout",
 		"login": "wrangler login",
-		"start": "node --experimental-vm-modules --inspect ./node_modules/miniflare/dist/src/cli.js dist/_worker.js --wrangler-env miniflare --watch --live-reload",
+		"start": "node --experimental-vm-modules --inspect ./node_modules/miniflare/dist/src/cli.js dist/index.js --wrangler-env miniflare --watch --live-reload",
 		"start:wrangler": "wrangler dev --env wrangler",
 		"clean": "rimraf dist node_modules coverage",
 		"forge": "cd .. && rm -rf dist/ && npm run build && cd test-worker/"
