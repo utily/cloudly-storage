@@ -70,20 +70,21 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	}
 
 	private async list(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }> {
-		const cursor = Cursor.from(selection)
+		const cursor = Cursor.Archive.from(selection)
 		return cursor?.type == "changed" ? await this.listChanged(cursor) : await this.listDocs(cursor)
 	}
 
-	private async listDocs(cursor?: Cursor): Promise<(Document & T)[] & { cursor?: string }> {
+	private async listDocs(cursor?: Cursor.Archive): Promise<(Document & T)[] & { cursor?: string }> {
 		const result: (T & Document)[] & { cursor?: string } & {
 			cursor?: string | undefined
 		} = []
 		let limit = cursor?.limit ?? Selection.standardLimit
 		let newCursor: string | undefined
-		for (const prefix of Cursor.prefix(cursor)) {
+		const prefixes = Cursor.Archive.prefix(cursor)
+		for (const prefix of prefixes) {
 			const loaded = await this.backend.doc.list({
 				prefix: this.partitions + prefix,
-				limit,
+				limit: limit,
 				cursor: cursor?.cursor,
 			})
 			const response = loaded.map(item => ({
@@ -92,9 +93,14 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			})) as (T & Document)[]
 
 			limit -= response.length
+			loaded.cursor = limit <= 1 && !loaded.cursor && prefix != (prefixes.slice(-1)[0] ?? "") ? "newDay" : loaded.cursor
 			result.push(...response)
 			if (loaded.cursor) {
-				newCursor = Cursor.serialize({ ...{ ...(cursor ?? { type: "doc" }) }, cursor: loaded.cursor })
+				newCursor = Cursor.Archive.serialize({
+					...(cursor ?? { type: "doc" }),
+					start: loaded.cursor == "newDay" ? isoly.Date.next(prefix) : prefix,
+					cursor: loaded.cursor,
+				})
 				break
 			}
 		}
@@ -102,13 +108,13 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			result.cursor = newCursor
 		return result
 	}
-	private async listChanged(cursor: Cursor): Promise<(Document & T)[] & { cursor?: string }> {
+	private async listChanged(cursor: Cursor.Archive): Promise<(Document & T)[] & { cursor?: string }> {
 		const result: (T & Document)[] & { cursor?: string } & {
 			cursor?: string | undefined
 		} = []
 		let limit = cursor?.limit ?? Selection.standardLimit
-		const startFrom = isoly.DateTime.is(cursor.range?.start) ? cursor.range?.start : undefined
-		const prefixes = Cursor.prefix(cursor)
+		const startFrom = isoly.DateTime.is(cursor.start) ? cursor.start : undefined
+		const prefixes = Cursor.Archive.prefix(cursor)
 		let newCursor: string | undefined
 		for (const prefix of prefixes) {
 			const changes = await this.backend.changed.list({
@@ -129,14 +135,14 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 					result.push(...loaded.reduce((r: (T & Document)[], e) => (e?.value ? [...r, e.value] : r), []))
 					limit -= keys.length
 				} else {
-					const start = Key.getTime(change.key)
-					cursor.range = start ? { start, end: cursor.range?.end ?? isoly.DateTime.now() } : undefined
+					cursor.start = Key.getTime(change.key)
+					cursor.end = cursor.end ?? isoly.DateTime.now()
 					break
 				}
 			}
 		}
-		if (cursor.range?.start != startFrom)
-			result.cursor = Cursor.serialize({ ...cursor, cursor: newCursor ?? cursor.cursor })
+		if (cursor.start != startFrom)
+			result.cursor = Cursor.Archive.serialize({ ...cursor, cursor: newCursor ?? cursor.cursor })
 		return result
 	}
 

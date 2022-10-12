@@ -8,11 +8,11 @@ import { router } from "../../../router"
 export async function list(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: (gracely.Result & { header: Record<string, string | undefined> }) | gracely.Error
 	const authorization = request.header.authorization
-	const cursor: { cursor: string } | undefined =
-		typeof request.header.cursor == "string" ? { cursor: request.header.cursor } : undefined
+	const limit = request.search.limit ? +request.search.limit : undefined
+	const cursor: { cursor: string; limit?: number } | undefined =
+		typeof request.header.cursor == "string" ? { cursor: request.header.cursor, limit } : undefined
 	const start = request.search.start
 	const end = request.search.end
-	const limit = request.search.limit ? +request.search.limit : undefined
 	const queryType: "created" | "changed" | undefined = request.search.type as "created" | "changed" | undefined
 	const database = context.collection
 	if (!authorization)
@@ -43,7 +43,7 @@ export async function list(request: http.Request, context: Context): Promise<htt
 		)
 	else {
 		const listed = await database.users.load(
-			cursor ? cursor : start && end && queryType ? { [queryType]: { start, end }, limit } : { limit }
+			cursor ? cursor : start && end ? { [queryType ?? "created"]: { start, end }, limit } : { limit }
 		)
 		const response = gracely.success.ok(listed) ?? gracely.server.databaseFailure()
 		result = { ...response, header: { ...response.header, cursor: listed.cursor } }

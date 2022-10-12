@@ -1,5 +1,14 @@
+import * as cryptly from "cryptly"
 import { Buffer } from "./Buffer"
 
+function createIds(): string[] {
+	const mask = 255
+	const result: string[] = []
+	for (let seed = 0; seed < mask + 1; seed++) {
+		result.push(cryptly.Identifier.fromBinary(new Uint8Array([seed ?? 0])) + "AA")
+	}
+	return result
+}
 describe("Buffer", () => {
 	const configuration: Buffer = { shards: 4 }
 	it("simple shard", () => {
@@ -27,11 +36,16 @@ describe("Buffer", () => {
 		expect(Buffer.getShard(configuration)).toEqual(["AA", "AQ", "Ag", "Aw"])
 	})
 	it("shard id array", () => {
-		expect(Buffer.getShard(configuration, ["AAAA", "AQAA", "AgAA", "AhAA", "AwAA"])).toEqual({
-			AA: ["AAAA"],
-			AQ: ["AQAA"],
-			Ag: ["AgAA", "AhAA"],
-			Aw: ["AwAA"],
-		})
+		const ids = createIds()
+		const shardMap = Buffer.getShard(configuration, ids)
+		expect(Object.values(shardMap).every(e => e.length == 64)).toBeTruthy()
+	})
+})
+describe("Buffer", () => {
+	const configuration: Buffer = { shards: 256 }
+	it("shard id array", () => {
+		const ids = createIds()
+		const shardMap = Buffer.getShard(configuration, ids)
+		expect(Object.values(shardMap).every(e => e.length == 1)).toBeTruthy()
 	})
 })
