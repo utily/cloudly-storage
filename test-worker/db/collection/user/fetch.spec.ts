@@ -8,17 +8,20 @@ describe.each([
 	{ db: collection, partitions: "no" },
 	{ db: partitioned, partitions: "one" },
 	{ db: partitioned2, partitions: "two" },
-])("Collection with $partitions partitions, fetch", ({ db, partitions }) => {
-	beforeAll(async () => {
-		await db?.store(users)
-	})
-	it("one", async () => {
-		const fetched = await db?.load(user.id)
-		expect(fetched).toMatchObject(user)
-	})
-	it.skip("TODO: FIX, many", async () => {
-		const fetched = await db?.load(users.map(user => user.id))
-		expect(fetched).toMatchObject(users)
+])("Collection fetch", ({ db, partitions }) => {
+	describe(`using ${partitions} partitions`, () => {
+		beforeAll(async () => {
+			await db?.store(users)
+		})
+		it("one", async () => {
+			const fetched = await db?.load(user.id)
+			expect(fetched).toMatchObject(user)
+		})
+		it.skip("TODO: FIX, many", async () => {
+			const fetched = await db?.load(users.map(user => user.id))
+			console.log("fetched: ", fetched)
+			expect(fetched).toMatchObject(users)
+		})
 	})
 })
 
