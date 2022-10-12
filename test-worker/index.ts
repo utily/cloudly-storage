@@ -1,15 +1,16 @@
 import { Context, Do } from "./Context"
 import { Environment } from "./Environment"
-export { Backend } from "cloudly-storage"
-export { Do }
 
 import "./db"
 import "./do"
 import "./kv"
 import "./version"
 
-export default {
-	async fetch(request: Request, environment: Environment) {
-		return await Context.handle(request, environment)
-	},
+export async function fetch(request: Request, environment: Environment) {
+	return await Context.handle(request, environment)
 }
+
+const worker: ExportedHandler<Environment> = { fetch }
+export default worker
+export { Backend } from "cloudly-storage"
+export { Do }
