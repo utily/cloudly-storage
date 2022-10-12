@@ -8,17 +8,24 @@ describe.each([
 	{ db: collection, partitions: "no" },
 	{ db: partitioned, partitions: "one" },
 	{ db: partitioned2, partitions: "two" },
-])("Collection with $partitions partitions, remove", ({ db, partitions }) => {
-	beforeAll(async () => {
-		await db?.store(users)
-	})
-	it.skip("TODO: FIX, one", async () => {
-		const removed = await db?.remove(user.id)
-		expect(removed).toBeTruthy()
-	})
-	it.skip("TODO: FIX, many", async () => {
-		const fetched = await db?.load(users.map(user => user.id))
-		expect(fetched).toMatchObject(users)
+])("Collection remove", ({ db, partitions }) => {
+	describe(`using ${partitions} partitions`, () => {
+		beforeAll(async () => {
+			await db?.store(users)
+		})
+		it("one user", async () => {
+			const loaded = await db?.load(user.id)
+			expect(model.User.is(loaded)).toBeTruthy()
+			await db?.remove(user.id)
+			const removed = await db?.load(user.id)
+			expect(removed).toBeUndefined()
+		})
+		it.skip("TODO: FIX; many users", async () => {
+			const loaded = await db?.load()
+			expect(loaded?.every(model.User.is)).toBeTruthy()
+			console.log("removed: ", await db?.remove(users.map(user => user.id)))
+			expect(await db?.load()).toMatchObject([])
+		})
 	})
 })
 
