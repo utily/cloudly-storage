@@ -4,9 +4,26 @@ import * as model from "../model"
 import { TestStorage } from "./TestStorage"
 
 export namespace TestSetup {
-	export const collection = TestStorage.collection?.users
-	export const archive = TestStorage.archive?.users
-
+	const collection = TestStorage.collection?.users
+	const archive = TestStorage.archive?.users
+	export const partitions = [
+		{ collection: collection, archive: archive, partitions: "noPartition" },
+		{
+			collection: collection?.partition("oneShard"),
+			archive: archive?.partition("oneShard"),
+			partitions: "oneShard",
+		},
+		{
+			collection: collection?.partition("twoShards"),
+			archive: archive?.partition("twoShards"),
+			partitions: "twoShards",
+		},
+		{
+			collection: collection?.partition("fourShards"),
+			archive: archive?.partition("fourShards"),
+			partitions: "fourShards",
+		},
+	]
 	export const createdDate = "2022-08-15"
 	export const createdTime = "T01:50:03.649Z"
 	export const user = {
