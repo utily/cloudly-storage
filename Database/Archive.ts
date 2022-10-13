@@ -84,7 +84,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		for (const prefix of prefixes) {
 			const loaded = await this.backend.doc.list({
 				prefix: this.partitions + prefix,
-				limit: limit,
+				limit,
 				cursor: cursor?.cursor,
 			})
 			const response = loaded.map(item => ({
