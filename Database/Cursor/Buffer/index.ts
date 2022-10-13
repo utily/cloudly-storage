@@ -12,12 +12,7 @@ export namespace Buffer {
 		return base ? { ...base, shard: parsed?.shard } : undefined
 	}
 	export function from(selection: Selection | any): Buffer | undefined {
-		let result: Buffer | undefined
 		const base = Base.from(selection)
-		if (selection?.cursor)
-			result = base?.shard ? base : undefined
-		else
-			result = base
-		return result
+		return selection?.cursor ? (base?.shard ? base : undefined) : base
 	}
 }

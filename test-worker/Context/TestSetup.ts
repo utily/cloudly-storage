@@ -34,9 +34,8 @@ export namespace TestSetup {
 	}
 	export function createIds(ids: number, suffix?: string): string[] {
 		const result: string[] = []
-		for (let seed = 0; seed < ids; seed++) {
+		for (let seed = 0; seed < ids; seed++)
 			result.push(cryptly.Identifier.fromBinary(new Uint8Array([seed ?? 0])) + suffix ?? "AA")
-		}
 		return result
 	}
 	export const numberOfUsers = 256

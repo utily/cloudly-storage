@@ -4,9 +4,8 @@ import { Buffer } from "./Buffer"
 function createIds(): string[] {
 	const mask = 255
 	const result: string[] = []
-	for (let seed = 0; seed < mask + 1; seed++) {
+	for (let seed = 0; seed < mask + 1; seed++)
 		result.push(cryptly.Identifier.fromBinary(new Uint8Array([seed ?? 0])) + "AA")
-	}
 	return result
 }
 describe("Buffer", () => {
