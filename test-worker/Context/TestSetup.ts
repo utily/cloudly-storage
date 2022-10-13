@@ -38,6 +38,15 @@ export namespace TestSetup {
 		limit: 50,
 		created: { start: isoly.Date.previous(createdDate, selectionRange - 1), end: createdDate },
 	}
+	export const numberOfUsers = 256
+	export const dateSplit = 4
+	export const primitiveUsers = createIds(numberOfUsers, "CO").map(id => ({ ...user, id }))
+	export const collectionUsers = splitOnDates(dateSplit, createdDate, primitiveUsers)
+	export const archiveUsers = splitOnDates(
+		4,
+		createdDate,
+		createIds(numberOfUsers, "AR").map(id => ({ ...user, id }))
+	)
 	export function splitOnDates(dates: number, lastDate: isoly.Date, users: model.User[]) {
 		const result: model.User[] = []
 		const portion = Math.floor(users.length / dates)
@@ -55,13 +64,4 @@ export namespace TestSetup {
 			result.push(cryptly.Identifier.fromBinary(new Uint8Array([seed ?? 0])) + suffix ?? "AA")
 		return result
 	}
-	export const numberOfUsers = 256
-	export const dateSplit = 4
-	export const primitiveUsers = createIds(numberOfUsers, "CO").map(id => ({ ...user, id }))
-	export const collectionUsers = splitOnDates(dateSplit, createdDate, primitiveUsers)
-	export const archiveUsers = splitOnDates(
-		4,
-		createdDate,
-		createIds(numberOfUsers, "AR").map(id => ({ ...user, id }))
-	)
 }

@@ -26,6 +26,7 @@
 		"build:local": "rollup --config rollup.dev.config.js",
 		"dev": "NODE_ENV=development npm run build",
     "test": "npm run build && node --experimental-vm-modules --no-warnings node_modules/jest/bin/jest.js",
+    "jest": "node --experimental-vm-modules --no-warnings node_modules/jest/bin/jest.js",
 		"transpile": "tsc --project tsconfig.test.json",
 		"deploy": "wrangler login && wrangler publish; wrangler logout",
 		"login": "wrangler login",
