@@ -1,4 +1,4 @@
-# Database
+# Developer Documentation
 
 ## Overview
 The two storage technologies used in this database are Durable Objects and the Cloudflare Key Value store (KV). There exists a low level abstraction around these technologies in the DurableObject and KeyValueStore folders respectively.
