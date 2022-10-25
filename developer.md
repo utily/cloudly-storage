@@ -13,13 +13,13 @@ The Database can be partitioned to store data in different layers. The key for t
 
 _figure 1: The architecture of the database._
 
-## Indicies
+## Indices
 There exists 3 types of keys in the Database, `id`, `changed` and `doc`; each adds functionality to the database.
 The definitions below are based on how they look in the `Archive`.
 
 ### doc
 The doc-index contains the document the user wants to store/load/update.
-The structure of the doc-key makes it possible to list certain a partition and query it on created time with a date range.
+The structure of the doc-key makes it possible to list a certain partition and query it on created time with a date range.
 
 Definition:
 ```ts
@@ -61,7 +61,7 @@ The shard is calculated from the first two characters in the id of the document.
 The Cursor's content should be obscured from the end user, this is done by base 64 encode the data. Encoding is enough since we're not dealing with security, rather ensuring the end user doesn't consider the Cursor to be mutable.
 
 ## Archivist
-The Archivist is located in the backend of the buffer. The Archivist should be called by the alarm and will store any documents stale documents. Stale documents are identified by comparing the changed index with the `reconcileAfter` time. Stale documents are then  written to the KV corresponding to the Archive used by the Collection. The Archivist will delete any documents changed before `superimposeFor` + the time of the last changed index written to the KV.
+The Archivist is located in the backend of the buffer. The Archivist should be called by the alarm and will store any stale documents. Stale documents are identified by comparing the changed index with the `reconcileAfter` time. Stale documents are then  written to the KV corresponding to the Archive used by the Collection. The Archivist will delete any documents changed before `superimposeFor` + the time of the last changed index written to the KV.
 
 # Test-worker
 The test-worker runs a miniflare environment on jest to mock the behavior of durable objects and the Cloudflare KV. Make sure to write tests for any new features added to the database. 

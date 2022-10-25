@@ -24,7 +24,7 @@ bindings = [
 The binding in the kv-namespaces and the name of the durable_objects bindings can be whatever you want.
 
 ### Opening the DB
-Lets say we want to open a transactional database that can store users with an interface User.
+Lets say we want to open a transactional database that can store users with an interface User. A type Layout is required to cofigure the types of the database, in which you define what type of ducument you want to store, the name of the document type and the type of database you want.
 ```ts
 import { User } from "../model/User"
 import * as gracely from "gracely"
@@ -50,9 +50,9 @@ export abstract class Storage {
 	}
 }
 ```
-Here the the dependency `gracely` is used to generate errors. Note that the `Storage.environment.archive` & `Storage.environment.BufferBackend` needs to correspond to the bindings defined in wrangler.toml. The initialize function needs to be called with the environment by the worker before utilizing the database. The types for the configuration can be found in the [configuraion folder](Database/Configuration).
+Here the dependency `gracely` is used to generate errors. Note that the `Storage.environment.archive` & `Storage.environment.BufferBackend` needs to correspond to the bindings defined in wrangler.toml. The initialize function needs to be called with the environment by the worker before utilizing the database. The types for the configuration can be found in the [configuration folder](Database/Configuration).
 
-Now the database can be used by the worker as follows:
+Now an abstraction around the store function can be made to suit the use case, the following is just an example of how the database can be used.
 ```ts
 import { Storage } from "./Storage"
 import { User } from "../model/User"
