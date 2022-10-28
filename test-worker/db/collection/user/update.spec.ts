@@ -1,85 +1,58 @@
-import { TestStorage } from "../../../Context/TestStorage"
+import { TestSetup } from "../../../Context/TestSetup"
 import * as model from "../../../model"
 
-const collection = TestStorage.collection?.users
-const partitioned = collection?.partition("one")
-const partitioned2 = partitioned?.partition("two")
-
-describe.each([
-	{ db: collection, partitions: "no" },
-	{ db: partitioned, partitions: "one" },
-	{ db: partitioned2, partitions: "two" },
-])("Collection update", ({ db, partitions }) => {
+describe.each(TestSetup.partitions)("Collection update", ({ archive, collection, partitions }) => {
 	describe(`using ${partitions} partitions`, () => {
 		beforeAll(async () => {
-			await db?.store(users)
+			await archive?.store(TestSetup.collectionUsers)
+			await collection?.store(TestSetup.archiveUsers)
 		})
-		it("one array", async () => {
+		it.each([
+			{ id: TestSetup.collectionUsers[0].id, name: "buffer" },
+			{ id: TestSetup.archiveUsers[0].id, name: "archive" },
+		])("one array in $name", async ({ id }) => {
 			const groups = ["first"]
-			const update = await db?.update({ id: user.id, groups })
-			expect(model.User.is(update)).toBeTruthy()
-			const loaded = await db?.load(user.id)
+			const updated = await collection?.update({ id, groups })
+			expect(model.User.is(updated)).toBeTruthy()
+			const loaded = await collection?.load(id)
 			expect(model.User.is(loaded)).toBeTruthy()
 			expect(loaded?.groups).toEqual(groups)
-			expect(loaded?.groups).toEqual(update?.groups)
 		})
-		it("one string", async () => {
+		it.each([
+			{ id: TestSetup.collectionUsers[0].id, name: "buffer" },
+			{ id: TestSetup.archiveUsers[0].id, name: "archive" },
+		])("one string in $name", async ({ id }) => {
 			const name = "newName"
-			const update = await db?.update({ id: "AAAB", name })
-			const loaded = await db?.load("AAAB")
+			const updated = await collection?.update({ id, name })
+			const loaded = await collection?.load(id)
 			expect(model.User.is(loaded)).toBeTruthy()
 			expect(loaded?.name).toEqual(name)
-			expect(loaded?.name).toEqual(update?.name)
+			expect(loaded?.name).toEqual(updated?.name)
 		})
-		it("many arrays", async () => {
-			const amendment = users.map(user => ({ id: user.id, groups: [user.name] }))
-			const update = await db?.update(amendment)
-			expect(update?.every(model.User.is)).toBeTruthy()
-			const listed = await db?.load()
+		it.each([
+			{ users: TestSetup.collectionUsers, name: "buffer" },
+			{ users: TestSetup.archiveUsers, name: "archive" },
+		])("many arrays in $name", async ({ users }) => {
+			const amendments = users.map(user => ({ id: user.id, groups: [user.name] }))
+			const updated = await collection?.update(amendments)
+			expect(updated?.every(model.User.is)).toBeTruthy()
+			const listed = await collection?.load(users.map(user => user.id))
 			expect(listed?.every(model.User.is)).toBeTruthy()
-			expect(
-				listed?.every(e => e?.groups.slice(-1)[0] == e?.name && e?.created == createdDate + createdTime)
-			).toBeTruthy()
+			expect(listed?.every(e => e?.groups[0] == e?.name)).toBeTruthy()
 			expect(listed?.length).toEqual(users.length)
-			const update2 = await db?.update(amendment)
-			expect(
-				update2?.every(
-					e =>
-						e?.groups.every(g => g == e?.name) &&
-						e.groups.length == user.groups.length + 1 &&
-						e?.created == createdDate + createdTime
-				)
-			).toBeTruthy()
 		})
-		it("many numbers", async () => {
+		it.each([
+			{ users: TestSetup.collectionUsers, name: "buffer" },
+			{ users: TestSetup.archiveUsers, name: "archive" },
+		])("many number in $name", async ({ users }) => {
 			const level = 3
-			const amendment = users.map(user => ({ id: user.id, level }))
-			const update = await db?.update(amendment)
-			expect(update?.every(model.User.is)).toBeTruthy()
-			const listed = await db?.load()
+			const amendment = TestSetup.collectionUsers.map(user => ({ id: user.id, level }))
+			const updated = await collection?.update(amendment)
+			expect(updated?.every(model.User.is)).toBeTruthy()
+			const listed = await collection?.load(TestSetup.collectionUsers.map(e => e.id))
 			expect(listed?.every(model.User.is)).toBeTruthy()
-			expect(listed?.every(e => e?.level == level && e.created == createdDate + createdTime)).toBeTruthy()
-			expect(listed?.length).toEqual(users.length)
+			expect(listed?.every(e => e?.level == level)).toBeTruthy()
+			expect(listed?.length).toEqual(TestSetup.collectionUsers.length)
 		})
 	})
 })
-
-const createdDate = "2022-08-15"
-const createdTime = "T01:50:03.649Z"
-const user: model.User = {
-	level: 2,
-	id: "AAAA",
-	groups: [],
-	name: "AAA",
-	created: createdDate + createdTime,
-}
-
-const users: model.User[] = [
-	user,
-	{ ...user, id: "AAAB" },
-	{ ...user, id: "AAAC" },
-	{ ...user, id: "aaaD" },
-	{ ...user, id: "aaaE" },
-	{ ...user, id: "aaaF" },
-	{ ...user, id: "aaaG" },
-]
