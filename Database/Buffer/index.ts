@@ -5,13 +5,14 @@ import { Configuration } from "../Configuration"
 import { Cursor } from "../Cursor"
 import { Document } from "../Document"
 import { Identifier } from "../Identifier"
+import { Selection } from "../Selection"
 import { Backend as BufferBackend } from "./Backend"
 
 export type Backend = BufferBackend
 export const Backend = BufferBackend
 
 type Key = `${string}${isoly.DateTime}/${Identifier}`
-type Loaded<T> = (T & Document) | undefined | ((Document & T) | undefined)[]
+type Loaded<T> = (T & Document) | undefined | (((Document & T) | undefined)[] & { cursor?: Cursor.Buffer })
 
 export class Buffer<T = any> {
 	private header: Record<string, string>
@@ -29,6 +30,7 @@ export class Buffer<T = any> {
 			retention: JSON.stringify(this.configuration.retention),
 		}
 	}
+
 	partition(...partition: string[]): Buffer<T> {
 		return new Buffer<T>(
 			this.backend,
@@ -47,55 +49,75 @@ export class Buffer<T = any> {
 		return this.backend.partitions + "doc/" + this.partitions + (prefix ?? "")
 	}
 
-	load(): Promise<(T & Document)[]>
+	load(): Promise<(Document & T)[] & { cursor?: Cursor.Buffer }>
 	load(id: Identifier, options?: { lock?: isoly.DateSpan }): Promise<(T & Document) | undefined>
 	load(ids: Identifier[], options?: { lock?: isoly.DateSpan }): Promise<((Document & T) | undefined)[]>
-	load(cursor?: Cursor): Promise<((Document & T) | undefined)[]>
-	load(cursor?: Identifier | Identifier[] | Cursor): Promise<Loaded<T>>
-	async load(cursor?: Identifier | Identifier[] | Cursor, options?: { lock?: isoly.DateSpan }): Promise<Loaded<T>> {
+	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: Cursor.Buffer }>
+	load(selection?: Identifier | Identifier[] | Selection): Promise<Loaded<T>>
+	async load(
+		selection?: Identifier | Identifier[] | Selection,
+		options?: { lock?: isoly.DateSpan }
+	): Promise<Loaded<T>> {
 		let response: Loaded<T> | gracely.Error | undefined
-		if (typeof cursor == "string") {
+		if (typeof selection == "string") {
 			response = await this.backend
-				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, cursor))
-				.get<Loaded<T>>(`/buffer/${encodeURIComponent(cursor)}`, {
+				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, selection))
+				.get<Loaded<T>>(`/buffer/${encodeURIComponent(selection)}`, {
 					...this.header,
 					...(options?.lock
 						? { lock: isoly.DateTime.create(Date.now() + isoly.TimeSpan.toMilliseconds(options?.lock), "milliseconds") }
 						: {}),
 				})
-		} else if (Array.isArray(cursor)) {
-			response = await this.backend.open(this.partitions).post<Loaded<T>>(
-				`/buffer/prefix`,
-				{ id: cursor },
-				{
-					...this.header,
-					...(options?.lock
-						? {
-								lock: isoly.DateTime.create(Date.now() + isoly.TimeSpan.toMilliseconds(options?.lock), "milliseconds"),
-						  }
-						: {}),
-				}
-			)
-		} else if (cursor != null && typeof cursor == "object") {
-			const body = {
-				prefix: Cursor.prefix(cursor).map(p => this.generatePrefix(p)),
-				limit: cursor?.limit,
+		} else if (Array.isArray(selection)) {
+			const shards = Configuration.Buffer.getShard(this.configuration, selection)
+			response = (
+				await Promise.all(
+					Object.entries(shards).map(([shard, ids]) =>
+						this.backend.open(this.partitions + shard).post<((Document & T) | undefined)[]>(`/buffer/prefix`, ids, {
+							...this.header,
+							...(options?.lock
+								? {
+										lock: isoly.DateTime.create(
+											Date.now() + isoly.TimeSpan.toMilliseconds(options?.lock),
+											"milliseconds"
+										),
+								  }
+								: {}),
+						})
+					)
+				)
+			).reduce((r: ((Document & T) | undefined)[], e) => (gracely.Error.is(e) ? r : [...r, ...e]), [])
+		} else {
+			const cursor: Cursor.Buffer | undefined = Cursor.Buffer.from(selection)
+			const newCursor: Cursor.Buffer | undefined = cursor && {
+				...cursor,
+				shard: undefined,
 			}
-			response = await Promise.all(
-				Configuration.Buffer.getShard(this.configuration).map(s =>
-					this.backend.open(this.partitions + s).post<Loaded<T>>("/buffer/prefix", body, this.header)
-				)
-			).then(r => r.flatMap(e => (gracely.Error.is(e) ? [] : e)))
-		} else
-			response = await Promise.all(
-				Configuration.Buffer.getShard(this.configuration).map(shard =>
-					this.backend
-						.open(this.partitions + shard)
-						.post<Loaded<T>>("/buffer/prefix", { prefix: this.generatePrefix() }, this.header)
-				)
-			).then(r => r.flatMap(e => (gracely.Error.is(e) ? [] : e)))
+			response = []
+			const shards = !cursor
+				? []
+				: cursor.shard
+				? Object.keys(cursor.shard)
+				: Configuration.Buffer.getShard(this.configuration)
+			for (const shard of shards) {
+				const shardCursor = Cursor.Shard.from(shard, this.configuration.shards, cursor)
+				const listed = await this.backend
+					.open(this.partitions + shard)
+					.post<{ value: (Document & T)[]; cursor: string }>("/buffer/prefix", { cursor: shardCursor }, this.header)
+				if (!gracely.Error.is(listed)) {
+					listed.cursor &&
+						newCursor &&
+						(newCursor?.shard
+							? (newCursor.shard[shard] = listed.cursor)
+							: (newCursor.shard = { [shard]: listed.cursor }))
+					response.push(...listed.value)
+				}
+			}
+			response.cursor = newCursor?.shard && newCursor
+		}
 		return gracely.Error.is(response) ? undefined : response
 	}
+
 	async store(document: T & Document & { created?: isoly.DateTime }): Promise<(T & Document) | undefined>
 	async store(document: (T & Document & { created?: isoly.DateTime })[]): Promise<(T & Document)[] | undefined>
 	async store(

@@ -14,7 +14,7 @@ kv_namespaces = [
 vars = { }
 
 [build]
-command = "node build.js"
+command = "rollup -c"
 
 [durable_objects]
 bindings = [
