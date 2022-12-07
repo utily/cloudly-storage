@@ -6,8 +6,8 @@ import { router } from "./router"
 import { Storage } from "./Storage"
 
 export class Context {
-	#setAlarm?: () => Promise<boolean>
-	get setAlarm(): () => Promise<boolean> {
+	#setAlarm?: () => Promise<void>
+	get setAlarm(): () => Promise<void> {
 		return this.#setAlarm ?? (this.#setAlarm = this.environment.setAlarm)
 	}
 	#state?: DurableObjectState

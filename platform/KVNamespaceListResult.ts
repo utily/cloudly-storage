@@ -1,7 +1,12 @@
 import { KVNamespaceListKey } from "./KVNamespaceListKey"
 
-export interface KVNamespaceListResult<Metadata> {
-	keys: KVNamespaceListKey<Metadata>[]
-	list_complete: boolean
-	cursor?: string
-}
+export type KVNamespaceListResult<Metadata, Key extends string = string> =
+	| {
+			list_complete: false
+			keys: KVNamespaceListKey<Metadata, Key>[]
+			cursor: string
+	  }
+	| {
+			list_complete: true
+			keys: KVNamespaceListKey<Metadata, Key>[]
+	  }
