@@ -180,6 +180,15 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		)
 		return Array.isArray(ids) ? result : result.some(e => e == true)
 	}
+	async replace(document: T & Partial<Document>, unlock?: true): Promise<(T & Document) | undefined> {
+		const now = isoly.DateTime.now()
+		const toBeStored: (T & Document) | (T & Document)[] | undefined = (await this.allocateId(document)) ?? {
+			...document,
+			created: document.created ?? now,
+			changed: this.configuration.retainChanged ? document.changed : now,
+		}
+		return await this.buffer.store(toBeStored, unlock)
+	}
 	static open<T extends object = any>(
 		archive: Archive<T>,
 		buffer: Buffer<T>,

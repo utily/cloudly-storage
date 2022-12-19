@@ -6,15 +6,16 @@ import { router } from "./router"
 export async function store(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: gracely.Result
 	const document: Record<string, any> = await request.body
+	const unlock = request.header.unlock == "true" || undefined
 	const storage = context.storage
 	if (!document)
-		result = gracely.client.invalidContent("Item", "Body is not a valid item.")
+		result = gracely.client.invalidContent("Document", "Body is not a valid document.")
 	else if (!storage)
 		result = gracely.server.backendFailure("Failed to open Buffer Storage.")
 	else {
 		try {
 			result = gracely.success.created(
-				await context.state.blockConcurrencyWhile(() => storage.storeDocuments(document))
+				await context.state.blockConcurrencyWhile(() => storage.storeDocuments(document, unlock))
 			)
 			context.state.waitUntil(context.setAlarm())
 		} catch (error) {
