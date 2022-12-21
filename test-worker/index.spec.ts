@@ -1,5 +1,7 @@
 import { fetch } from "./index"
 
-test("test", async () => {
-	expect(true).toBeTruthy()
+test("should redirect to example page on no route match", async () => {
+	const env = await getMiniflareBindings()
+	const res = await fetch(new Request("http://localhost"), env)
+	expect(res.status).toBe(404)
 })

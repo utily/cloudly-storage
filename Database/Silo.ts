@@ -10,8 +10,6 @@ export abstract class Silo<T = any, S extends Silo<T, S> = Silo<T, any>> {
 	abstract store(document: T & Partial<Document>): Promise<(T & Document) | undefined>
 	abstract store(documents: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
 
-	abstract replace(document: T & Partial<Document>): Promise<(T & Document) | undefined>
-
 	abstract update(amendment: Partial<T & Document>): Promise<(T & Document) | undefined>
 
 	abstract append(amendment: Partial<T & Document>): Promise<(T & Document) | undefined>

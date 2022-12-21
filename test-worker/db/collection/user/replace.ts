@@ -15,7 +15,7 @@ export async function replace(request: http.Request, context: Context): Promise<
 	else if (!model.User.is(user))
 		result = gracely.client.invalidContent("user", "Body is not a valid user.")
 	else
-		result = gracely.server.backendFailure("Not implemented yet.")
+		result = user
 	return result
 }
 router.add("PUT", "/db/collection/user/:id", replace)

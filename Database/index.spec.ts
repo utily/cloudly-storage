@@ -1,5 +1,4 @@
 import * as storage from "../index"
-
 interface Item {
 	value?: number
 	level?: number
@@ -69,25 +68,20 @@ describe("Archive create, load, list", () => {
 		const listed = await partition?.items.load(selection)
 		expect(listed?.flat()).toEqual([item, item2])
 		expect(listed?.cursor).toEqual(
-			"eyJsaW1pdCI6Miwic3RhcnQiOiIyMDIyLTA3LTMwIiwiZW5kIjoiMjAyMi0wOC0wMSIsInR5cGUiOiJkb2MiLCJjdXJzb3IiOiJpdGVtcy9kb2MvYXhiMDAxLzIwMjItMDctMzBUMDA6MTc6MDAuMDAwWi9hYmQyIn0"
+			"eyJsaW1pdCI6MiwicmFuZ2UiOnsic3RhcnQiOiIyMDIyLTA3LTMwIiwiZW5kIjoiMjAyMi0wOC0wMSJ9LCJ0eXBlIjoiZG9jIiwiY3Vyc29yIjoiaXRlbXMvZG9jL2F4YjAwMS8yMDIyLTA3LTMwVDAwOjE3OjAwLjAwMFovYWJkMiJ9"
 		)
 		const listedLocus = listed?.cursor ? await partition?.items.load({ cursor: listed?.cursor }) : undefined
 		expect(listedLocus?.flat()).toEqual([item3, item4])
-		expect(listedLocus?.cursor).toBeTruthy()
-		const listedLocus2 = listedLocus?.cursor ? await partition?.items.load({ cursor: listedLocus?.cursor }) : undefined
-		expect(listedLocus2?.flat()).toEqual([])
-		expect(listedLocus2?.cursor).toBeUndefined()
+		expect(listedLocus?.cursor).toEqual(undefined)
 	})
 	it("list using changed query", async () => {
-		const listed = await partition?.items.load({ changed: selection.created, limit: 2 })
-		expect(listed?.flat()).toEqual([item, item2])
+		const listed = await partition?.items.load({ changed: selection.created, limit: 3 })
+		expect(listed?.flat()).toEqual([item, item2, item3])
 		expect(listed?.cursor).toEqual(
-			"eyJsaW1pdCI6Miwic3RhcnQiOiIyMDIyLTA3LTMwVDAwOjI0OjAwLjAwMFoiLCJlbmQiOiIyMDIyLTA4LTAxIiwidHlwZSI6ImNoYW5nZWQifQ"
+			"eyJsaW1pdCI6MywicmFuZ2UiOnsic3RhcnQiOiIyMDIyLTA3LTMwVDAwOjI1OjAwLjAwMFoiLCJlbmQiOiIyMDIyLTA4LTAxIn0sInR5cGUiOiJjaGFuZ2VkIn0"
 		)
-		const listedFromCursor = listed?.cursor
-			? await partition?.items.load({ cursor: listed?.cursor, limit: 3 })
-			: undefined
-		expect(listedFromCursor).toEqual([item3, item4])
+		const listedFromCursor = listed?.cursor ? await partition?.items.load({ cursor: listed?.cursor }) : undefined
+		expect(listedFromCursor).toEqual([item4])
 	})
 	it("update, append, loadAll", async () => {
 		const firstAmendment = {
