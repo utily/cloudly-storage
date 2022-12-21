@@ -58,7 +58,7 @@ export class Backend {
 				this.isAlarm = false
 			} else {
 				stored?.length == archivist?.limit
-					? await this.state.storage.setAlarm(now + (configuration?.snooze ?? 300000) / 2)
+					? await this.state.storage.setAlarm(now + (configuration?.snooze ?? 30000) / 2)
 					: (stored?.length ?? 0) > 0
 					? await this.state.storage.setAlarm(now + (configuration?.snooze ?? 300000))
 					: await this.state.storage.setAlarm(now + 2 * (configuration?.snooze ?? 300000))
