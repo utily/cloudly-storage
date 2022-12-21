@@ -40,7 +40,9 @@ export class Context {
 	get archive(): Archive | gracely.Error {
 		return (
 			this.#archive ??
-			(this.#archive = Archive.create(this.environment) ?? gracely.server.databaseFailure("Failed to open archive."))
+			(this.#archive =
+				Archive.create(this.environment)?.partition("testtest") ??
+				gracely.server.databaseFailure("Failed to open archive."))
 		)
 	}
 	constructor(public readonly environment: Environment) {}
