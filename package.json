@@ -50,8 +50,7 @@
 		"lint": "eslint --max-warnings=0 '**/*.{ts,tsx}'",
 		"fix": "eslint '**/*.{ts,tsx}' --fix",
 		"build": "tsc -p .",
-		"jest": "jest",
-		"test": "cd test-worker/ && npm i && npm run test && cd .. && jest",
+		"test": "jest --maxWorkers=2",
 		"prepare": "npm run build",
 		"clean": "rimraf dist node_modules coverage",
 		"start": "npm --prefix test-worker run start"

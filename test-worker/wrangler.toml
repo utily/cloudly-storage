@@ -14,7 +14,7 @@ kv_namespaces = [
 vars = { }
 
 [build]
-command = "node build.js"
+command = "npm install && npm run build"
 
 [durable_objects]
 bindings = [
