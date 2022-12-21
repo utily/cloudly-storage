@@ -158,13 +158,14 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			const archived: Record<string, (T & Document) | undefined> = {}
 			for await (const amendment of amendments) {
 				const loaded = await this.archive.load(amendment.id)
-				changes[amendment.id] = loaded ? amendment : await this.allocateId(amendment as any as T & Document)
+				changes[amendment.id] =
+					(loaded ? amendment : await this.allocateId(amendment as any as T & Document)) ?? amendment
 				archived[amendment.id] = loaded ? loaded : undefined
 			}
 			result = await this.buffer.change(changes, archived, type, unlock)
 		} else {
 			const archived = await this.archive.load(amendments.id)
-			amendments = archived ? amendments : await this.allocateId(amendments as any as T & Document)
+			amendments = (archived ? amendments : await this.allocateId(amendments as any as T & Document)) ?? amendments
 			result = await this.buffer.change({ [amendments.id]: amendments }, { [amendments.id]: archived }, type, unlock)
 		}
 		return result
