@@ -94,17 +94,13 @@ export class Storage {
 		const old = temp ?? archived
 		let response
 		let updated
-		if (!amendment.applyTo || old?.changed == amendment.applyTo) {
+		if (!amendment.applyTo || old?.changed == amendment.applyTo || !old) {
 			delete amendment.applyTo
-			updated =
-				old &&
-				Document[type]<T>(old, {
-					...amendment,
-					changed:
-						(amendment.changed == old.changed
-							? isoly.DateTime.nextMillisecond(amendment.changed)
-							: amendment.changed) ?? old.changed,
-				})
+			updated = Document[type]<T>(old ?? ({} as any as T), {
+				...amendment,
+				changed:
+					amendment.changed == old?.changed ? isoly.DateTime.nextMillisecond(amendment.changed) : amendment.changed,
+			})
 			response = updated
 				? await this.storeDocuments({ [key ?? `${prefix}${updated.created}/${updated.id}`]: updated }, unlock)
 				: undefined
