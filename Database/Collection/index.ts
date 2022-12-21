@@ -7,6 +7,7 @@ import { Document } from "../Document"
 import { Identifier } from "../Identifier"
 import { Selection } from "../Selection"
 import { Silo } from "../Silo"
+
 export class Collection<T = any> extends Silo<T, Collection<T>> {
 	private constructor(
 		private readonly archive: Archive<T>,
@@ -42,36 +43,34 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				result = bufferDoc?.id == "locked" ? undefined : bufferDoc ? bufferDoc : archiveDoc
 				break
 			case "object": //TODO: will return configuration.shards * limit
-				let bufferList: ((Document & T) | undefined)[] & { cursor?: Cursor.Buffer }
-				let archiveList: ((Document & T) | undefined)[] & { cursor?: string }
+				let bufferList: (T & Document) | undefined | ((Document & T) | undefined)[]
+				let archiveList: (T & Document) | undefined | (((Document & T) | undefined)[] & { cursor?: string })
 				if (Array.isArray(selection)) {
 					bufferList = await this.buffer.load(selection, options)
 					archiveList = await this.archive.load(selection)
 				} else {
-					bufferList = await this.buffer.load(selection)
-					const cursor = Cursor.Archive.from(selection)
+					const cursor: Cursor | undefined = Cursor.from(selection)
+					bufferList = await this.buffer.load(cursor)
 					const limit =
-						(selection && "limit" in selection && selection.limit
-							? selection.limit
-							: cursor?.limit
-							? cursor.limit
-							: Selection.standardLimit) - bufferList?.length
-					archiveList = limit >= 1 ? await this.archive.load({ ...selection, limit }) : []
+						(cursor && "limit" in cursor && cursor.limit ? cursor.limit : Selection.standardLimit) - bufferList?.length
+					archiveList =
+						limit > 1
+							? await this.archive.load({
+									...selection,
+									limit,
+							  })
+							: []
 				}
 				result = Object.values(
 					archiveList.reduce<(T & Document)[]>(
 						(r, document) => (document ? { [document.id]: document, ...r } : r),
-						[...bufferList].reduce((r, document) => (document ? { [document.id]: document, ...r } : r), [])
+						bufferList.reduce((r, document) => (document ? { [document.id]: document, ...r } : r), [])
 					)
 				)
-				const cursor = Cursor.Collection.create(
-					archiveList.cursor,
-					bufferList.cursor,
-					selection && "limit" in selection && selection.limit ? selection.limit : Selection.standardLimit
-				)
-				cursor && (result.cursor = cursor)
+				if (archiveList.cursor)
+					result.cursor = archiveList.cursor
 				break
-			case "undefined":
+			case "undefined": // TODO: Add cursor in the buffer.
 				const buffer: Record<string, Document & T> = (await this.buffer.load()).reduce(
 					(r, e) => ({ [e.id]: e, ...r }),
 					{}

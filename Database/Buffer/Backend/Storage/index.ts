@@ -1,8 +1,8 @@
 import * as isoly from "isoly"
 import * as platform from "../../../../platform"
-import { Cursor } from "../../../Cursor"
 import { Document } from "../../../Document"
 import { Portion } from "./Portion"
+
 export class Storage {
 	private constructor(
 		private readonly state: platform.DurableObjectState,
@@ -16,65 +16,38 @@ export class Storage {
 
 	async load<T extends Document & Record<string, any>>(id: string[], lock?: isoly.DateTime): Promise<T[]>
 	async load<T extends Document & Record<string, any>>(
-		options?: string | string[] | { prefix?: string[]; cursor?: Cursor.Shard },
+		id?: string | string[] | { prefix?: string[]; limit?: number },
 		lock?: isoly.DateTime
 	): Promise<T | T[] | undefined>
 	async load<T extends Document & Record<string, any>>(
-		options?: string | string[] | { prefix?: string[]; cursor?: Cursor.Shard },
+		id?: string | string[] | { prefix?: string[]; limit?: number },
 		lock?: isoly.DateTime
-	): Promise<T | T[] | { value: T[]; key?: string } | undefined> {
-		let result: T | T[] | { value: T[]; key?: string } | undefined = undefined
-		if (typeof options == "string") {
-			options = await this.locked(options, lock)
-			if (options == "locked")
-				result = { id: options } as T
+	): Promise<T | T[] | undefined> {
+		let result: T | T[] | undefined = undefined
+		if (typeof id == "string") {
+			id = await this.locked(id, lock)
+			if (id == "locked")
+				result = { id } as T
 			else {
-				const key = await this.state.storage.get<string>("id/" + options)
+				const key = await this.state.storage.get<string>("id/" + id)
 				result = key ? await this.state.storage.get<T>(key) : undefined
 			}
-		} else if (Array.isArray(options)) {
-			options = await this.locked(options, lock)
-			const ids = Array.from((await this.portion.get<string>(options.map(id => "id/" + id))).values())
-			result = Array.from((await this.portion.get<T>(ids)).values())
-		} else if (typeof options == "object" || !options) {
-			const prefixes = options && Array.isArray(options.prefix) ? options.prefix : []
-			const cursor: Cursor.Shard | undefined = options?.cursor
-			const documentsList = await this.listFromPrefixes<T>(prefixes, cursor)
-			result = {
-				value: documentsList,
-				...(options && options?.cursor?.limit
-					? {
-							cursor:
-								documentsList.length >= options?.cursor?.limit
-									? await this.state.storage.get<string>("id/" + documentsList.slice(-1)[0].id)
-									: undefined,
-					  }
-					: {}),
-			}
+		} else if (Array.isArray(id)) {
+			id = await this.locked(id, lock)
+			const listed = Object.fromEntries((await this.portion.get<T>(id)).entries())
+			result = Object.values(listed)
+		} else if (typeof id == "object" || !id) {
+			const limit = id?.limit
+			result = (
+				await Promise.all(
+					(id && Array.isArray(id.prefix) ? id.prefix : [undefined])?.map(p =>
+						this.state.storage.list<T>({ prefix: p, limit }).then(r => Array.from(r.values()))
+					)
+				)
+			).flat()
 		}
 		return result
 	}
-
-	async listFromPrefixes<T extends Document & Record<string, any>>(
-		prefixes: string[],
-		cursor?: Cursor.Shard
-	): Promise<T[]> {
-		const standardLimit = 500
-		let remainingLimit = cursor?.limit ?? standardLimit
-		const startAfter = cursor?.key
-		const result: T[] = []
-		for (const prefix of prefixes) {
-			const listResult = await this.state.storage
-				.list<T>({ prefix: prefix, limit: remainingLimit, startAfter })
-				.then(r => Array.from(r.values()))
-			result.push(...listResult)
-			remainingLimit -= result.length
-			if (remainingLimit <= 0)
-				break
-		}
-		return result
-	}
-
 	async storeDocuments<T extends { id: string } & Record<string, any>>(
 		documents: Record<string, T>,
 		unlock?: true
@@ -138,7 +111,6 @@ export class Storage {
 		}
 		return response ? updated : undefined
 	}
-
 	async updateChangedIndex(documents: Record<string, any>, unlock?: true): Promise<Record<string, string>> {
 		const ids = Object.keys(documents)
 		const oldDocuments = Array.from((await this.portion.get<Record<string, any>>(ids)).values())

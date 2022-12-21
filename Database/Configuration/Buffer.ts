@@ -41,7 +41,8 @@ export namespace Buffer {
 				result[shard] = result[shard]?.concat(i) ?? [i]
 			}
 		} else {
-			const mask = { ...standard, ...configuration }.shards - 1
+			const bitsUsed = Math.log2({ ...standard, ...configuration }.shards)
+			const mask = 2 ** bitsUsed - 1
 			const binary = typeof id == "string" ? cryptly.Identifier.toBinary(id)[0] : id
 			result = cryptly.Identifier.fromBinary(new Uint8Array([(binary ?? 0) & mask]))
 		}
