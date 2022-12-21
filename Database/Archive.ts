@@ -208,14 +208,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		let result: (T & Document) | undefined | ((T & Document) | undefined)[] = undefined
 		if (Document.is(documents, this.configuration.idLength)) {
 			const key = this.generateKey(documents)
-			await this.backend.doc.set(
-				key,
-				(result = {
-					...documents,
-					changed: this.configuration.retainChanged ? documents.changed : isoly.DateTime.now(),
-				}),
-				{ retention: this.configuration.retention }
-			)
+			await this.backend.doc.set(key, (result = documents), { retention: this.configuration.retention })
 			const changedKey =
 				this.partitions + isoly.DateTime.truncate(isoly.DateTime.truncate(documents.changed, "minutes"), "milliseconds")
 			const changed = await this.backend.changed.get(changedKey)
@@ -227,10 +220,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			await Promise.all(
 				documents.map(d => {
 					const key = this.generateKey(d)
-					d = {
-						...d,
-						changed: this.configuration.retainChanged ? d.changed : isoly.DateTime.now(),
-					}
 					const changedKey =
 						this.partitions + isoly.DateTime.truncate(isoly.DateTime.truncate(d.changed, "minutes"), "milliseconds")
 					changes[changedKey] ? changes[changedKey].push(key) : (changes[changedKey] = [key])
@@ -263,9 +252,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		} else
 			result = await Promise.all(ids.map(id => this.remove(id)))
 		return result
-	}
-	async replace(document: T & Document): Promise<(T & Document) | undefined> {
-		return (await this.load(document.id)) ? await this.set(document) : undefined
 	}
 	partition(...partition: string[]): Archive<T> {
 		return new Archive<T>(

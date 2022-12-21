@@ -49,7 +49,7 @@ export class Storage {
 		return result
 	}
 
-	async storeDocuments<T extends Document & Record<string, any>>(
+	async storeDocuments<T extends { id: string } & Record<string, any>>(
 		documents: Record<string, T>,
 		unlock?: true
 	): Promise<T | T[]> {

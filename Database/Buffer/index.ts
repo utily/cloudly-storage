@@ -97,26 +97,20 @@ export class Buffer<T = any> {
 		return gracely.Error.is(response) ? undefined : response
 	}
 
-	async store(document: T & Document & { created?: isoly.DateTime }, unlock?: true): Promise<(T & Document) | undefined>
+	async store(document: T & Document & { created?: isoly.DateTime }): Promise<(T & Document) | undefined>
+	async store(document: (T & Document & { created?: isoly.DateTime })[]): Promise<(T & Document)[] | undefined>
 	async store(
-		document: (T & Document & { created?: isoly.DateTime })[],
-		unlock?: true
-	): Promise<(T & Document)[] | undefined>
-	async store(
-		document: (T & Document & { created?: isoly.DateTime }) | (T & Document & { created?: isoly.DateTime })[],
-		unlock?: true
+		document: (T & Document & { created?: isoly.DateTime }) | (T & Document & { created?: isoly.DateTime })[]
 	): Promise<(T & Document) | (T & Document)[] | undefined>
 	async store(
-		document: (T & Document & { created?: isoly.DateTime }) | (T & Document & { created?: isoly.DateTime })[],
-		unlock?: true
+		document: (T & Document & { created?: isoly.DateTime }) | (T & Document & { created?: isoly.DateTime })[]
 	): Promise<(T & Document) | (T & Document)[] | undefined> {
 		let result: (T & Document)[] | (T & Document) | undefined
-		const header = { ...this.header, ...(unlock ? { unlock: unlock.toString() } : {}) }
 		if (!Array.isArray(document)) {
 			const key = this.generateKey(document)
 			const response = await this.backend
 				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, document.id))
-				.post<T & Document>(`/buffer`, { [key]: document }, header)
+				.post<T & Document>(`/buffer`, { [key]: document }, this.header)
 			result = gracely.Error.is(response) ? undefined : response
 		} else {
 			result = (
@@ -130,7 +124,7 @@ export class Buffer<T = any> {
 						this.backend.open(this.partitions + shard).post<(T & Document)[]>(
 							`/buffer`,
 							document.reduce((r, d) => (ids.includes(d.id) ? { [this.generateKey(d)]: d, ...r } : r), {}),
-							header
+							this.header
 						)
 					)
 				)
