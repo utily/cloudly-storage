@@ -33,7 +33,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			document = { id: document }
 		if (document.created == undefined)
 			document = { ...document, created: isoly.DateTime.now() }
-		if (document.changed == undefined)
+		if (document.changed == undefined || !this.configuration.retainChanged)
 			document = { ...document, changed: isoly.DateTime.now() }
 		let result =
 			(document.id != undefined && !Identifier.is(document.id, this.configuration.idLength)) ||
