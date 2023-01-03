@@ -46,7 +46,7 @@ export async function list(request: http.Request, context: Context): Promise<htt
 			cursor ? cursor : start && end && queryType ? { [queryType]: { start, end }, limit } : { limit }
 		)
 		const response = gracely.success.ok(listed) ?? gracely.server.databaseFailure()
-		result = { ...response, header: { ...response.header, cursor: listed.cursor } }
+		result = { ...response, header: { ...response.header, cursor: "cursor" in listed ? listed.cursor : undefined } }
 	}
 	return result
 }

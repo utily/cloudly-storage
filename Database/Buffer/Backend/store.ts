@@ -1,24 +1,23 @@
-import * as gracely from "gracely"
 import * as http from "cloudly-http"
+import { Error } from "../../../Error"
 import { Context } from "./Context"
+import { error } from "./error"
 import { router } from "./router"
 
 export async function store(request: http.Request, context: Context): Promise<http.Response.Like | any> {
-	let result: gracely.Result
+	let result: Record<string, any> | Record<string, any>[] | Error
 	const document: Record<string, any> = await request.body
 	const storage = context.storage
 	if (!document)
-		result = gracely.client.invalidContent("Item", "Body is not a valid item.")
+		result = error("store", "Body is not a valid item.")
 	else if (!storage)
-		result = gracely.server.backendFailure("Failed to open Buffer Storage.")
+		result = error("store", "Failed to open Buffer Storage.")
 	else {
 		try {
-			result = gracely.success.created(
-				await context.state.blockConcurrencyWhile(() => storage.storeDocuments(document))
-			)
+			result = await context.state.blockConcurrencyWhile(() => storage.storeDocuments(document))
 			context.state.waitUntil(context.setAlarm())
 		} catch (error) {
-			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
+			result = error("store", error)
 		}
 	}
 	return result
