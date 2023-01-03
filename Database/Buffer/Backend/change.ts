@@ -1,11 +1,11 @@
-import * as gracely from "gracely"
 import * as http from "cloudly-http"
 import { Document } from "../../Document"
 import { Context } from "./Context"
+import { error } from "./error"
 import { router } from "./router"
 
 export async function update(request: http.Request, context: Context): Promise<http.Response.Like | any> {
-	let result: gracely.Result
+	let result: (Record<string, any> & Document) | ((Record<string, any> & Document) | Error)[] | Error
 	const body = await request.body
 	const prefix =
 		typeof request.header.documentType == "string" && typeof request.header.partitions == "string"
@@ -14,28 +14,25 @@ export async function update(request: http.Request, context: Context): Promise<h
 	const storage = context.storage
 	const unlock = request.header.unlock == "true" || undefined
 	if (!body)
-		result = gracely.client.invalidContent("Partial<Document>[]", "The body must contain a Partial<Document>[]")
+		result = error("update", "The body must contain a Partial<Document>[]")
 	else if (!storage)
-		result = gracely.server.backendFailure("Failed to open Buffer Storage.")
+		result = error("update", "Failed to open Buffer Storage.")
 	else if (!prefix)
-		result = gracely.client.missingHeader(
-			"document-type || partitions",
-			"document-type and partitions need to be specified as strings."
-		)
+		result = error("update", "document-type and partitions need to be specified as strings.")
 	else {
 		try {
-			const document = await context.state.blockConcurrencyWhile(() =>
-				storage.changeDocuments<Record<string, any> & Document>(
-					body,
-					request.method == "PUT" ? "update" : "append",
-					prefix,
-					unlock
-				)
-			)
-			result = gracely.success.ok(document)
+			result =
+				(await context.state.blockConcurrencyWhile(() =>
+					storage.changeDocuments<Record<string, any> & Document>(
+						body,
+						request.method == "PUT" ? "update" : "append",
+						prefix,
+						unlock
+					)
+				)) ?? error("update", "Document not found")
 			context.state.waitUntil(context.setAlarm())
-		} catch (error) {
-			result = gracely.server.databaseFailure(error instanceof Error ? error.message : undefined)
+		} catch (e) {
+			result = error("update", e)
 		}
 	}
 	return result

@@ -1,8 +1,8 @@
 import * as isoly from "isoly"
 import * as platform from "../../../../platform"
 import { Document } from "../../../Document"
+import { error } from "../error"
 import { Portion } from "./Portion"
-
 export class Storage {
 	private constructor(
 		private readonly state: platform.DurableObjectState,
@@ -22,21 +22,23 @@ export class Storage {
 	async load<T extends Document & Record<string, any>>(
 		id?: string | string[] | { prefix?: string[]; limit?: number },
 		lock?: isoly.DateTime
-	): Promise<T | T[] | undefined> {
-		let result: T | T[] | undefined = undefined
+	): Promise<T | T[] | Error> {
+		let result: T | T[] | Error
 		if (typeof id == "string") {
 			id = await this.locked(id, lock)
 			if (id == "locked")
-				result = { id } as T
+				result = error("load", "document is locked")
 			else {
 				const key = await this.state.storage.get<string>("id/" + id)
-				result = key ? await this.state.storage.get<T>(key) : undefined
+				result = key
+					? (await this.state.storage.get<T>(key)) ?? error("load", "document not found")
+					: error("load", "key for document not found")
 			}
 		} else if (Array.isArray(id)) {
 			id = await this.locked(id, lock)
 			const listed = Object.fromEntries((await this.portion.get<T>(id)).entries())
 			result = Object.values(listed)
-		} else if (typeof id == "object" || !id) {
+		} else {
 			const limit = id?.limit
 			result = (
 				await Promise.all(
@@ -77,7 +79,7 @@ export class Storage {
 		type: "update" | "append",
 		prefix: string,
 		unlock?: true
-	): Promise<((T & Document) | undefined)[]> {
+	): Promise<((T & Document) | Error)[]> {
 		return await Promise.all(
 			changes.map(([amendment, archived]) => this.changeDocument(amendment, type, prefix, archived, unlock))
 		)
@@ -88,7 +90,7 @@ export class Storage {
 		prefix: string,
 		archived?: T & Document,
 		unlock?: true
-	): Promise<(T & Document) | undefined> {
+	): Promise<(T & Document) | Error> {
 		const key = await this.state.storage.get<string>("id/" + amendment.id)
 		const temp = key ? await this.state.storage.get<T>(key) : undefined
 		const old = temp ?? archived
@@ -105,7 +107,7 @@ export class Storage {
 				? await this.storeDocuments({ [key ?? `${prefix}${updated.created}/${updated.id}`]: updated }, unlock)
 				: undefined
 		}
-		return response ? updated : undefined
+		return response && updated ? updated : error(type, `failed to ${type} the document`, amendment.id)
 	}
 	async updateChangedIndex(documents: Record<string, any>, unlock?: true): Promise<Record<string, string>> {
 		const ids = Object.keys(documents)

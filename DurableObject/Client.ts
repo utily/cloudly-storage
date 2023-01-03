@@ -1,5 +1,5 @@
-import * as gracely from "gracely"
 import * as http from "cloudly-http"
+import { Error } from "../Error"
 import * as platform from "../platform"
 
 export class Client {
@@ -14,7 +14,7 @@ export class Client {
 		method: http.Method,
 		body?: any,
 		header?: http.Request.Header
-	): Promise<R | gracely.Error> {
+	): Promise<R | Error> {
 		const request = http.Request.create({
 			url: `https://origin${path}`,
 			method: method,
@@ -24,21 +24,21 @@ export class Client {
 		const response = http.Response.from(await this.stub.fetch(request.url.toString(), await http.Request.to(request)))
 		return response.status >= 300 && this.onError && (await this.onError(request, response))
 			? await this.fetch<R>(path, method, body, header)
-			: ((await response.body) as R | gracely.Error)
+			: ((await response.body) as R | Error)
 	}
-	async get<R>(path: string, header?: http.Request.Header): Promise<R | gracely.Error> {
+	async get<R>(path: string, header?: http.Request.Header): Promise<R | Error> {
 		return await this.fetch<R>(path, "GET", undefined, header)
 	}
-	async post<R>(path: string, request: any, header?: http.Request.Header): Promise<R | gracely.Error> {
+	async post<R>(path: string, request: any, header?: http.Request.Header): Promise<R | Error> {
 		return await this.fetch<R>(path, "POST", request, header)
 	}
-	async delete<R>(path: string, header?: http.Request.Header): Promise<R | gracely.Error> {
+	async delete<R>(path: string, header?: http.Request.Header): Promise<R | Error> {
 		return await this.fetch<R>(path, "DELETE", undefined, header)
 	}
-	async patch<R>(path: string, request: any, header?: http.Request.Header): Promise<R | gracely.Error> {
+	async patch<R>(path: string, request: any, header?: http.Request.Header): Promise<R | Error> {
 		return await this.fetch<R>(path, "PATCH", request, header)
 	}
-	async put<R>(path: string, request: any, header?: http.Request.Header): Promise<R | gracely.Error> {
+	async put<R>(path: string, request: any, header?: http.Request.Header): Promise<R | Error> {
 		return await this.fetch<R>(path, "PUT", request, header)
 	}
 }
