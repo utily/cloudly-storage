@@ -39,9 +39,11 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		let result: (T & Document) | ((Document & T)[] & { cursor?: string }) | Error
 		switch (typeof selection) {
 			case "string":
-				const bufferDoc = await this.buffer.load(selection, options)
-				const archiveDoc = await this.archive.load(selection)
-				result = bufferDoc ?? archiveDoc
+				const [bufferDoc, archiveDoc] = await Promise.all([
+					this.buffer.load(selection, options),
+					this.archive.load(selection),
+				])
+				result = Error.is(bufferDoc) && archiveDoc ? archiveDoc : bufferDoc
 				break
 			case "object": //TODO: will return configuration.shards * limit
 				let bufferList: (T & Document) | Error | ((Document & T) | undefined)[]
