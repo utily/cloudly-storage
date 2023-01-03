@@ -14,7 +14,8 @@ export namespace Error {
 		return (
 			value &&
 			typeof value == "object" &&
-			typeof name == "string" &&
+			typeof value.name == "string" &&
+			typeof value.message == "string" &&
 			(value.id == undefined || typeof value.id == "string")
 		)
 	}
