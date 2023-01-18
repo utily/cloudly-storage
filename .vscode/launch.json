@@ -5,8 +5,23 @@
 			"type": "node",
 			"request": "launch",
 			"runtimeExecutable": "npm",
-			"runtimeArgs": ["--prefix", "./test-worker", "run", "start"], 
-			"skipFiles": ["<node_internals>/**"]
+			"runtimeArgs": [
+				"--prefix",
+				"./test-worker",
+				"run",
+				"start"
+			],
+			"skipFiles": [
+				"<node_internals>/**"
+			]
+		},
+		{
+			"name": "Miniflare (attach)",
+			"type": "node",
+			"request": "attach",
+			"skipFiles": [
+				"<node_internals>/**"
+			],
 		}
 	]
 }
