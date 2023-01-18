@@ -6,6 +6,7 @@ import commonjs from "@rollup/plugin-commonjs"
 import typescript from "@rollup/plugin-typescript"
 import json from "@rollup/plugin-json"
 import path from "path"
+import sourcemaps from 'rollup-plugin-sourcemaps';
 
 export default {
   input: "index.ts",
@@ -14,10 +15,12 @@ export default {
     format: "es",
     file: "dist/_worker.js",
     sourcemap: true,
-		sourcemapPathTransform: relativeSourcePath => path.resolve(__dirname, relativeSourcePath.replace(/^(\.\.\/)+/, "")),
+		sourcemapPathTransform: relativeSourcePath => relativeSourcePath.startsWith("../../dist")
+			? path.resolve(__dirname, "../", relativeSourcePath.replace(/^\.\.\/\.\.\/dist\//, ""))
+			: path.resolve(__dirname, relativeSourcePath.replace(/^(\.\.\/)+/, "")),
   },
 	experimentalCodeSplitting: true,
-  plugins: [commonjs(), nodeResolve({ browser: true }), typescript({ resolveJsonModule: true }), json()],
+  plugins: [commonjs(), nodeResolve({ browser: true }), typescript({ resolveJsonModule: true }), sourcemaps(), json()],
 	watch: {
 		clearScreen: false,
 	},
