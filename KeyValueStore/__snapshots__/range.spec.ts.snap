@@ -1,0 +1,642 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`range range 1`] = `
+[
+  {
+    "expires": undefined,
+    "key": "cdq7f",
+    "meta": undefined,
+    "value": {
+      "data": "Data: cdq7f",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "blp8D",
+    "meta": undefined,
+    "value": {
+      "data": "Data: blp8D",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "dfDQ1",
+    "meta": undefined,
+    "value": {
+      "data": "Data: dfDQ1",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "f1LXB",
+    "meta": undefined,
+    "value": {
+      "data": "Data: f1LXB",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "a8IOV",
+    "meta": undefined,
+    "value": {
+      "data": "Data: a8IOV",
+    },
+  },
+]
+`;
+
+exports[`range range 2`] = `
+[
+  {
+    "expires": undefined,
+    "key": "QXtbZ",
+    "meta": undefined,
+    "value": {
+      "data": "Data: QXtbZ",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "UVySt",
+    "meta": undefined,
+    "value": {
+      "data": "Data: UVySt",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "MbH0l",
+    "meta": undefined,
+    "value": {
+      "data": "Data: MbH0l",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "GFkv2",
+    "meta": undefined,
+    "value": {
+      "data": "Data: GFkv2",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "XZJlC",
+    "meta": undefined,
+    "value": {
+      "data": "Data: XZJlC",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "A0Ro8",
+    "meta": undefined,
+    "value": {
+      "data": "Data: A0Ro8",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "VtmHJ",
+    "meta": undefined,
+    "value": {
+      "data": "Data: VtmHJ",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "E1zTB",
+    "meta": undefined,
+    "value": {
+      "data": "Data: E1zTB",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "F2XiP",
+    "meta": undefined,
+    "value": {
+      "data": "Data: F2XiP",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "SHERp",
+    "meta": undefined,
+    "value": {
+      "data": "Data: SHERp",
+    },
+  },
+]
+`;
+
+exports[`range range 3`] = `
+[
+  {
+    "expires": undefined,
+    "key": "ZC0D9",
+    "meta": undefined,
+    "value": {
+      "data": "Data: ZC0D9",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "K57eF",
+    "meta": undefined,
+    "value": {
+      "data": "Data: K57eF",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "OnjGH",
+    "meta": undefined,
+    "value": {
+      "data": "Data: OnjGH",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "Hp12g",
+    "meta": undefined,
+    "value": {
+      "data": "Data: Hp12g",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "C98LQ",
+    "meta": undefined,
+    "value": {
+      "data": "Data: C98LQ",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "LMnJb",
+    "meta": undefined,
+    "value": {
+      "data": "Data: LMnJb",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "Wb3al",
+    "meta": undefined,
+    "value": {
+      "data": "Data: Wb3al",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "TZAqC",
+    "meta": undefined,
+    "value": {
+      "data": "Data: TZAqC",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "J0Fg8",
+    "meta": undefined,
+    "value": {
+      "data": "Data: J0Fg8",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "NtK3J",
+    "meta": undefined,
+    "value": {
+      "data": "Data: NtK3J",
+    },
+  },
+]
+`;
+
+exports[`range range 4`] = `
+[
+  {
+    "expires": undefined,
+    "key": "R2TcP",
+    "meta": undefined,
+    "value": {
+      "data": "Data: R2TcP",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "DLstM",
+    "meta": undefined,
+    "value": {
+      "data": "Data: DLstM",
+    },
+  },
+]
+`;
+
+exports[`range setStore 1`] = `
+[
+  {
+    "expires": undefined,
+    "key": "w9UzQ",
+    "meta": undefined,
+    "value": {
+      "data": "Data: w9UzQ",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "9QVMX",
+    "meta": undefined,
+    "value": {
+      "data": "Data: 9QVMX",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "zMSAb",
+    "meta": undefined,
+    "value": {
+      "data": "Data: zMSAb",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "QXtbZ",
+    "meta": undefined,
+    "value": {
+      "data": "Data: QXtbZ",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "UVySt",
+    "meta": undefined,
+    "value": {
+      "data": "Data: UVySt",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "MbH0l",
+    "meta": undefined,
+    "value": {
+      "data": "Data: MbH0l",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "GFkv2",
+    "meta": undefined,
+    "value": {
+      "data": "Data: GFkv2",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "XZJlC",
+    "meta": undefined,
+    "value": {
+      "data": "Data: XZJlC",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "A0Ro8",
+    "meta": undefined,
+    "value": {
+      "data": "Data: A0Ro8",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "VtmHJ",
+    "meta": undefined,
+    "value": {
+      "data": "Data: VtmHJ",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "cdq7f",
+    "meta": undefined,
+    "value": {
+      "data": "Data: cdq7f",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "blp8D",
+    "meta": undefined,
+    "value": {
+      "data": "Data: blp8D",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "E1zTB",
+    "meta": undefined,
+    "value": {
+      "data": "Data: E1zTB",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "F2XiP",
+    "meta": undefined,
+    "value": {
+      "data": "Data: F2XiP",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "SHERp",
+    "meta": undefined,
+    "value": {
+      "data": "Data: SHERp",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "ZC0D9",
+    "meta": undefined,
+    "value": {
+      "data": "Data: ZC0D9",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "hLOYM",
+    "meta": undefined,
+    "value": {
+      "data": "Data: hLOYM",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "082sV",
+    "meta": undefined,
+    "value": {
+      "data": "Data: 082sV",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "K57eF",
+    "meta": undefined,
+    "value": {
+      "data": "Data: K57eF",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "tJ5p0",
+    "meta": undefined,
+    "value": {
+      "data": "Data: tJ5p0",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "vi4wd",
+    "meta": undefined,
+    "value": {
+      "data": "Data: vi4wd",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "dfDQ1",
+    "meta": undefined,
+    "value": {
+      "data": "Data: dfDQ1",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "OnjGH",
+    "meta": undefined,
+    "value": {
+      "data": "Data: OnjGH",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "lDgVL",
+    "meta": undefined,
+    "value": {
+      "data": "Data: lDgVL",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "ymwE5",
+    "meta": undefined,
+    "value": {
+      "data": "Data: ymwE5",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "1BMZi",
+    "meta": undefined,
+    "value": {
+      "data": "Data: 1BMZi",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "oscKn",
+    "meta": undefined,
+    "value": {
+      "data": "Data: oscKn",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "2PZdm",
+    "meta": undefined,
+    "value": {
+      "data": "Data: 2PZdm",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "ugvys",
+    "meta": undefined,
+    "value": {
+      "data": "Data: ugvys",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "Hp12g",
+    "meta": undefined,
+    "value": {
+      "data": "Data: Hp12g",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "x6xx6",
+    "meta": undefined,
+    "value": {
+      "data": "Data: x6xx6",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "C98LQ",
+    "meta": undefined,
+    "value": {
+      "data": "Data: C98LQ",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "7QNWX",
+    "meta": undefined,
+    "value": {
+      "data": "Data: 7QNWX",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "LMnJb",
+    "meta": undefined,
+    "value": {
+      "data": "Data: LMnJb",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "kXY4Z",
+    "meta": undefined,
+    "value": {
+      "data": "Data: kXY4Z",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "8VPnt",
+    "meta": undefined,
+    "value": {
+      "data": "Data: 8VPnt",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "Wb3al",
+    "meta": undefined,
+    "value": {
+      "data": "Data: Wb3al",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "5FQB2",
+    "meta": undefined,
+    "value": {
+      "data": "Data: 5FQB2",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "TZAqC",
+    "meta": undefined,
+    "value": {
+      "data": "Data: TZAqC",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "J0Fg8",
+    "meta": undefined,
+    "value": {
+      "data": "Data: J0Fg8",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "NtK3J",
+    "meta": undefined,
+    "value": {
+      "data": "Data: NtK3J",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "idl9f",
+    "meta": undefined,
+    "value": {
+      "data": "Data: idl9f",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "4luUD",
+    "meta": undefined,
+    "value": {
+      "data": "Data: 4luUD",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "f1LXB",
+    "meta": undefined,
+    "value": {
+      "data": "Data: f1LXB",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "R2TcP",
+    "meta": undefined,
+    "value": {
+      "data": "Data: R2TcP",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "nHfFp",
+    "meta": undefined,
+    "value": {
+      "data": "Data: nHfFp",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "rCah9",
+    "meta": undefined,
+    "value": {
+      "data": "Data: rCah9",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "DLstM",
+    "meta": undefined,
+    "value": {
+      "data": "Data: DLstM",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "a8IOV",
+    "meta": undefined,
+    "value": {
+      "data": "Data: a8IOV",
+    },
+  },
+  {
+    "expires": undefined,
+    "key": "m591F",
+    "meta": undefined,
+    "value": {
+      "data": "Data: m591F",
+    },
+  },
+]
+`;

@@ -1,4 +1,5 @@
 import * as isoly from "isoly"
+import { Continuable } from "../Continuable"
 import { KeyValueStore } from "./KeyValueStore"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
@@ -22,16 +23,12 @@ export function partition<V, M = undefined>(
 			const result = await backend.get(prefix + key)
 			return result as { value: V; retention?: isoly.TimeSpan; meta?: M } | undefined
 		},
-		list: async (options?: string | ListOptions): Promise<ListItem<V, M>[] & { cursor?: string }> => {
+		list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> => {
 			const response = await backend.list(
 				typeof options == "object" ? { ...options, prefix: prefix + (options.prefix ?? "") } : prefix + (options ?? "")
 			)
-			const result: ListItem<V, M>[] & { cursor?: string } = await Promise.all(
-				response.map(async user => ({ ...user, key: user.key.slice(prefixLength) } as ListItem<V, M>))
-			)
-			if (response.cursor)
-				result.cursor = response.cursor
-			return result
+			const result = Continuable.create(response, response.cursor)
+			return await Continuable.awaits(result.map(async user => ({ ...user, key: user.key.slice(prefixLength) })))
 		},
 	}
 }

@@ -1,8 +1,10 @@
 import * as isoly from "isoly"
 import * as platform from "@cloudflare/workers-types"
+import { Continuable } from "../Continuable"
 import { KeyValueStore } from "./KeyValueStore"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
+import { range } from "./range"
 
 export class FromPlatform<
 	V extends string | ArrayBuffer | ArrayBufferView | platform.ReadableStream = string,
@@ -40,16 +42,14 @@ export class FromPlatform<
 			  }
 			: undefined
 	}
-	async list(options?: string | ListOptions): Promise<
-		ListItem<V, M>[] & {
-			cursor?: string
-		}
-	> {
+	async list(options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> {
 		const o = ListOptions.get(options)
-		const data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
-		const result: ListItem<V, M>[] & {
-			cursor?: string
-		} = await Promise.all(
+		let data
+		if (o.range && (o.range[0] || o.range[1]))
+			data = await this.backend.list({ prefix: o.prefix, cursor: o.cursor })
+		else
+			data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
+		let result: Continuable<ListItem<V, M>> = await Promise.all(
 			data.keys
 				.map(async item => ({
 					key: item.name,
@@ -66,7 +66,9 @@ export class FromPlatform<
 						: i => i
 				)
 		)
-		if (!data.list_complete && data.cursor)
+		if (o.range && (o.range[0] || o.range[1]))
+			result = range(result, o)
+		else if ("cursor" in data)
 			result.cursor = data.cursor
 		return result
 	}

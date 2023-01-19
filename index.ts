@@ -1,4 +1,6 @@
 export { Database, Backend, Selection } from "./Database"
 export * as DurableObject from "./DurableObject"
 export { KeyValueStore } from "./KeyValueStore"
+export { ListOptions } from "./KeyValueStore/ListOptions"
 export { Error } from "./Error"
+export { Continuable } from "./Continuable"
