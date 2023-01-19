@@ -107,7 +107,13 @@ export class Storage {
 				? await this.storeDocuments({ [key ?? `${prefix}${updated.created}/${updated.id}`]: updated }, unlock)
 				: undefined
 		}
-		return response && updated ? updated : error(type, `failed to ${type} the document`, amendment.id)
+		return response && updated
+			? updated
+			: error(
+					type,
+					`failed to ${type} the document due to ${!updated ? "updated" : "response"} is undefined.`,
+					amendment.id
+			  )
 	}
 	async updateChangedIndex(documents: Record<string, any>, unlock?: true): Promise<Record<string, string>> {
 		const ids = Object.keys(documents)
