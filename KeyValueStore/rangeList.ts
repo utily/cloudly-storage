@@ -4,40 +4,32 @@ import { KeyValueStore } from "./KeyValueStore"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
 
-export function partition<V, M = undefined>(
-	backend: KeyValueStore<V, M>,
-	prefix: string,
-	retention?: isoly.TimeSpan
-): KeyValueStore<V, M> {
+export function rangeList<V, M = undefined>(backend: KeyValueStore<V, M>, prefix: string): KeyValueStore<V, M> {
 	const prefixLength = prefix.length
 	return {
 		set: async (key: string, value?: V, options?: { retention: isoly.TimeSpan; meta?: M }): Promise<void> => {
-			await (value == undefined
-				? backend.set(prefix + key)
-				: backend.set(prefix + key, value, {
-						...options,
-						retention: options?.retention ?? retention,
-				  }))
+			await (value == undefined ? backend.set(key) : backend.set(key, value, options))
 		},
 		get: async (key: string): Promise<{ value: V; retention?: isoly.TimeSpan; meta?: M } | undefined> => {
-			const result = await backend.get(prefix + key)
-			return result as { value: V; retention?: isoly.TimeSpan; meta?: M } | undefined
+			return await backend.get(key)
 		},
 		//list: async (options?: string | ListOptions): Promise<ListItem<V, M>[] & { cursor?: string }> => {
 		//	const response = await backend.list(
-		//		typeof options == "object" ? { ...options, prefix: prefix + (options.prefix ?? "") } : prefix + (options ?? "")
+		//		typeof options == "object" ? { ...options, prefix: options.prefix ?? "" } : options ?? ""
 		//	)
 		//	const result: ListItem<V, M>[] & { cursor?: string } = await Promise.all(
-		//		response.map(async user => ({ ...user, key: user.key.slice(prefixLength) } as ListItem<V, M>))
+		//		response.map(async user => ({ ...user, key: user.key } as ListItem<V, M>))
 		//	)
 		//	if (response.cursor)
 		//		result.cursor = response.cursor
+		//	return result
+		//},
 		list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> => {
 			const response = await backend.list(
-				typeof options == "object" ? { ...options, prefix: prefix + (options.prefix ?? "") } : prefix + (options ?? "")
+				typeof options == "object" ? { ...options, prefix: options.prefix ?? "" } : options ?? ""
 			)
 			const result: Continuable<ListItem<V, M>> = await Promise.all(
-				response.map(async user => ({ ...user, key: user.key.slice(prefixLength) } as ListItem<V, M>))
+				response.map(async user => ({ ...user, key: user.key } as ListItem<V, M>))
 			)
 			return result
 		},

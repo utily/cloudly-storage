@@ -38,6 +38,7 @@ describe("Archive create, load, list", () => {
 		},
 	}
 	const selection = { created: { start: "2022-07-30", end: "2022-08-01" }, limit: 2 }
+	//const selection = { changed: { start: "2022-07-30", end: "2022-08-01" }, limit: 2 }
 
 	it("create", async () => {
 		expect(await partition?.items.store(item)).toEqual(item)
@@ -67,6 +68,10 @@ describe("Archive create, load, list", () => {
 	it("list with limit and prefix", async () => {
 		const listed = await partition?.items.load(selection)
 		expect(listed?.flat()).toEqual([item, item2])
+		//
+		//console.log(listed)
+		//console.log(listed?.cursor)
+		//
 		expect(listed?.cursor).toEqual(
 			"eyJsaW1pdCI6MiwicmFuZ2UiOnsic3RhcnQiOiIyMDIyLTA3LTMwIiwiZW5kIjoiMjAyMi0wOC0wMSJ9LCJ0eXBlIjoiZG9jIiwiY3Vyc29yIjoiaXRlbXMvZG9jL2F4YjAwMS8yMDIyLTA3LTMwVDAwOjE3OjAwLjAwMFovYWJkMiJ9"
 		)
@@ -76,6 +81,7 @@ describe("Archive create, load, list", () => {
 	})
 	it("list using changed query", async () => {
 		const listed = await partition?.items.load({ changed: selection.created, limit: 3 })
+		//const listed = await partition?.items.load({ changed: selection.changed, limit: 3 })
 		expect(listed?.flat()).toEqual([item, item2, item3])
 		expect(listed?.cursor).toEqual(
 			"eyJsaW1pdCI6MywicmFuZ2UiOnsic3RhcnQiOiIyMDIyLTA3LTMwVDAwOjI1OjAwLjAwMFoiLCJlbmQiOiIyMDIyLTA4LTAxIn0sInR5cGUiOiJjaGFuZ2VkIn0"

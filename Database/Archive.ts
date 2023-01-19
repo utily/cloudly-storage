@@ -57,6 +57,8 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	async load(
 		selection?: Identifier | Identifier[] | Selection
 	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })> {
+		console.log(typeof selection)
+		console.log(selection)
 		let result: (T & Document) | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })
 		if (typeof selection == "string") {
 			const key = await this.getKey(selection)
@@ -66,6 +68,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			result = await Promise.all(selection.map(id => this.load(id)))
 		else
 			result = await this.list(selection)
+		console.log(result)
 		return result
 	}
 
@@ -86,10 +89,12 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				limit,
 				cursor: cursor?.cursor,
 			})
+			//console.log(loaded)
 			const response = loaded.map(item => ({
 				...(item.value ?? {}),
 				...(item.meta ?? {}),
 			})) as (T & Document)[]
+			//console.log(response)
 
 			limit -= response.length
 			result.push(...response)
@@ -97,7 +102,9 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				newCursor = Cursor.serialize({ ...{ ...(cursor ?? { type: "doc" }) }, cursor: loaded.cursor })
 				break
 			}
+			//console.log(result)
 		}
+		//console.log(newCursor)
 		if (newCursor && result)
 			result.cursor = newCursor
 		return result

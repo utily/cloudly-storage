@@ -1,4 +1,5 @@
 import * as isoly from "isoly"
+import { Continuable } from "../Continuable"
 import * as platform from "../platform"
 import { KeyValueStore } from "./KeyValueStore"
 import { ListItem } from "./ListItem"
@@ -39,15 +40,17 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 			: undefined
 	}
 	async list(options?: string | ListOptions): Promise<
-		ListItem<V, M>[] & {
-			cursor?: string
-		}
+		Continuable<ListItem<V, M>>
+		//ListItem<V, M>[] & {
+		//	cursor?: string
+		//}
 	> {
 		const o = ListOptions.get(options)
 		const data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
-		const result: ListItem<V, M>[] & {
-			cursor?: string
-		} = await Promise.all(
+		const result: Continuable<ListItem<V, M>> = await Promise.all(
+			//const result: ListItem<V, M>[] & {
+			//	cursor?: string
+			//} = await Promise.all(
 			data.keys
 				.map(async item => ({
 					key: item.name,
@@ -64,8 +67,8 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 						: i => i
 				)
 		)
-		if (!data.list_complete && data.cursor)
-			result.cursor = data.cursor
+		//if (!data.list_complete && data.cursor)
+		//	result.cursor = data.cursor
 		return result
 	}
 }

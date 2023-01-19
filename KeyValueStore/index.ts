@@ -9,6 +9,7 @@ import { ListOptions as KVListOptions } from "./ListOptions"
 import { OnlyMeta as KVOnlyMeta } from "./OnlyMeta"
 import { open as kvOpen } from "./open"
 import { partition as kvPartition } from "./partition"
+import { rangeList as kvRangeList } from "./rangeList"
 
 export type KeyValueStore<V = any, M = undefined> = Interface<V, M>
 
@@ -25,4 +26,5 @@ export namespace KeyValueStore {
 	export const OnlyMeta = KVOnlyMeta
 	export const open = kvOpen
 	export const partition = kvPartition
+	export const rangeList = kvRangeList
 }
