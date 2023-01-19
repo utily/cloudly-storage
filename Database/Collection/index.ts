@@ -191,8 +191,10 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				result = loaded
 				break
 			} else {
-				changes[amendment.id] =
-					(loaded ? amendment : await this.allocateId(amendment as any as T & Document)) ?? amendment
+				changes[amendment.id] = {
+					...((loaded ? amendment : await this.allocateId(amendment as any as T & Document)) ?? amendment),
+					changed: amendment.changed,
+				}
 				archived[amendment.id] = loaded ? loaded : undefined
 			}
 		}
