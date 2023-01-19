@@ -23,7 +23,7 @@ export namespace Document {
 		const { id, created, changed, purged, ...remainder } = document
 		return [{ id, created, changed, purged }, remainder as T]
 	}
-	export function update<T extends Record<string, any> = Document>(original: T, appendee: Partial<T>): T | undefined {
+	export function update<T extends Record<string, any> = Document>(original: T, appendee: Partial<T>): T {
 		return JSON.parse(JSON.stringify({ ...original, ...appendee }))
 	}
 	export function append<T extends Record<string, any> = Document>(
