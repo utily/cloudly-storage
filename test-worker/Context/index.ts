@@ -24,7 +24,7 @@ export class Context {
 		return (
 			this.#kv ??
 			(this.#kv = this.environment.kvStore
-				? storage.KeyValueStore.rangeList(storage.KeyValueStore.Json.create(this.environment.kvStore), "q")
+				? storage.KeyValueStore.rangeList(storage.KeyValueStore.Json.create(this.environment.kvStore), "")
 				: gracely.server.misconfigured("kvStore", "KeyValueNamespace missing."))
 		)
 	}

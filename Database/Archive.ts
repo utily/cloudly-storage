@@ -57,23 +57,24 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	async load(
 		selection?: Identifier | Identifier[] | Selection
 	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })> {
-		console.log(typeof selection)
 		console.log(selection)
 		let result: (T & Document) | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })
 		if (typeof selection == "string") {
 			const key = await this.getKey(selection)
 			const document = key && key.startsWith(this.partitions) ? (await this.backend.doc.get(key))?.value : undefined
 			result = document ? document : undefined
-		} else if (Array.isArray(selection))
+		} else if (Array.isArray(selection)) {
 			result = await Promise.all(selection.map(id => this.load(id)))
-		else
+		} else {
 			result = await this.list(selection)
+		}
 		console.log(result)
 		return result
 	}
 
 	private async list(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }> {
 		const cursor = Cursor.from(selection)
+		console.log("Problem?")
 		return cursor?.type == "changed" ? await this.listChanged(cursor) : await this.listDocs(cursor)
 	}
 
@@ -81,6 +82,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		const result: (T & Document)[] & { cursor?: string } & {
 			cursor?: string | undefined
 		} = []
+		console.log("Probs?")
 		let limit = cursor?.limit ?? Selection.standardLimit
 		let newCursor: string | undefined
 		for (const prefix of Cursor.prefix(cursor)) {
@@ -89,12 +91,12 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				limit,
 				cursor: cursor?.cursor,
 			})
-			//console.log(loaded)
+			console.log(loaded)
 			const response = loaded.map(item => ({
 				...(item.value ?? {}),
 				...(item.meta ?? {}),
 			})) as (T & Document)[]
-			//console.log(response)
+			console.log(response)
 
 			limit -= response.length
 			result.push(...response)
@@ -107,12 +109,15 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		//console.log(newCursor)
 		if (newCursor && result)
 			result.cursor = newCursor
+		console.log(result)
+		console.log("End")
 		return result
 	}
 	private async listChanged(cursor: Cursor): Promise<(Document & T)[] & { cursor?: string }> {
 		const result: (T & Document)[] & { cursor?: string } & {
 			cursor?: string | undefined
 		} = []
+		console.log("No Probs?")
 		let limit = cursor?.limit ?? Selection.standardLimit
 		const startFrom = isoly.DateTime.is(cursor.range?.start) ? cursor.range?.start : undefined
 		const prefixes = Cursor.prefix(cursor)
@@ -123,6 +128,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				limit,
 				cursor: cursor?.cursor,
 			})
+			console.log(changes)
 			const changedValues = startFrom
 				? changes.filter(e => {
 						return (Key.getTime(e.key) ?? "0") >= startFrom
@@ -144,6 +150,8 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		}
 		if (cursor.range?.start != startFrom)
 			result.cursor = Cursor.serialize({ ...cursor, cursor: newCursor ?? cursor.cursor })
+		console.log(result)
+		console.log("End")
 		return result
 	}
 
