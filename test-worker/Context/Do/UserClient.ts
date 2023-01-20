@@ -3,7 +3,7 @@ import * as storage from "cloudly-storage"
 import * as model from "../../model"
 
 export class UserClient {
-	private constructor(private readonly backend: storage.DurableObject.Namespace) {}
+	private constructor(private readonly backend: storage.DurableObject.Namespace<gracely.Error>) {}
 
 	async create(user: model.User): Promise<model.User | gracely.Error> {
 		const client = this.backend.open("test")

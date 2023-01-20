@@ -1,6 +1,6 @@
 import * as gracely from "gracely"
+import * as platform from "@cloudflare/workers-types"
 import * as http from "cloudly-http"
-import { DurableObjectState } from "../../../platform"
 import { Environment } from "./Environment"
 import { router } from "./router"
 import { Storage } from "./Storage"
@@ -10,7 +10,7 @@ export class Context {
 	get setAlarm(): () => Promise<boolean> {
 		return this.#setAlarm ?? (this.#setAlarm = this.environment.setAlarm)
 	}
-	#state?: DurableObjectState
+	#state?: platform.DurableObjectState
 	get state() {
 		return this.#state ?? (this.#state = this.environment.state)
 	}

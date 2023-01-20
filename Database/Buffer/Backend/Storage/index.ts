@@ -1,5 +1,5 @@
 import * as isoly from "isoly"
-import * as platform from "../../../../platform"
+import * as platform from "@cloudflare/workers-types"
 import { Document } from "../../../Document"
 import { error } from "../error"
 import { Portion } from "./Portion"

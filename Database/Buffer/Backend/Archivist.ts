@@ -1,7 +1,7 @@
 import * as isoly from "isoly"
+import * as platform from "@cloudflare/workers-types"
 import { Document } from "../../../Database/Document"
 import { KeyValueStore } from "../../../KeyValueStore"
-import { DurableObjectState, KVNamespace } from "../../../platform"
 import { Key } from "../../Key"
 import { Configuration } from "./Configuration"
 import { Storage } from "./Storage"
@@ -17,7 +17,7 @@ export class Archivist {
 			changed: KeyValueStore<string>
 		},
 		private readonly storage: Storage,
-		private readonly state: DurableObjectState,
+		private readonly state: platform.DurableObjectState,
 		private readonly configuration: Configuration.Complete,
 		public readonly limit = 600
 	) {}
@@ -95,8 +95,8 @@ export class Archivist {
 		return { documents: await this.storage.load<Document>(staleKeys), changed: staleKeys.join("\n") } ?? {}
 	}
 	static open(
-		keyValueNamespace: KVNamespace | undefined,
-		state: DurableObjectState,
+		keyValueNamespace: platform.KVNamespace | undefined,
+		state: platform.DurableObjectState,
 		configuration: Configuration.Complete
 	): Archivist {
 		const kv = KeyValueStore.Json.create(

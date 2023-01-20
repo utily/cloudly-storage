@@ -1,11 +1,13 @@
 import * as isoly from "isoly"
-import * as platform from "../platform"
+import * as platform from "@cloudflare/workers-types"
 import { KeyValueStore } from "./KeyValueStore"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
 
-export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = string, M = Record<string, any>>
-	implements KeyValueStore<V, M>
+export class FromPlatform<
+	V extends string | ArrayBuffer | ArrayBufferView | platform.ReadableStream = string,
+	M = Record<string, any>
+> implements KeyValueStore<V, M>
 {
 	constructor(
 		private readonly backend: platform.KVNamespace,

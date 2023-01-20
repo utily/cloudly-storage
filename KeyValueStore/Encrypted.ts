@@ -1,5 +1,5 @@
 import * as cryptly from "cryptly"
-import * as platform from "../platform"
+import * as platform from "@cloudflare/workers-types"
 import { create as kvCreate } from "./create"
 import { Json } from "./Json"
 import { KeyValueStore } from "./KeyValueStore"

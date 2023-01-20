@@ -1,4 +1,5 @@
 import * as isoly from "isoly"
+import * as platform from "@cloudflare/workers-types"
 import { KeyValueStore } from "./KeyValueStore"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
@@ -9,8 +10,10 @@ interface Item<V = any, M = Record<string, any>> {
 	meta?: M
 }
 
-export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, M = Record<string, any>>
-	implements KeyValueStore<V>
+export class InMemory<
+	V extends string | ArrayBuffer | ArrayBufferView | platform.ReadableStream = string,
+	M = Record<string, any>
+> implements KeyValueStore<V>
 {
 	private readonly data: Record<string, Item<V, string> | undefined> = {}
 	// eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -65,10 +68,10 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 			: result
 	}
 	private static opened: Record<string, InMemory> = {}
-	static open<V extends string | ArrayBuffer | ReadableStream = string, M = Record<string, any>>(
-		namespace?: string,
-		retention?: isoly.TimeSpan
-	): InMemory<V, M> {
+	static open<
+		V extends string | ArrayBuffer | ArrayBufferView | platform.ReadableStream = string,
+		M = Record<string, any>
+	>(namespace?: string, retention?: isoly.TimeSpan): InMemory<V, M> {
 		return namespace
 			? (this.opened[namespace] as InMemory<V, M>) ?? (this.opened[namespace] = this.open(undefined, retention))
 			: new InMemory<V, M>(retention)

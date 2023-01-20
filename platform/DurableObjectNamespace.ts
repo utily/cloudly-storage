@@ -1,16 +1,18 @@
-import { DurableObjectId } from "./DurableObjectId"
-import { DurableObjectNamespaceNewUniqueIdOptions } from "./DurableObjectNamespaceNewUniqueIdOptions"
-import { DurableObjectStub } from "./DurableObjectStub"
+import * as platform from "@cloudflare/workers-types"
 
-export interface DurableObjectNamespace {
-	newUniqueId(options?: DurableObjectNamespaceNewUniqueIdOptions): DurableObjectId
-	idFromName(name: string): DurableObjectId
-	idFromString(id: string): DurableObjectId
-	get(id: DurableObjectId): DurableObjectStub
-}
+// import { DurableObjectId } from "./DurableObjectId"
+// import { DurableObjectNamespaceNewUniqueIdOptions } from "./DurableObjectNamespaceNewUniqueIdOptions"
+// import { DurableObjectStub } from "./DurableObjectStub"
+
+// export interface DurableObjectNamespace {
+// 	newUniqueId(options?: DurableObjectNamespaceNewUniqueIdOptions): DurableObjectId
+// 	idFromName(name: string): DurableObjectId
+// 	idFromString(id: string): DurableObjectId
+// 	get(id: DurableObjectId): DurableObjectStub
+// }
 
 export namespace DurableObjectNamespace {
-	export function is(value: DurableObjectNamespace | any): value is DurableObjectNamespace {
+	export function is(value: platform.DurableObjectNamespace | any): value is platform.DurableObjectNamespace {
 		return (
 			typeof value == "object" &&
 			typeof value.newUniqueId == "function" &&

@@ -30,7 +30,7 @@ export async function update(request: http.Request, context: Context): Promise<h
 						unlock
 					)
 				)) ?? error("update", "Document not found")
-			context.state.waitUntil(context.setAlarm())
+			context.state.waitUntil(context.setAlarm().then())
 		} catch (e) {
 			result = error("update", e)
 		}
