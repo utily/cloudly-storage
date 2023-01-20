@@ -74,7 +74,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 
 	private async list(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }> {
 		const cursor = Cursor.from(selection)
-		console.log("Problem?")
 		return cursor?.type == "changed" ? await this.listChanged(cursor) : await this.listDocs(cursor)
 	}
 
@@ -82,21 +81,21 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		const result: (T & Document)[] & { cursor?: string } & {
 			cursor?: string | undefined
 		} = []
-		console.log("Probs?")
 		let limit = cursor?.limit ?? Selection.standardLimit
 		let newCursor: string | undefined
 		for (const prefix of Cursor.prefix(cursor)) {
+			//problem
 			const loaded = await this.backend.doc.list({
 				prefix: this.partitions + prefix,
 				limit,
 				cursor: cursor?.cursor,
 			})
+			//problem
 			console.log(loaded)
 			const response = loaded.map(item => ({
 				...(item.value ?? {}),
 				...(item.meta ?? {}),
 			})) as (T & Document)[]
-			console.log(response)
 
 			limit -= response.length
 			result.push(...response)
@@ -104,9 +103,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				newCursor = Cursor.serialize({ ...{ ...(cursor ?? { type: "doc" }) }, cursor: loaded.cursor })
 				break
 			}
-			//console.log(result)
 		}
-		//console.log(newCursor)
 		if (newCursor && result)
 			result.cursor = newCursor
 		console.log(result)
@@ -117,7 +114,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		const result: (T & Document)[] & { cursor?: string } & {
 			cursor?: string | undefined
 		} = []
-		console.log("No Probs?")
 		let limit = cursor?.limit ?? Selection.standardLimit
 		const startFrom = isoly.DateTime.is(cursor.range?.start) ? cursor.range?.start : undefined
 		const prefixes = Cursor.prefix(cursor)
@@ -128,7 +124,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				limit,
 				cursor: cursor?.cursor,
 			})
-			console.log(changes)
 			const changedValues = startFrom
 				? changes.filter(e => {
 						return (Key.getTime(e.key) ?? "0") >= startFrom
@@ -150,8 +145,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		}
 		if (cursor.range?.start != startFrom)
 			result.cursor = Cursor.serialize({ ...cursor, cursor: newCursor ?? cursor.cursor })
-		console.log(result)
-		console.log("End")
 		return result
 	}
 
