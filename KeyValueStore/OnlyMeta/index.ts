@@ -1,4 +1,5 @@
 import * as isoly from "isoly"
+import { Continuable } from "/../Continuable"
 import { KeyValueStore } from "../KeyValueStore"
 import { ListItem } from "../ListItem"
 import { ListOptions } from "../ListOptions"
@@ -23,16 +24,16 @@ export namespace OnlyMeta {
 					}
 				)
 			},
-			list: async (options?: string | ListOptions): Promise<ListItem<V, undefined>[] & { cursor?: string }> => {
+			list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V, undefined>>> => {
+				console.log("P2?")
 				const response = await backend.list(options)
-				const result: ListItem<V, undefined>[] & { cursor?: string } = await Promise.all(
+				const result: Continuable<ListItem<V, undefined>> = await Promise.all(
 					response.map(async item => ({
 						...(({ meta: discard, ...r }) => r)(item),
 						value: typeof item.meta == "string" || Array.isArray(item.meta) ? item.meta : ({ ...item.meta } as V),
 					}))
 				)
-				if (response.cursor)
-					result.cursor = response.cursor
+				console.log("E.P2")
 				return result
 			},
 		}

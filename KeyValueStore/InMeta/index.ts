@@ -1,4 +1,5 @@
 import * as isoly from "isoly"
+import { Continuable } from "/../Continuable"
 import { Json } from "../Json"
 import { KeyValueStore } from "../KeyValueStore"
 import { ListItem } from "../ListItem"
@@ -33,7 +34,8 @@ export namespace InMeta {
 					}
 				)
 			},
-			list: async (options?: string | ListOptions): Promise<ListItem<V & M, undefined>[] & { cursor?: string }> => {
+			list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V & M, undefined>>> => {
+				console.log("P?")
 				const response = await backend.list(options)
 				const result = (await Promise.all(
 					response
@@ -47,9 +49,8 @@ export namespace InMeta {
 								}))(user)
 						)
 						.filter(async user => user)
-				)) as ListItem<V & M, undefined>[] & { cursor?: string }
-				if (response.cursor)
-					result.cursor = response.cursor
+				)) as Continuable<ListItem<V & M, undefined>>
+				console.log("E.P?")
 				return result
 			},
 		}
