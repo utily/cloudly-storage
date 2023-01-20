@@ -107,7 +107,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		if (newCursor && result)
 			result.cursor = newCursor
 		console.log(result)
-		console.log("End")
 		return result
 	}
 	private async listChanged(cursor: Cursor): Promise<(Document & T)[] & { cursor?: string }> {

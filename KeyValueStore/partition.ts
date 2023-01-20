@@ -39,6 +39,8 @@ export function partition<V, M = undefined>(
 			const result: Continuable<ListItem<V, M>> = await Promise.all(
 				response.map(async user => ({ ...user, key: user.key.slice(prefixLength) } as ListItem<V, M>))
 			)
+			console.log("R")
+			console.log(result)
 			return result
 		},
 	}
