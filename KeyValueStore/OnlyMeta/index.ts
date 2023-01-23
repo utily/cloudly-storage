@@ -25,7 +25,6 @@ export namespace OnlyMeta {
 				)
 			},
 			list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V, undefined>>> => {
-				console.log("P2?")
 				const response = await backend.list(options)
 				const result: Continuable<ListItem<V, undefined>> = await Promise.all(
 					response.map(async item => ({
@@ -33,7 +32,6 @@ export namespace OnlyMeta {
 						value: typeof item.meta == "string" || Array.isArray(item.meta) ? item.meta : ({ ...item.meta } as V),
 					}))
 				)
-				console.log("E.P2")
 				return result
 			},
 		}

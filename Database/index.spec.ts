@@ -68,10 +68,6 @@ describe("Archive create, load, list", () => {
 	it("list with limit and prefix", async () => {
 		const listed = await partition?.items.load(selection)
 		expect(listed?.flat()).toEqual([item, item2])
-		//
-		//console.log(listed)
-		//console.log(listed?.cursor)
-		//
 		expect(listed?.cursor).toEqual(
 			"eyJsaW1pdCI6MiwicmFuZ2UiOnsic3RhcnQiOiIyMDIyLTA3LTMwIiwiZW5kIjoiMjAyMi0wOC0wMSJ9LCJ0eXBlIjoiZG9jIiwiY3Vyc29yIjoiaXRlbXMvZG9jL2F4YjAwMS8yMDIyLTA3LTMwVDAwOjE3OjAwLjAwMFovYWJkMiJ9"
 		)
@@ -79,7 +75,6 @@ describe("Archive create, load, list", () => {
 		expect(listedLocus?.flat()).toEqual([item3, item4])
 		expect(listedLocus?.cursor).toEqual(undefined)
 	})
-	/*
 	it("list using changed query", async () => {
 		const listed = await partition?.items.load({ changed: selection.created, limit: 3 })
 		//const listed = await partition?.items.load({ changed: selection.changed, limit: 3 })
@@ -144,5 +139,4 @@ describe("Archive create, load, list", () => {
 		expect(await partition?.items.remove([item2.id, item3.id, item5.id])).toEqual([true, true, true])
 		expect(await partition?.items.load()).toEqual([item4])
 	})
-	*/
 })

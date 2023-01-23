@@ -57,7 +57,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	async load(
 		selection?: Identifier | Identifier[] | Selection
 	): Promise<Document | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })> {
-		console.log(selection)
 		let result: (T & Document) | undefined | ((Document & T) | undefined)[] | ((Document & T)[] & { cursor?: string })
 		if (typeof selection == "string") {
 			const key = await this.getKey(selection)
@@ -68,7 +67,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		} else {
 			result = await this.list(selection)
 		}
-		console.log(result)
 		return result
 	}
 
@@ -84,14 +82,11 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		let limit = cursor?.limit ?? Selection.standardLimit
 		let newCursor: string | undefined
 		for (const prefix of Cursor.prefix(cursor)) {
-			//problem
 			const loaded = await this.backend.doc.list({
 				prefix: this.partitions + prefix,
 				limit,
 				cursor: cursor?.cursor,
 			})
-			//problem
-			console.log(loaded)
 			const response = loaded.map(item => ({
 				...(item.value ?? {}),
 				...(item.meta ?? {}),
@@ -106,7 +101,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		}
 		if (newCursor && result)
 			result.cursor = newCursor
-		console.log(result)
 		return result
 	}
 	private async listChanged(cursor: Cursor): Promise<(Document & T)[] & { cursor?: string }> {

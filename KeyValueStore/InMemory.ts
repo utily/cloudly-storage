@@ -37,12 +37,7 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 				result = undefined
 		return result && (({ expires: disregard, meta, ...item }) => ({ ...item, meta: meta && JSON.parse(meta) }))(result)
 	}
-	async list(options?: string | ListOptions): Promise<
-		Continuable<ListItem<V, M>>
-		//ListItem<V, M>[] & {
-		//	cursor?: string
-		//}
-	> {
+	async list(options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> {
 		const o = ListOptions.get(options)
 		const now = isoly.DateTime.now()
 		const partition = Object.entries(this.data).filter(

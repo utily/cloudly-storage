@@ -23,26 +23,15 @@ export function partition<V, M = undefined>(
 			const result = await backend.get(prefix + key)
 			return result as { value: V; retention?: isoly.TimeSpan; meta?: M } | undefined
 		},
-		//list: async (options?: string | ListOptions): Promise<ListItem<V, M>[] & { cursor?: string }> => {
-		//	const response = await backend.list(
-		//		typeof options == "object" ? { ...options, prefix: prefix + (options.prefix ?? "") } : prefix + (options ?? "")
-		//	)
-		//	const result: ListItem<V, M>[] & { cursor?: string } = await Promise.all(
-		//		response.map(async user => ({ ...user, key: user.key.slice(prefixLength) } as ListItem<V, M>))
-		//	)
-		//	if (response.cursor)
-		//		result.cursor = response.cursor
 		list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> => {
-			console.log("R.S")
 			const response = await backend.list(
 				typeof options == "object" ? { ...options, prefix: prefix + (options.prefix ?? "") } : prefix + (options ?? "")
 			)
 			const result: Continuable<ListItem<V, M>> = await Promise.all(
 				response.map(async user => ({ ...user, key: user.key.slice(prefixLength) } as ListItem<V, M>))
 			)
-			console.log(response)
-			console.log("R.E")
-			console.log(result)
+			if (response.cursor)
+				result.cursor = response.cursor
 			return result
 		},
 	}
