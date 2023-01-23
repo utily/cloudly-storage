@@ -26,6 +26,7 @@ export function create<B, V, M = any>(
 		//		result.cursor = response.cursor
 		list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> => {
 			//problem
+			//P
 			console.log("P.S")
 			const response = await backend.list(options)
 			console.log("P.E")

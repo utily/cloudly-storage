@@ -60,7 +60,6 @@ export class InMemory<V extends string | ArrayBuffer | ReadableStream = string, 
 				meta: item.meta ? (JSON.parse(item.meta) as M) : undefined,
 			}))
 			.map<ListItem<V, M>>(o.values ? item => item : ({ value: disregard, ...item }) => item)
-		console.log("MEM")
 		return result.length > (o.limit ?? 0)
 			? Object.defineProperty(result.slice(0, o.limit), "cursor", {
 					value: result.slice(0, o.limit).slice(-1)[0].key,
