@@ -6,7 +6,7 @@ export class Namespace {
 	private constructor(private readonly backend: platform.DurableObjectNamespace, readonly partitions = "") {}
 
 	open(name?: string, options?: platform.DurableObjectNamespaceNewUniqueIdOptions): Client {
-		return name
+		return typeof name == "string"
 			? this.#objects[name] ??
 					(this.#objects[name] = new Client(this.backend.get(this.backend.idFromName(this.partitions + name))))
 			: new Client(this.backend.get(this.backend.newUniqueId(options)))
