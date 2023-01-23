@@ -33,6 +33,7 @@ export function partition<V, M = undefined>(
 		//	if (response.cursor)
 		//		result.cursor = response.cursor
 		list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> => {
+			console.log("R.S")
 			const response = await backend.list(
 				typeof options == "object" ? { ...options, prefix: prefix + (options.prefix ?? "") } : prefix + (options ?? "")
 			)
@@ -40,7 +41,7 @@ export function partition<V, M = undefined>(
 				response.map(async user => ({ ...user, key: user.key.slice(prefixLength) } as ListItem<V, M>))
 			)
 			console.log(response)
-			console.log("R")
+			console.log("R.E")
 			console.log(result)
 			return result
 		},
