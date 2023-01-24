@@ -22,7 +22,6 @@ export function create<B, V, M = any>(
 			const result: Continuable<ListItem<V, M>> = await Continuable.await(
 				response.map(async user => ({ ...user, value: user.value && (await from(user.value)) }))
 			)
-			//Why still needed?
 			return result
 		},
 	}

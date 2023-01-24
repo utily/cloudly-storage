@@ -39,18 +39,10 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 			  }
 			: undefined
 	}
-	async list(options?: string | ListOptions): Promise<
-		Continuable<ListItem<V, M>>
-		//ListItem<V, M>[] & {
-		//	cursor?: string
-		//}
-	> {
+	async list(options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> {
 		const o = ListOptions.get(options)
 		const data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
 		const result: Continuable<ListItem<V, M>> = await Promise.all(
-			//const result: ListItem<V, M>[] & {
-			//	cursor?: string
-			//} = await Promise.all(
 			data.keys
 				.map(async item => ({
 					key: item.name,
@@ -67,8 +59,6 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 						: i => i
 				)
 		)
-		//if (!data.list_complete && data.cursor)
-		//	result.cursor = data.cursor
 		return result
 	}
 }

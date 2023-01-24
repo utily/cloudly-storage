@@ -49,7 +49,6 @@ export namespace InMeta {
 						)
 						.filter(async user => user)
 				)) as Continuable<ListItem<V & M, undefined>>
-				//Why still needed?
 				return result
 			},
 		}

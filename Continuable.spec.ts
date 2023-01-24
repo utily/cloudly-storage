@@ -26,7 +26,7 @@ describe("Continuable", () => {
 		const r0 = continuable.map(Math.sqrt)
 		expect(r0).toMatchSnapshot()
 		expect((r0 as any).cursor).toEqual("abcd")
-		const r1 = continuable.map(i => i * i)
+		const r1 = r0.map(i => i * i)
 		expect(r1).toMatchSnapshot()
 		expect((r1 as any).cursor).toEqual("abcd")
 	})

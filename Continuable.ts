@@ -47,25 +47,6 @@ export namespace Continuable {
 	}
 
 	export async function await<T>(continuable: Continuable<Promise<T>>): Promise<Continuable<T>> {
-		return modify((await Promise.all(continuable)) as T[], continuable.cursor)
+		return modify((await Promise.all(continuable)) as Continuable<T>, continuable.cursor)
 	}
-	//return {
-	//	map: async <U>(
-	//		callbackfn: (value: T, index: number, array: T[]) => U,
-	//		thisArg?: any
-	//	): Promise<Continuable<T>> => {
-	//		return modify(this.map(callbackfn, thisArg))
-	//	},
-	//}
-
-	//export function modify<R>(output: Continuable<R>): Continuable<R> {
-	//	const r = output as Continuable<R>
-	//	if (output.cursor)
-	//		r.cursor = output.cursor
-	//	return r
-	//}
-	//
-	//export function map<U>(callbackfn: (value: T, index: number, array: T[]) => U, thisArg?: any): Continuable<U> {
-	//	return modify(map(callbackfn, thisArg))
-	//}
 }
