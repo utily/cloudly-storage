@@ -21,6 +21,15 @@ describe("Continuable", () => {
 		expect(r[3] == 2).toEqual(true)
 		expect(r[8] == 3).toEqual(true)
 	})
+	it("map + map", async () => {
+		const continuable = storage.Continuable.create(array, "abcd")
+		const r0 = continuable.map(Math.sqrt)
+		expect(r0).toMatchSnapshot()
+		expect((r0 as any).cursor).toEqual("abcd")
+		const r1 = continuable.map(i => i * i)
+		expect(r1).toMatchSnapshot()
+		expect((r1 as any).cursor).toEqual("abcd")
+	})
 	it("filter", async () => {
 		const continuable = storage.Continuable.create(array, "abcd")
 		const r = continuable.filter(v => v % 2 == 0)

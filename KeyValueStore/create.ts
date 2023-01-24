@@ -19,11 +19,10 @@ export function create<B, V, M = any>(
 		},
 		list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> => {
 			const response = await backend.list(options)
-			const result: Continuable<ListItem<V, M>> = await Promise.all(
+			const result: Continuable<ListItem<V, M>> = await Continuable.await(
 				response.map(async user => ({ ...user, value: user.value && (await from(user.value)) }))
 			)
-			if (response.cursor)
-				result.cursor = response.cursor
+			//Why still needed?
 			return result
 		},
 	}
