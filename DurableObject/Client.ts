@@ -21,10 +21,15 @@ export class Client {
 			header: { ...(body ? { contentType: "application/json" } : {}), ...(header ? header : {}) },
 			body,
 		})
-		const response = http.Response.from(await this.stub.fetch(request.url.toString(), await http.Request.to(request)))
-		return response.status >= 300 && this.onError && (await this.onError(request, response))
+		const reponse = await this.stub
+			.fetch(request.url.toString(), await http.Request.to(request))
+			.catch(e => Error.create("DOClient", e))
+		const httpResponse = !Error.is(reponse) ? http.Response.from(reponse) : reponse
+		return Error.is(httpResponse)
+			? httpResponse
+			: httpResponse.status >= 300 && this.onError && (await this.onError(request, httpResponse))
 			? await this.fetch<R>(path, method, body, header)
-			: ((await response.body) as R | Error)
+			: ((await httpResponse.body) as R | Error)
 	}
 	async get<R>(path: string, header?: http.Request.Header): Promise<R | Error> {
 		return await this.fetch<R>(path, "GET", undefined, header)
