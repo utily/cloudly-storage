@@ -66,7 +66,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			result = await Promise.all(selection.map(id => this.load(id)))
 		else
 			result = await this.list(selection)
-
 		return result
 	}
 
