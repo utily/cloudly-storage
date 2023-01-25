@@ -27,10 +27,8 @@ export function partition<V, M = undefined>(
 			const response = await backend.list(
 				typeof options == "object" ? { ...options, prefix: prefix + (options.prefix ?? "") } : prefix + (options ?? "")
 			)
-			//Needed for curser to not disappear
-			const resp = Continuable.create(response, response.cursor)
-			return await Continuable.await(resp.map(async user => ({ ...user, key: user.key.slice(prefixLength) })))
-			//return await Continuable.await(response.map(async user => ({ ...user, key: user.key.slice(prefixLength) })))
+			const result = Continuable.create(response, response.cursor)
+			return await Continuable.await(result.map(async user => ({ ...user, key: user.key.slice(prefixLength) })))
 		},
 	}
 }
