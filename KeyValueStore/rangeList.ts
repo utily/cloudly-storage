@@ -24,6 +24,7 @@ export function rangeList<V, M = undefined>(backend: KeyValueStore<V, M>, prefix
 		//		result.cursor = response.cursor
 		//	return result
 		//},
+
 		list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> => {
 			const response = await backend.list(
 				typeof options == "object" ? { ...options, prefix: options.prefix ?? "" } : options ?? ""
