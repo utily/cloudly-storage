@@ -13,18 +13,6 @@ export function rangeList<V, M = undefined>(backend: KeyValueStore<V, M>, prefix
 		get: async (key: string): Promise<{ value: V; retention?: isoly.TimeSpan; meta?: M } | undefined> => {
 			return await backend.get(key)
 		},
-		//list: async (options?: string | ListOptions): Promise<ListItem<V, M>[] & { cursor?: string }> => {
-		//	const response = await backend.list(
-		//		typeof options == "object" ? { ...options, prefix: options.prefix ?? "" } : options ?? ""
-		//	)
-		//	const result: ListItem<V, M>[] & { cursor?: string } = await Promise.all(
-		//		response.map(async user => ({ ...user, key: user.key } as ListItem<V, M>))
-		//	)
-		//	if (response.cursor)
-		//		result.cursor = response.cursor
-		//	return result
-		//},
-
 		list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> => {
 			const response = await backend.list(
 				typeof options == "object" ? { ...options, prefix: options.prefix ?? "" } : options ?? ""
