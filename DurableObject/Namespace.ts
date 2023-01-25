@@ -4,11 +4,14 @@ import { Client } from "./Client"
 export class Namespace {
 	#objects: Record<string, Client | undefined> = {}
 	private constructor(private readonly backend: platform.DurableObjectNamespace, readonly partitions = "") {}
-	open(name: string): Client {
-		return (
-			this.#objects[name] ??
-			(this.#objects[name] = new Client(this.backend.get(this.backend.idFromName(this.partitions + name))))
-		)
+
+	open(name?: string, id?: string, options?: platform.DurableObjectNamespaceNewUniqueIdOptions): Client {
+		return typeof name == "string"
+			? this.#objects[name] ??
+					(this.#objects[name] = new Client(this.backend.get(this.backend.idFromName(this.partitions + name))))
+			: typeof id == "string"
+			? new Client(this.backend.get(this.backend.idFromString(id)))
+			: new Client(this.backend.get(this.backend.newUniqueId(options)))
 	}
 	partition(...partition: string[]): Namespace {
 		return new Namespace(this.backend, this.partitions + partition.join("/") + "/")
