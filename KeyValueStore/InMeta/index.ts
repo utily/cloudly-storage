@@ -36,8 +36,9 @@ export namespace InMeta {
 			},
 			list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V & M, undefined>>> => {
 				const response = await backend.list(options)
+				const res = Continuable.create(response, response.cursor)
 				const result = (await Continuable.awaits(
-					response
+					res
 						.map(
 							async user =>
 								user &&

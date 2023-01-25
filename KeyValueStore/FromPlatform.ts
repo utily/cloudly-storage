@@ -59,6 +59,8 @@ export class FromPlatform<V extends string | ArrayBuffer | ReadableStream = stri
 						: i => i
 				)
 		)
+		if (data.cursor)
+			result.cursor = data.cursor
 		return result
 	}
 }
