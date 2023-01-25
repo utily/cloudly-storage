@@ -19,7 +19,7 @@ export function create<B, V, M = any>(
 		},
 		list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> => {
 			const response = await backend.list(options)
-			const result: Continuable<ListItem<V, M>> = await Continuable.await(
+			const result: Continuable<ListItem<V, M>> = await Continuable.awaits(
 				response.map(async user => ({ ...user, value: user.value && (await from(user.value)) }))
 			)
 			return result

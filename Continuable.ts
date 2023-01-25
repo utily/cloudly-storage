@@ -46,7 +46,7 @@ export namespace Continuable {
 		return result
 	}
 
-	export async function await<T>(continuable: Continuable<Promise<T>>): Promise<Continuable<T>> {
+	export async function awaits<T>(continuable: Continuable<Promise<T>>): Promise<Continuable<T>> {
 		return modify((await Promise.all(continuable)) as Continuable<T>, continuable.cursor)
 	}
 }

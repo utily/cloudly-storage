@@ -28,7 +28,7 @@ export function partition<V, M = undefined>(
 				typeof options == "object" ? { ...options, prefix: prefix + (options.prefix ?? "") } : prefix + (options ?? "")
 			)
 			const result = Continuable.create(response, response.cursor)
-			return await Continuable.await(result.map(async user => ({ ...user, key: user.key.slice(prefixLength) })))
+			return await Continuable.awaits(result.map(async user => ({ ...user, key: user.key.slice(prefixLength) })))
 		},
 	}
 }
