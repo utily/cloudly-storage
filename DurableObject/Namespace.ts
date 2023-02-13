@@ -16,11 +16,11 @@ export class Namespace<E = Error> {
 			: new Client<E>(this.backend.get(this.backend.newUniqueId(options)))
 	}
 	partition(...partition: string[]): Namespace<E> {
-		return new Namespace(this.backend, this.partitions + partition.join("/") + "/")
+		return new Namespace<E>(this.backend, this.partitions + partition.join("/") + "/")
 	}
 	static open<E = Error>(backend: platform.DurableObjectNamespace | any): Namespace<E> | undefined
 	static open<E = Error>(backend: platform.DurableObjectNamespace | any, partition?: string): Namespace<E> | undefined
 	static open<E = Error>(backend: platform.DurableObjectNamespace | any, partition?: string): Namespace<E> | undefined {
-		return platformHelper.DurableObjectNamespace.is(backend) ? new Namespace(backend, partition) : undefined
+		return platformHelper.DurableObjectNamespace.is(backend) ? new Namespace<E>(backend, partition) : undefined
 	}
 }
