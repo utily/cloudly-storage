@@ -15,6 +15,7 @@ export async function store(request: http.Request, context: Context): Promise<ht
 	else {
 		try {
 			result = await context.state.blockConcurrencyWhile(() => storage.storeDocuments(document))
+			// TODO: Remove .then() if type of context.setAlarm() is changed to Promise<void>
 			context.state.waitUntil(context.setAlarm().then())
 		} catch (error) {
 			result = error("store", error)
