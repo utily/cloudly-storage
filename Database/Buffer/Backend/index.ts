@@ -16,7 +16,7 @@ export class Backend {
 	private setAlarm = async () => {
 		!this.isAlarm &&
 			this.state.waitUntil(this.state.storage.setAlarm(Date.now() + (this.configuration?.snooze ?? 10000)))
-		return (this.isAlarm = true)
+		this.isAlarm = true
 	}
 
 	private constructor(private readonly state: platform.DurableObjectState, private environment: Environment) {}
