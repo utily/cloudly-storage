@@ -1,6 +1,6 @@
+import * as platform from "@cloudflare/workers-types"
 import { Namespace as DONamespace } from "../DurableObject"
 import { KeyValueStore } from "../KeyValueStore"
-import * as platform from "../platform"
 import { Archive as DBArchive } from "./Archive"
 import { Buffer as DBBuffer } from "./Buffer"
 import { Collection as DBCollection } from "./Collection"

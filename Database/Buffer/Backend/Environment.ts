@@ -1,8 +1,11 @@
-import { DurableObjectState, KVNamespace } from "../../../platform"
+import * as platform from "@cloudflare/workers-types"
 
 export interface Environment
-	extends Record<string, undefined | boolean | (() => Promise<boolean>) | DurableObjectState | KVNamespace> {
-	state: DurableObjectState
-	archive?: KVNamespace
-	setAlarm: () => Promise<boolean>
+	extends Record<
+		string,
+		undefined | boolean | (() => Promise<void>) | platform.DurableObjectState | platform.KVNamespace
+	> {
+	state: platform.DurableObjectState
+	archive?: platform.KVNamespace
+	setAlarm: () => Promise<void>
 }

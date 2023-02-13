@@ -1,4 +1,4 @@
-import * as platform from "../../../../platform"
+import * as platform from "@cloudflare/workers-types"
 
 export class Portion {
 	private constructor(private readonly storage: platform.DurableObjectState["storage"]) {}

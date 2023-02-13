@@ -3,7 +3,7 @@ import "./load"
 import "./store"
 import "./remove"
 import "./change"
-import { DurableObjectState } from "../../../platform"
+import * as platform from "@cloudflare/workers-types"
 import { Archivist } from "./Archivist"
 import { Configuration } from "./Configuration"
 import { Context } from "./Context"
@@ -16,10 +16,10 @@ export class Backend {
 	private setAlarm = async () => {
 		!this.isAlarm &&
 			this.state.waitUntil(this.state.storage.setAlarm(Date.now() + (this.configuration?.snooze ?? 10000)))
-		return (this.isAlarm = true)
+		this.isAlarm = true
 	}
 
-	private constructor(private readonly state: DurableObjectState, private environment: Environment) {}
+	private constructor(private readonly state: platform.DurableObjectState, private environment: Environment) {}
 
 	async fetch(request: Request): Promise<Response> {
 		await this.configure(request)

@@ -1,4 +1,5 @@
 {
+	// Update search.exclude if you add a pattern to files.exclude
 	"files.exclude": {
 		".*": true,
 		"*.json": true,
@@ -16,6 +17,25 @@
 		"test-worker/dist": true,
 		"test-worker/tsconfig.*": true,
 		"test-worker/node_modules": true,
+	},
+	// Make it possible to open excluded files with Ctrl + P
+	"search.exclude": {
+		".*": false,
+		"*.json": false,
+		"CODEOWNERS": false,
+		"dist": false,
+		"README.md": false,
+		"LICENSE": false,
+		"tsconfig.*": false,
+		"node_modules": false,
+		"*.code-workspace": false,
+		"test-worker/.*": false,
+		"test-worker/*.json": false,
+		"test-worker/rollup.config.js": false,
+		"test-worker/wrangler.toml": false,
+		"test-worker/dist": false,
+		"test-worker/tsconfig.*": false,
+		"test-worker/node_modules": false,
 	},
 	"files.insertFinalNewline": true,
 	"editor.tabSize": 2,
