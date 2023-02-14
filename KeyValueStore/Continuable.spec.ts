@@ -1,4 +1,4 @@
-import * as storage from "./index"
+import * as storage from "../index"
 
 describe("Continuable", () => {
 	const array = [1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -17,19 +17,30 @@ describe("Continuable", () => {
 		const r = continuable.map(Math.sqrt)
 		expect(storage.Continuable.is(r)).toEqual(true)
 		expect(storage.Continuable.hasCursor(r)).toEqual(true)
-		expect(r).toMatchSnapshot()
+		expect(r.toString()).toEqual(
+			[
+				1, 1.4142135623730951, 1.7320508075688772, 2, 2.23606797749979, 2.449489742783178, 2.6457513110645907,
+				2.8284271247461903, 3,
+			].toString()
+		)
 		expect((r as any).cursor).toEqual("abcd")
 	})
 	it("map + map", async () => {
 		const continuable = storage.Continuable.create(array, "abcd")
 		const r0 = continuable.map(Math.sqrt)
-		expect(r0).toMatchSnapshot()
+		expect(r0.toString()).toEqual(
+			"1,1.4142135623730951,1.7320508075688772,2,2.23606797749979,2.449489742783178,2.6457513110645907,2.8284271247461903,3"
+		)
 		expect((r0 as any).cursor).toEqual("abcd")
 		const r1 = r0.map(i => i * i)
-		expect(r1).toMatchSnapshot()
+		expect(r1.toString()).toEqual(
+			"1,2.0000000000000004,2.9999999999999996,4,5.000000000000001,5.999999999999999,7.000000000000001,8.000000000000002,9"
+		)
 		expect((r1 as any).cursor).toEqual("abcd")
 		const r2 = r1.map(i => i * i)
-		expect(r2).toMatchSnapshot()
+		expect(r2.toString()).toEqual(
+			"1,4.000000000000002,8.999999999999998,16,25.00000000000001,35.99999999999999,49.000000000000014,64.00000000000003,81"
+		)
 		expect((r2 as any).cursor).toEqual("abcd")
 	})
 	it("filter", async () => {
@@ -42,15 +53,15 @@ describe("Continuable", () => {
 				return item % 2 == 0
 			})
 		).toEqual(true)
-		expect(r).toMatchSnapshot()
+		expect(r.toString()).toEqual("2,4,6,8")
 		expect((r as any).cursor).toEqual("abcd")
 	})
 	it("slice", async () => {
 		const continuable = storage.Continuable.create(array, "abcd")
-		const r = continuable.slice(1, 4)
+		const r = await continuable.slice(1, 4)
 		expect(storage.Continuable.is(r)).toEqual(true)
 		expect(storage.Continuable.hasCursor(r)).toEqual(true)
-		expect(r).toMatchSnapshot()
+		expect(r.toString()).toEqual("2,3,4")
 		expect((r as any).cursor).toEqual("abcd")
 	})
 	it("splice", async () => {
@@ -70,18 +81,18 @@ describe("Continuable", () => {
 		expect(storage.Continuable.hasCursor(r3)).toEqual(true)
 		expect(storage.Continuable.is(r4)).toEqual(true)
 		expect(storage.Continuable.hasCursor(r4)).toEqual(true)
-		expect(r1).toMatchSnapshot()
+		expect(r1.toString()).toEqual("")
 		expect((r1 as any).cursor).toEqual("abcd")
-		expect(continuable).toMatchSnapshot()
-		expect(r2).toMatchSnapshot()
+		expect(continuable.toString()).toEqual("1,2,3,4,5,6,7,8,9")
+		expect(r2.toString()).toEqual("2,3,4,5")
 		expect((r2 as any).cursor).toEqual("abce")
-		expect(continuable2).toMatchSnapshot()
-		expect(r3).toMatchSnapshot()
+		expect(continuable2.toString()).toEqual("1,6,7,8,9")
+		expect(r3.toString()).toEqual("2,3,4,5")
 		expect((r3 as any).cursor).toEqual("abcf")
-		expect(continuable3).toMatchSnapshot()
-		expect(r4).toMatchSnapshot()
+		expect(continuable3.toString()).toEqual("1,1.2,2.2,6,7,8,9")
+		expect(r4.toString()).toEqual("1,2,3,4,5,6,7,8,9")
 		expect((r4 as any).cursor).toEqual("abcg")
-		expect(continuable4).toMatchSnapshot()
+		expect(continuable4.toString()).toEqual("")
 	})
 	it("concat", async () => {
 		const continuable = storage.Continuable.create(array, "abcd")
@@ -101,15 +112,15 @@ describe("Continuable", () => {
 		expect(storage.Continuable.hasCursor(r4)).toEqual(true)
 		expect(storage.Continuable.is(r5)).toEqual(true)
 		expect(storage.Continuable.hasCursor(r5)).toEqual(true)
-		expect(r).toMatchSnapshot()
+		expect(r.toString()).toEqual("1,2,3,4,5,6,7,8,9")
 		expect((r as any).cursor).toEqual("abcd")
-		expect(r2).toMatchSnapshot()
+		expect(r2.toString()).toEqual("1,2,3,4,5,6,7,8,9,1.1,2.1,3.1,4.1")
 		expect((r2 as any).cursor).toEqual("abcd")
-		expect(r3).toMatchSnapshot()
+		expect(r3.toString()).toEqual("1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9")
 		expect((r3 as any).cursor).toEqual("abcd")
-		expect(r4).toMatchSnapshot()
+		expect(r4.toString()).toEqual("1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9")
 		expect((r4 as any).cursor).toEqual("abcd")
-		expect(r5).toMatchSnapshot()
+		expect(r5.toString()).toEqual("1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9")
 		expect((r5 as any).cursor).toEqual("abcd")
 	})
 })

@@ -1,5 +1,5 @@
 import * as isoly from "isoly"
-import { Continuable } from "../Continuable"
+import { Continuable } from "./Continuable"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
 export interface KeyValueStore<V = any, M = any> {

@@ -1,7 +1,7 @@
 import * as cryptly from "cryptly"
 import * as isoly from "isoly"
 import * as platform from "@cloudflare/workers-types"
-import { Continuable } from "../Continuable"
+import { Continuable } from "./Continuable"
 import { KeyValueStore } from "./KeyValueStore"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
