@@ -18,9 +18,10 @@ export class Namespace<E = Error> {
 	partition(...partition: string[]): Namespace<E> {
 		return new Namespace<E>(this.backend, this.partitions + partition.join("/") + "/")
 	}
-	static open<E = Error>(backend: platform.DurableObjectNamespace | any): Namespace<E> | undefined
-	static open<E = Error>(backend: platform.DurableObjectNamespace | any, partition?: string): Namespace<E> | undefined
 	static open<E = Error>(backend: platform.DurableObjectNamespace | any, partition?: string): Namespace<E> | undefined {
 		return platformHelper.DurableObjectNamespace.is(backend) ? new Namespace<E>(backend, partition) : undefined
+	}
+	static is<E = Error>(value: any): value is Namespace<E> {
+		return typeof value == "object" && typeof value.open == "function" && typeof value.partition == "function"
 	}
 }
