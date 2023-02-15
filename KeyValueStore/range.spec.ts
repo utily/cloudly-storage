@@ -307,7 +307,7 @@ describe("range", () => {
 		expect(res2.cursor).toEqual(undefined)
 	})
 	it("Cursor", async () => {
-		const options1: ListOptions = { cursor: "RG9uJ3QgZXhpc3Q=", limit: 1 }
+		const options1: ListOptions = { cursor: "RG9uJ3QgZXhpc3Q=", limit: 20 }
 		expect(await store.list(options1)).toEqual([])
 		const options2: ListOptions = { limit: 1, range: ["A", "z"], cursor: "RG9uJ3QgZXhpc3Q=" }
 		expect(await store.list(options2)).toEqual([])
