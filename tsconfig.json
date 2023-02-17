@@ -3,10 +3,10 @@
 	"compilerOptions": {
 		"declaration": true,
 		"sourceMap": true,
-		"sourceRoot": "../",
+		"sourceRoot": "${workspaceRoot}",
 		"outDir": "dist",
 		"baseUrl": ".",
-		"allowSyntheticDefaultImports":true,
+		"allowSyntheticDefaultImports": true,
 		"types": []
 	},
 	"files": [

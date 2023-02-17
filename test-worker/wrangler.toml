@@ -9,6 +9,7 @@ routes = ["https://example.com/item*"]
 
 kv_namespaces = [
   { binding = "archive", id = "429fa89f123548ddaf4fba0591b367e8", preview_id = "429fa89f123548ddaf4fba0591b367e8" },
+	{ binding = "kvStore", id = "429fa89f123548ddaf4fba0591b367e8", preview_id = "429fa89f123548ddaf4fba0591b367e8" },
 ]
 
 vars = { }

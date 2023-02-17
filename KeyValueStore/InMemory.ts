@@ -1,8 +1,11 @@
+import * as cryptly from "cryptly"
 import * as isoly from "isoly"
 import * as platform from "@cloudflare/workers-types"
+import { Continuable } from "./Continuable"
 import { KeyValueStore } from "./KeyValueStore"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
+import { range } from "./range"
 
 interface Item<V = any, M = Record<string, any>> {
 	value: V
@@ -39,21 +42,28 @@ export class InMemory<
 				result = undefined
 		return result && (({ expires: disregard, meta, ...item }) => ({ ...item, meta: meta && JSON.parse(meta) }))(result)
 	}
-	async list(options?: string | ListOptions): Promise<
-		ListItem<V, M>[] & {
-			cursor?: string
-		}
-	> {
+	async list(options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> {
 		const o = ListOptions.get(options)
 		const now = isoly.DateTime.now()
 		const partition = Object.entries(this.data).filter(
 			([key, item]) => item && (!o.prefix || key.startsWith(o.prefix)) && (!item.expires || item.expires >= now)
 		) as unknown as [string, Item<V, string>][]
-		const start =
+		let start =
 			partition.findIndex(([key, value]) => {
 				return key == o.cursor
 			}) + 1
-		const result = partition
+		if (o.cursor && start == 0) {
+			try {
+				const cursor = new cryptly.TextDecoder().decode(cryptly.Base64.decode(o.cursor, "url"))
+				start =
+					partition.findIndex(([key, value]) => {
+						return key == cursor
+					}) + 1 || partition.length
+			} catch {
+				start = 0
+			}
+		}
+		let result = partition
 			.slice(start)
 			.map<ListItem<V, M>>(([key, item]) => ({
 				key,
@@ -61,6 +71,8 @@ export class InMemory<
 				meta: item.meta ? (JSON.parse(item.meta) as M) : undefined,
 			}))
 			.map<ListItem<V, M>>(o.values ? item => item : ({ value: disregard, ...item }) => item)
+		if (o.range)
+			result = range(result, o)
 		return result.length > (o.limit ?? 0)
 			? Object.defineProperty(result.slice(0, o.limit), "cursor", {
 					value: result.slice(0, o.limit).slice(-1)[0].key,
