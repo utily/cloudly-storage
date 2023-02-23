@@ -90,7 +90,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				...(item.value ?? {}),
 				...(item.meta ?? {}),
 			})) as (T & Document)[]
-
 			limit -= response.length
 			result.push(...response)
 			if (loaded.cursor) {
@@ -107,21 +106,24 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			cursor?: string | undefined
 		} = []
 		let limit = cursor?.limit ?? Selection.standardLimit
-		const startFrom = isoly.DateTime.is(cursor.range?.start) ? cursor.range?.start : undefined
+		const startTime = isoly.DateTime.is(cursor.range?.start) ? cursor.range?.start : undefined
+		const endTime = isoly.DateTime.is(cursor.range?.end) ? cursor.range?.end : undefined
 		const prefixes = Cursor.prefix(cursor)
-		let newCursor: string | undefined
+		const newCursor: Cursor = { type: "changed" }
 		for (const prefix of prefixes) {
 			const changes = await this.backend.changed.list({
 				prefix: this.partitions + prefix,
 				limit,
 				cursor: cursor?.cursor,
 			})
-			const changedValues = startFrom
-				? changes.filter(e => {
-						return (Key.getTime(e.key) ?? "0") >= startFrom
-				  })
-				: changes
-			newCursor = changes.cursor
+			const changedValues =
+				startTime || endTime
+					? changes.filter(e => {
+							const time = Key.getTime(e.key) ?? "0"
+							return (!startTime || startTime <= time) && (!endTime || endTime <= time)
+					  })
+					: changes
+			newCursor.cursor = changes.cursor
 			for (const change of changedValues) {
 				const keys = (change?.value ?? "").split("\n")
 				if (keys.length <= limit) {
@@ -130,13 +132,13 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 					limit -= keys.length
 				} else {
 					const start = Key.getTime(change.key)
-					cursor.range = start ? { start, end: cursor.range?.end ?? isoly.DateTime.now() } : undefined
+					newCursor.range = start ? { start, end: cursor.range?.end ?? isoly.DateTime.now() } : undefined
 					break
 				}
 			}
 		}
-		if (cursor.range?.start != startFrom)
-			result.cursor = Cursor.serialize({ ...cursor, cursor: newCursor ?? cursor.cursor })
+		if (newCursor.cursor || (newCursor.range?.start && newCursor.range.start != cursor.range?.start))
+			result.cursor = Cursor.serialize(newCursor)
 		return result
 	}
 

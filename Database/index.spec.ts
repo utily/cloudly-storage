@@ -78,10 +78,10 @@ describe("Archive create, load, list", () => {
 		const listed = await partition?.items.load({ changed: selection.created, limit: 3 })
 		expect(listed?.flat()).toEqual([item, item2, item3])
 		expect(listed?.cursor).toEqual(
-			"eyJsaW1pdCI6MywicmFuZ2UiOnsic3RhcnQiOiIyMDIyLTA3LTMwVDAwOjI1OjAwLjAwMFoiLCJlbmQiOiIyMDIyLTA4LTAxIn0sInR5cGUiOiJjaGFuZ2VkIn0"
+			"eyJ0eXBlIjoiY2hhbmdlZCIsInJhbmdlIjp7InN0YXJ0IjoiMjAyMi0wNy0zMFQwMDoyNTowMC4wMDBaIiwiZW5kIjoiMjAyMi0wOC0wMSJ9fQ"
 		)
 		const listedFromCursor = listed?.cursor ? await partition?.items.load({ cursor: listed?.cursor }) : undefined
-		expect(listedFromCursor).toEqual([item4])
+		expect(listedFromCursor).toEqual([item4, item5])
 	})
 	it("update, append, loadAll", async () => {
 		const firstAmendment = {
