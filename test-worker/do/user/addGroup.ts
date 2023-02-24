@@ -5,7 +5,7 @@ import { router } from "../../router"
 
 export async function addGroup(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: gracely.Result
-	const userClient = context.do
+	const userClient = context.users
 	const body: string[] | undefined = await request.body
 	const id = request.parameter.id
 
