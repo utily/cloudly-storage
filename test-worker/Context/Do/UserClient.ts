@@ -29,6 +29,11 @@ export class Users {
 		return await client.patch<model.User>("/user/" + id + "/level", value)
 	}
 
+	async alarm(): Promise<string | gracely.Error> {
+		const client = this.backend.open("test")
+		return client.get<string>("/alarm")
+	}
+
 	static open(backend?: storage.DurableObject.Namespace): Users | undefined {
 		return backend ? new Users(backend) : undefined
 	}

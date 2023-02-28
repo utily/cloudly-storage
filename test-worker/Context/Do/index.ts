@@ -3,6 +3,7 @@ import { Context } from "./Context"
 export { Users as UserClient } from "./UserClient"
 
 import "./user"
+import "./alarm"
 
 export class Do {
 	private constructor(private readonly state: DurableObjectState, private readonly environment: Environment) {}
