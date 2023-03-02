@@ -25,7 +25,8 @@ export function partition<V, M = undefined>(
 		},
 		list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> => {
 			const response = await backend.list(
-				typeof options == "object" ? { ...options, prefix: prefix + (options.prefix ?? "") } : prefix + (options ?? "")
+				typeof options == "object" ? { ...options, prefix: prefix + (options.prefix ?? "") } : prefix + (options ?? ""),
+				prefix
 			)
 			const result = Continuable.create(response, response.cursor)
 			return await Continuable.awaits(result.map(async user => ({ ...user, key: user.key.slice(prefixLength) })))
