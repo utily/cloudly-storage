@@ -7,7 +7,7 @@ import { router } from "../../router"
 export async function load(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: model.User | gracely.Error
 	const authorization = request.header.authorization
-	const userClient = context.do
+	const userClient = context.users
 	const id = request.parameter.id
 	if (!authorization)
 		result = gracely.client.unauthorized()
