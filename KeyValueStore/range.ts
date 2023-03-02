@@ -3,17 +3,12 @@ import { Continuable } from "./Continuable"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
 
-export function range(
-	data: Continuable<ListItem<any, any>>,
-	option: ListOptions,
-	partitionPrefix?: string
-): Continuable<ListItem<any, any>> {
+export function range(data: Continuable<ListItem<any, any>>, option: ListOptions): Continuable<ListItem<any, any>> {
 	let start: string, end: string
 	let result = data
 	if (option.range) {
-		const prefix = partitionPrefix ?? ""
-		start = option.range[0] ? prefix + option.range[0] : ""
-		end = option.range[1] ? prefix + option.range[1] : ""
+		start = option.range[0] ?? ""
+		end = option.range[1] ?? ""
 	} else
 		return result
 	if (end == "")

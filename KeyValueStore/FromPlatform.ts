@@ -42,7 +42,7 @@ export class FromPlatform<
 			  }
 			: undefined
 	}
-	async list(options?: string | ListOptions, partitionPrefix?: string): Promise<Continuable<ListItem<V, M>>> {
+	async list(options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> {
 		const o = ListOptions.get(options)
 		let data
 		if (o.range && (o.range[0] || o.range[1]))
@@ -67,7 +67,7 @@ export class FromPlatform<
 				)
 		)
 		if (o.range && (o.range[0] || o.range[1]))
-			result = range(result, o, partitionPrefix)
+			result = range(result, o)
 		else if ("cursor" in data)
 			result.cursor = data.cursor
 		return result
