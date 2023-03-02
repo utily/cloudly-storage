@@ -10,14 +10,11 @@ import { Do, UserClient } from "./Do"
 export { Do }
 
 export class Context {
-	#do?: UserClient | gracely.Error
-	get do(): UserClient | gracely.Error {
-		return (
-			this.#do ??
-			(this.#do =
-				UserClient.open(storage.DurableObject.Namespace.open(this.environment.Do)) ??
-				gracely.server.misconfigured("Do", "DurableObjectNamespace missing."))
-		)
+	#users?: UserClient | gracely.Error
+	get users(): UserClient | gracely.Error {
+		return (this.#users ??=
+			UserClient.open(storage.DurableObject.Namespace.open(this.environment.Do)) ??
+			gracely.server.misconfigured("Do", "DurableObjectNamespace missing."))
 	}
 	#kv?: storage.KeyValueStore<model.User> | gracely.Error
 	get kv(): storage.KeyValueStore<model.User> | gracely.Error {

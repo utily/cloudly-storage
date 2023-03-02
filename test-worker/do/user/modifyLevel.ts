@@ -5,7 +5,7 @@ import { router } from "../../router"
 
 export async function modifyLevel(request: http.Request, context: Context): Promise<http.Response.Like | any> {
 	let result: gracely.Result
-	const userClient = context.do
+	const userClient = context.users
 	const body: { addend: number } | undefined = await request.body
 	const id = request.parameter.id
 	if (!body || body.addend == undefined)
