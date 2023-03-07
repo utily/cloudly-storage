@@ -24,6 +24,12 @@ export function partition<V, M = undefined>(
 			return result as { value: V; retention?: isoly.TimeSpan; meta?: M } | undefined
 		},
 		list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> => {
+			if (options && typeof options != "string" && options.range) {
+				if (options.range[0])
+					options.range[0] = prefix + options.range[0]
+				if (options.range[1])
+					options.range[1] = prefix + options.range[1]
+			}
 			const response = await backend.list(
 				typeof options == "object" ? { ...options, prefix: prefix + (options.prefix ?? "") } : prefix + (options ?? "")
 			)
