@@ -83,10 +83,6 @@ export class FromPlatform<
 			if (result.cursor && o.limit && result.length < o.limit) {
 				console.log("Why")
 				o.cursor = result.cursor
-			} else if (false) {
-				console.log("3rd")
-				true
-				false
 			} else {
 				console.log("DONE")
 				rangeLimitCheck = false
