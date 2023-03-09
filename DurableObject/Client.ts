@@ -7,11 +7,18 @@ export class Client<E = Error> {
 	get id(): string {
 		return this.stub.id.toString()
 	}
-	constructor(private readonly stub: platform.DurableObjectStub) {}
+	/**
+	 * This domain is only for logging purpose.
+	 * The domain is ignored, but requests are written in the log.
+	 */
+	private fakeDomain: string
+	constructor(private readonly stub: platform.DurableObjectStub) {
+		this.fakeDomain = this.stub.name?.replace(/\W/g, "") || this.stub.id.toString()
+	}
 
 	private async fetch<R>(path: string, method: http.Method, body?: any, header?: http.Request.Header): Promise<R | E> {
 		const request = http.Request.create({
-			url: `https://origin${path}`,
+			url: `https://${this.fakeDomain}${path}`,
 			method: method,
 			header: { ...(body ? { contentType: "application/json" } : {}), ...(header ? header : {}) },
 			body,
