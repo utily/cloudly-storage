@@ -50,7 +50,7 @@ export class FromPlatform<
 		let rangeLimitCheck = true
 		do {
 			if (o.range && (o.range[0] || o.range[1]))
-				data = await this.backend.list({ prefix: o.prefix, cursor: o.cursor, limit: 2 })
+				data = await this.backend.list({ prefix: o.prefix, cursor: o.cursor })
 			//TEST: limit:2
 			else
 				data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
@@ -72,21 +72,15 @@ export class FromPlatform<
 					)
 			)
 			result = result.concat(response)
-			console.log("TEST")
-			console.log(result)
-			console.log(o.limit)
 			result.cursor = undefined
 			if (o.range && (o.range[0] || o.range[1]))
 				result = range(result, o)
 			else if ("cursor" in data)
 				result.cursor = data.cursor
-			if (result.cursor && o.limit && result.length < o.limit) {
-				console.log("Why")
+			if (result.cursor && o.limit && result.length < o.limit)
 				o.cursor = result.cursor
-			} else {
-				console.log("DONE")
+			else
 				rangeLimitCheck = false
-			}
 		} while (rangeLimitCheck)
 		return result
 	}

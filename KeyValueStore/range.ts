@@ -19,7 +19,8 @@ export function range(data: Continuable<ListItem<any, any>>, option: ListOptions
 		result = result.slice(0, option.limit)
 		result.cursor = cryptly.Base64.encode(result[option.limit - 1].key, "url")
 	}
-	if (result.length == 0)
+	const lastItem = data.at(-1)
+	if ((result.length == 0 && data.length) || (result.length && lastItem && result.includes(lastItem)))
 		result.cursor = cryptly.Base64.encode(data[data.length - 1].key, "url")
 	return result
 }
