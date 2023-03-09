@@ -51,7 +51,6 @@ export class FromPlatform<
 		do {
 			if (o.range && (o.range[0] || o.range[1]))
 				data = await this.backend.list({ prefix: o.prefix, cursor: o.cursor })
-			//TEST: limit:2
 			else
 				data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
 			response = await Promise.all(
