@@ -13,7 +13,7 @@ export class Client<E = Error> {
 	 */
 	private fakeDomain: string
 	constructor(private readonly stub: platform.DurableObjectStub) {
-		this.fakeDomain = this.stub.name?.replace(/\W/g, "") || this.stub.id.toString()
+		this.fakeDomain = this.stub.name?.replace(/[^\w-]/g, "") || `do-${this.id}`
 	}
 
 	private async fetch<R>(path: string, method: http.Method, body?: any, header?: http.Request.Header): Promise<R | E> {
