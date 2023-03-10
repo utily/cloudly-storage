@@ -27,13 +27,15 @@ export class InMemory<
 		if (value == undefined)
 			delete this.data[key]
 		else
-			this.data[key] = {
-				value,
-				meta: options?.meta && JSON.stringify(options.meta),
-				expires: options?.retention
-					? isoly.DateTime.create(Date.now() + isoly.TimeSpan.toMilliseconds(options?.retention), "milliseconds")
-					: undefined,
-			}
+			this.data[key] = (({ expires, ...item }) => (expires ? { expires, ...item } : item))(
+				(({ meta, ...item }) => (meta ? { meta, ...item } : item))({
+					value,
+					meta: options?.meta && JSON.stringify(options.meta),
+					expires: options?.retention
+						? isoly.DateTime.create(Date.now() + isoly.TimeSpan.toMilliseconds(options?.retention), "milliseconds")
+						: undefined,
+				})
+			)
 	}
 	async get(key: string): Promise<{ value: V; meta?: M } | undefined> {
 		let result = this.data[key]
@@ -45,9 +47,11 @@ export class InMemory<
 	async list(options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> {
 		const o = ListOptions.get(options)
 		const now = isoly.DateTime.now()
-		const partition = Object.entries(this.data).filter(
-			([key, item]) => item && (!o.prefix || key.startsWith(o.prefix)) && (!item.expires || item.expires >= now)
-		) as unknown as [string, Item<V, string>][]
+		const partition = Object.entries(this.data)
+			.filter(
+				([key, item]) => item && (!o.prefix || key.startsWith(o.prefix)) && (!item.expires || item.expires >= now)
+			)
+			.sort((left, right) => left[0].localeCompare(right[0], "en-US")) as unknown as [string, Item<V, string>][]
 		let start =
 			partition.findIndex(([key, value]) => {
 				return key == o.cursor
@@ -65,14 +69,20 @@ export class InMemory<
 		}
 		let result = partition
 			.slice(start)
-			.map<ListItem<V, M>>(([key, item]) => ({
-				key,
-				...item,
-				meta: item.meta ? (JSON.parse(item.meta) as M) : undefined,
-			}))
+			.map<ListItem<V, M | undefined>>(([key, item]) =>
+				item.meta
+					? {
+							key,
+							...item,
+							meta: JSON.parse(item.meta) as M,
+					  }
+					: ({ key, ...item } as ListItem<V, undefined>)
+			)
 			.map<ListItem<V, M>>(o.values ? item => item : ({ value: disregard, ...item }) => item)
 		if (o.range)
 			result = range(result, o)
+		if (!o.values)
+			result = result.map(({ value, ...item }) => item)
 		return result.length > (o.limit ?? 0)
 			? Object.defineProperty(result.slice(0, o.limit), "cursor", {
 					value: result.slice(0, o.limit).slice(-1)[0].key,

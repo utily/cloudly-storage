@@ -14,8 +14,8 @@ describe("KeyValueStore.InMeta", () => {
 		expect(await store.get("joe")).toEqual({ value: joe })
 		await store.set("jane", jane)
 		expect(await store.list({ values: true })).toEqual([
-			{ key: "joe", value: joe },
 			{ key: "jane", value: jane },
+			{ key: "joe", value: joe },
 		])
 	})
 })
