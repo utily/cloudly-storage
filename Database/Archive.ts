@@ -94,7 +94,12 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			result.push(...listed)
 			cursor?.cursor && (cursor.cursor = loaded.cursor)
 			if (loaded.cursor) {
-				newCursor = Cursor.serialize({ ...{ ...(cursor ?? { type: "doc" }), start: prefix }, cursor: loaded.cursor })
+				newCursor = Cursor.serialize({
+					...(cursor ?? { type: "doc" }),
+					range: cursor?.range ? { end: cursor.range?.end, start: prefix } : undefined,
+					cursor: loaded.cursor,
+				})
+				console.log(Cursor.parse(newCursor))
 				break
 			}
 		}
