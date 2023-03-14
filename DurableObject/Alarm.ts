@@ -84,7 +84,7 @@ export class Alarm {
 		const occurring = recurring.filter(a => a.next <= now)
 		const notOccurring = recurring.filter(a => a.next > now)
 		await Promise.all(occurring.map(a => this.actions[a.action]?.()))
-		occurring.forEach(o => (o.next = this.#nextRecurring(now, o.unit, o.interval)))
+		occurring.forEach(o => (o.next = this.#nextRecurring(o.next, o.unit, o.interval)))
 		const futureOccurring = occurring.concat(notOccurring)
 		futureOccurring.sort((t1, t2) => {
 			if (t1.next < t2.next)

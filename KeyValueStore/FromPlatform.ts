@@ -45,31 +45,42 @@ export class FromPlatform<
 	async list(options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> {
 		const o = ListOptions.get(options)
 		let data
-		if (o.range && (o.range[0] || o.range[1]))
-			data = await this.backend.list({ prefix: o.prefix, cursor: o.cursor })
-		else
-			data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
-		let result: Continuable<ListItem<V, M>> = await Promise.all(
-			data.keys
-				.map(async item => ({
-					key: item.name,
-					expires: item.expiration ? isoly.DateTime.create(item.expiration) : undefined,
-					meta: item.metadata as M,
-				}))
-				.map(
-					o.values
-						? i =>
-								i.then(async item => ({
-									...item,
-									value: await this.backend.get(item.key, { type: this.type as any }),
-								}))
-						: i => i
-				)
-		)
-		if (o.range && (o.range[0] || o.range[1]))
-			result = range(result, o)
-		else if ("cursor" in data)
-			result.cursor = data.cursor
+		let response: Continuable<ListItem<V, M>>
+		let result: Continuable<ListItem<V, M>> = []
+		let rangeLimitCheck = true
+		do {
+			if (o.range && (o.range[0] || o.range[1]))
+				data = await this.backend.list({ prefix: o.prefix, cursor: o.cursor })
+			else
+				data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
+			response = await Promise.all(
+				data.keys
+					.map(async item => ({
+						key: item.name,
+						expires: item.expiration ? isoly.DateTime.create(item.expiration) : undefined,
+						meta: item.metadata as M,
+					}))
+					.map(
+						o.values
+							? i =>
+									i.then(async item => ({
+										...item,
+										value: await this.backend.get(item.key, { type: this.type as any }),
+									}))
+							: i => i
+					)
+			)
+			result = result.concat(response)
+			result.cursor = undefined
+			if (o.range && (o.range[0] || o.range[1]))
+				result = range(result, o)
+			else if ("cursor" in data)
+				result.cursor = data.cursor
+			if (result.cursor && o.limit && result.length < o.limit)
+				o.cursor = result.cursor
+			else
+				rangeLimitCheck = false
+		} while (rangeLimitCheck)
 		return result
 	}
 }
