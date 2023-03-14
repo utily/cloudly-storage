@@ -86,14 +86,20 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				limit,
 				cursor: cursor?.cursor,
 			})
-			const response = loaded.map(item => ({
+			const listed = loaded.map(item => ({
 				...(item.value ?? {}),
 				...(item.meta ?? {}),
 			})) as (T & Document)[]
-			limit -= response.length
-			result.push(...response)
+			limit -= listed.length
+			result.push(...listed)
+			cursor?.cursor && (cursor.cursor = loaded.cursor)
 			if (loaded.cursor) {
-				newCursor = Cursor.serialize({ ...{ ...(cursor ?? { type: "doc" }) }, cursor: loaded.cursor })
+				newCursor = Cursor.serialize({
+					...(cursor ?? { type: "doc" }),
+					range: cursor?.range ? { end: cursor.range?.end, start: prefix } : undefined,
+					cursor: loaded.cursor,
+				})
+				console.log(Cursor.parse(newCursor))
 				break
 			}
 		}
