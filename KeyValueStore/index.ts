@@ -1,6 +1,7 @@
 import { create as kvCreate } from "./create"
 import { Encrypted as KVEncrypted } from "./Encrypted"
 import { exists as kvExists } from "./exists"
+import { Indexed as KVIndexed } from "./Indexed"
 import { InMeta as KVInMeta } from "./InMeta"
 import { Json as KVJson } from "./Json"
 import { KeyValueStore as Interface } from "./KeyValueStore"
@@ -18,6 +19,8 @@ export namespace KeyValueStore {
 	export const create = kvCreate
 	export const Encrypted = KVEncrypted
 	export const exists = kvExists
+	export const Indexed = KVIndexed
+	export type Indexed<V, I extends string, M = any> = KVIndexed<V, I, M>
 	export const InMeta = KVInMeta
 	export const Json = KVJson
 	export const ListOptions = KVListOptions
