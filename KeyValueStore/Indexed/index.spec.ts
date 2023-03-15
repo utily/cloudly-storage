@@ -44,4 +44,34 @@ describe("KeyValueStore.Indexed", () => {
 			])
 		}
 	})
+	it("status", async () => {
+		interface Item {
+			id: string
+			value: number
+			status: "good" | "bad"
+		}
+		const store = storage.KeyValueStore.Indexed.create<Item, "good" | "bad">(storage.KeyValueStore.Json.create(), {
+			good: item => (item.status == "good" ? `${item.status}|${item.value}` : undefined),
+			bad: item => (item.status == "bad" ? `${item.status}|${item.value}` : undefined),
+		})
+		await store?.set("a", { id: "a", value: 1, status: "good" })
+		await store?.set("b", { id: "b", value: 2, status: "good" })
+		await store?.set("c", { id: "c", value: 3, status: "good" })
+		await store?.set("d", { id: "d", value: 1, status: "bad" })
+		await store?.set("e", { id: "e", value: 2, status: "bad" })
+		await store?.set("f", { id: "f", value: 3, status: "bad" })
+
+		if (store) {
+			expect(await store.list({ index: "good" })).toEqual([{ key: "a" }, { key: "b" }, { key: "c" }])
+			expect(await store.list({ index: "bad" })).toEqual([{ key: "d" }, { key: "e" }, { key: "f" }])
+			expect(await store.list({ values: false })).toEqual([
+				{ key: "a" },
+				{ key: "b" },
+				{ key: "c" },
+				{ key: "d" },
+				{ key: "e" },
+				{ key: "f" },
+			])
+		}
+	})
 })
