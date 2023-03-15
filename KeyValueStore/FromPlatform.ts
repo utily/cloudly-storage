@@ -49,10 +49,7 @@ export class FromPlatform<
 		let result: Continuable<ListItem<V, M>> = []
 		let rangeLimitCheck = true
 		do {
-			if (o.range && (o.range[0] || o.range[1]))
-				data = await this.backend.list({ prefix: o.prefix, cursor: o.cursor })
-			else
-				data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
+			data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
 			response = await Promise.all(
 				data.keys
 					.map(async item => ({
