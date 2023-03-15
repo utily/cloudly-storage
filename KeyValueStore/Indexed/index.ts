@@ -39,7 +39,7 @@ export class Indexed<V, I extends string, M = any> implements KeyValueStore<V, M
 	static create<V, I extends string, M = any>(
 		backend: KeyValueStore<V, M>,
 		indexes: Record<I, (value: V) => string>
-	): undefined | Indexed<V, I, M> {
+	): Indexed<V, I, M> {
 		return new Indexed(
 			partition(backend, "|"),
 			Object.fromEntries(
