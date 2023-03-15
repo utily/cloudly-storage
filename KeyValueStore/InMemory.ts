@@ -80,7 +80,7 @@ export class InMemory<
 			)
 			.map<ListItem<V, M>>(o.values ? item => item : ({ value: disregard, ...item }) => item)
 		if (o.range)
-			result = range(result, o)
+			result = range(result, o, false)
 		if (!o.values)
 			result = result.map(({ value, ...item }) => item)
 		return result.length > (o.limit ?? 0)

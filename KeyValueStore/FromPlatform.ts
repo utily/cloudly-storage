@@ -73,7 +73,10 @@ export class FromPlatform<
 			result = result.concat(response)
 			result.cursor = undefined
 			if (o.range && (o.range[0] || o.range[1]))
-				result = range(result, o)
+				if ("cursor" in data)
+					result = range(result, o, !!data.cursor)
+				else
+					result = range(result, o, false)
 			else if ("cursor" in data)
 				result.cursor = data.cursor
 			if (result.cursor && o.limit && result.length < o.limit)
