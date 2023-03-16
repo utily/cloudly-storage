@@ -8,7 +8,6 @@ export function range(
 	data: platform.KVNamespaceListResult<unknown, string>,
 	option: ListOptions
 ): platform.KVNamespaceListResult<unknown, string> {
-	console.log("RUN?")
 	let start: string, end: string
 	const result = data
 	if (option.range) {
