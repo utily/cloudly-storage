@@ -44,11 +44,12 @@ export class FromPlatform<
 	}
 	async list(options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> {
 		const o = ListOptions.get(options)
-		let data, result
+		let data: platform.KVNamespaceListResult<unknown, string>
+		let result: platform.KVNamespaceListResult<unknown, string> | undefined = undefined
 		let rangeLimitCheck = true
 		do {
 			data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
-			if (result == undefined)
+			if (!result)
 				result = data
 			else {
 				result.keys = result.keys.concat(data.keys)
