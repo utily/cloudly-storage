@@ -28,7 +28,9 @@ export class Context {
 	}
 	#usersKv?: Users | gracely.Error
 	get usersKv(): Users | gracely.Error {
-		return (this.#usersKv ??= gracely.Error.is(this.kv) ? this.kv : Users.open(this.kv))
+		return (this.#usersKv ??= gracely.Error.is(this.kv)
+			? this.kv
+			: Users.open(storage.KeyValueStore.partition(this.kv, "user|")))
 	}
 	#collection?: Collection | gracely.Error
 	get collection(): Collection | gracely.Error {
