@@ -5,7 +5,7 @@ import { Continuable } from "./Continuable"
 import { KeyValueStore } from "./KeyValueStore"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
-import { range } from "./range"
+import { rangeLocal } from "./range"
 
 interface Item<V = any, M = Record<string, any>> {
 	value: V
@@ -80,7 +80,7 @@ export class InMemory<
 			)
 			.map<ListItem<V, M>>(o.values ? item => item : ({ value: disregard, ...item }) => item)
 		if (o.range)
-			result = range(result, o, false)
+			result = rangeLocal(result, o)
 		if (!o.values)
 			result = result.map(({ value, ...item }) => item)
 		return result.length > (o.limit ?? 0)

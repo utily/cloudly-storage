@@ -44,43 +44,42 @@ export class FromPlatform<
 	}
 	async list(options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> {
 		const o = ListOptions.get(options)
-		let data
-		let response: Continuable<ListItem<V, M>>
-		let result: Continuable<ListItem<V, M>> = []
+		let data, result
 		let rangeLimitCheck = true
 		do {
 			data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
-			response = await Promise.all(
-				data.keys
-					.map(async item => ({
-						key: item.name,
-						expires: item.expiration ? isoly.DateTime.create(item.expiration) : undefined,
-						meta: item.metadata as M,
-					}))
-					.map(
-						o.values
-							? i =>
-									i.then(async item => ({
-										...item,
-										value: await this.backend.get(item.key, { type: this.type as any }),
-									}))
-							: i => i
-					)
-			)
-			result = result.concat(response)
-			result.cursor = undefined
+			if (result == undefined)
+				result = data
+			else {
+				result.keys = result.keys.concat(data.keys)
+				result.list_complete = data.list_complete
+			}
 			if (o.range && (o.range[0] || o.range[1]))
-				if ("cursor" in data)
-					result = range(result, o, !!data.cursor)
-				else
-					result = range(result, o, false)
-			else if ("cursor" in data)
-				result.cursor = data.cursor
-			if (result.cursor && o.limit && result.length < o.limit)
+				result = range(result, o)
+			if (!result.list_complete && o.limit && result.keys.length < o.limit)
 				o.cursor = result.cursor
 			else
 				rangeLimitCheck = false
 		} while (rangeLimitCheck)
-		return result
+		const response: Continuable<ListItem<V, M>> = await Promise.all(
+			result.keys
+				.map(async item => ({
+					key: item.name,
+					expires: item.expiration ? isoly.DateTime.create(item.expiration) : undefined,
+					meta: item.metadata as M,
+				}))
+				.map(
+					o.values
+						? i =>
+								i.then(async item => ({
+									...item,
+									value: await this.backend.get(item.key, { type: this.type as any }),
+								}))
+						: i => i
+				)
+		)
+		if (!data.list_complete && !(o.range && (o.range[0] || o.range[1])))
+			response.cursor = data.cursor
+		return response
 	}
 }
