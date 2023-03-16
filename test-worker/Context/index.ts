@@ -8,6 +8,7 @@ import { Archive } from "./Archive"
 import { Collection } from "./Collection"
 import { Do, UserClient } from "./Do"
 export { Do }
+import { Users } from "./Users"
 
 export class Context {
 	#users?: UserClient | gracely.Error
@@ -24,6 +25,10 @@ export class Context {
 				? storage.KeyValueStore.Json.create(this.environment.kvStore)
 				: gracely.server.misconfigured("kvStore", "KeyValueNamespace missing."))
 		)
+	}
+	#usersKv?: Users | gracely.Error
+	get usersKv(): Users | gracely.Error {
+		return (this.#usersKv ??= gracely.Error.is(this.kv) ? this.kv : Users.open(this.kv))
 	}
 	#collection?: Collection | gracely.Error
 	get collection(): Collection | gracely.Error {
