@@ -30,7 +30,7 @@ export class Context {
 	get usersKv(): Users | gracely.Error {
 		return (this.#usersKv ??= gracely.Error.is(this.kv)
 			? this.kv
-			: Users.open(storage.KeyValueStore.partition(this.kv, "user|")))
+			: Users.open(storage.KeyValueStore.partition(this.kv, "")))
 	}
 	#collection?: Collection | gracely.Error
 	get collection(): Collection | gracely.Error {

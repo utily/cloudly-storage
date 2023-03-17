@@ -13,6 +13,7 @@ export async function list(request: http.Request, context: Context): Promise<htt
 	const end = request.header.end
 	const cursor = request.header.cursor
 	const limit = request.header.limit
+	const prefix = request.header.prefix
 
 	if (!request.header.authorization)
 		result = gracely.client.unauthorized()
@@ -23,6 +24,7 @@ export async function list(request: http.Request, context: Context): Promise<htt
 			cursor: typeof cursor == "string" ? cursor : undefined,
 			range: [typeof start == "string" ? start : undefined, typeof end == "string" ? end : undefined],
 			limit: typeof limit == "string" ? Number.parseInt(limit) : undefined,
+			prefix: typeof prefix == "string" ? prefix : undefined,
 		}
 		await users.initialize()
 		response = await users.list(options)
