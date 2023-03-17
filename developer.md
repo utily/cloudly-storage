@@ -41,7 +41,8 @@ Definition:
 Where the type is the name of the document-type used in the layout when initiating the database and the document is the value the user wants to store and the key is defined above in `doc`.
 
 ### changed 
-The changed-index is multipurpose and is used in the buffer to determine which documents to archive and which archived documents to remove. Its use in the archive is to query documents with a daterange representing the last time the document was changed.
+The changed-index is multipurpose and is used in the buffer to determine which documents to archive and which archived documents to remove. Its use in the archive is to query documents with a daterange representing when the document was changed. A document can be found if it was changed within the daterange, even if the document was changed again later on. So the change query will find every time the document was changed in the archive, either by being updated by the user or the buffer.
+
 Definition: 
 ```ts
 {
@@ -53,6 +54,8 @@ Definition:
 }
 ```
 Where the truncate function truncates the changed date of the document to minutes to save all keys of documents changed within that minute, the document is the value the user wants to store in the database, the key_n are on the form of key defined in `doc` and n is a natural number.
+
+
 
 ## Shard
 The shard is calculated from the first two characters in the id of the document. Since the id of the document is assumed to be base 64 the first two characters will contain 12 bits of information. By converting the characters to a Uint8Array and then truncating, such that only as many bits needed to describe as many shards configured is used, followed by a conversion back to base 64, a surjective mapping is created from id -> shard.
