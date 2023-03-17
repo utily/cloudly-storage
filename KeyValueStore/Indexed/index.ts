@@ -11,29 +11,20 @@ export class Indexed<V, I extends string, M = any> implements KeyValueStore<V, M
 	set(key: string, value?: undefined): Promise<void>
 	set(key: string, value: V, options?: { retention?: TimeSpan; meta?: M }): Promise<void>
 	async set(key: string, value?: V, options?: { retention?: TimeSpan; meta?: M }): Promise<void> {
+		const old = (await this.data.get(key))?.value
+		if (old) {
+			this.data.set(key)
+			for (const index of Object.values(this.indexes) as Index<V>[])
+				index.set(old)
+		}
 		if (value) {
 			this.data.set(key, value, options)
 			for (const index of Object.values(this.indexes) as Index<V>[])
 				index.set(value, key, options)
-		} else {
-			value = (await this.data.get(key))?.value
-			if (value) {
-				this.data.set(key)
-				for (const index of Object.values(this.indexes) as Index<V>[])
-					index.set(value)
-			}
 		}
 	}
 	async get(key: string): Promise<{ value: V; meta?: M | undefined } | undefined> {
 		return this.data.get(key)
-	}
-	async update(key: string, change: Partial<V>, options?: { retention?: TimeSpan; meta?: M }): Promise<void> {
-		let value = (await this.data.get(key))?.value
-		if (value) {
-			value = { ...value, ...change }
-			await this.set(key)
-			await this.set(key, value, options)
-		}
 	}
 	async list(options?: string | (ListOptions & { index?: I }) | undefined): Promise<Continuable<ListItem<V, M>>> {
 		return typeof options == "object" && options?.index
