@@ -108,12 +108,12 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		return result
 	}
 	private async listChanged(cursor: Cursor): Promise<(Document & T)[] & { cursor?: string }> {
-		const result: (T & Document)[] & { cursor?: string } = []
-		let limit = cursor?.limit ?? Selection.standardLimit
+		let listed: Record<string, T & Document> = {}
+		const limit = cursor?.limit ?? Selection.standardLimit
 		const startTime = isoly.DateTime.is(cursor.range?.start) ? cursor.range?.start : undefined
 		const endTime = isoly.DateTime.is(cursor.range?.end) ? cursor.range?.end : undefined
 		let prefixes = Cursor.prefix(cursor)
-		const newCursor: Cursor = { type: "changed" }
+		const newCursor: Cursor = { type: "changed", limit: cursor?.limit }
 		let usedChangeKeys = 0
 		let cfCursor: string | undefined
 		for (const prefix of prefixes) {
@@ -132,14 +132,13 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			cfCursor = changes.cursor
 			for (const change of changedValues) {
 				const keys = (change?.value ?? "").split("\n")
-				if (keys.length <= limit) {
+				if (Object.keys(listed).length + keys.length <= limit) {
 					usedChangeKeys++
 					const loaded = (await Promise.all(keys.map(k => this.backend.doc.get(k)))).reduce(
-						(r: (T & Document)[], e) => (e?.value ? [...r, e.value] : r),
-						[]
+						(r: Record<string, T & Document>, e) => (e?.value ? { ...r, [e.value.id]: e.value } : r),
+						{}
 					)
-					result.push(...loaded)
-					limit -= loaded.length
+					listed = { ...listed, ...loaded }
 				} else {
 					const start = Key.getTime(change.key)
 					newCursor.range = start ? { start, end: cursor.range?.end ?? isoly.DateTime.now() } : undefined
@@ -150,6 +149,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		}
 		if (usedChangeKeys == limit)
 			newCursor.cursor = cfCursor
+		const result: (T & Document)[] & { cursor?: string } = Object.values(listed)
 		if (newCursor.cursor || (newCursor.range?.start && newCursor.range.start != cursor.range?.start))
 			result.cursor = Cursor.serialize(newCursor)
 		return result
