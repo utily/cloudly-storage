@@ -99,7 +99,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 					range: cursor?.range ? { end: cursor.range?.end, start: prefix } : undefined,
 					cursor: loaded.cursor,
 				})
-				console.log(Cursor.parse(newCursor))
 				break
 			}
 		}
@@ -112,43 +111,48 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		const limit = cursor?.limit ?? Selection.standardLimit
 		const startTime = isoly.DateTime.is(cursor.range?.start) ? cursor.range?.start : undefined
 		const endTime = isoly.DateTime.is(cursor.range?.end) ? cursor.range?.end : undefined
-		let prefixes = Cursor.prefix(cursor)
 		const newCursor: Cursor = { type: "changed", limit: cursor?.limit }
 		let usedChangeKeys = 0
-		let cfCursor: string | undefined
-		for (const prefix of prefixes) {
-			const changes = await this.backend.changed.list({
-				prefix: this.partitions + prefix,
-				limit,
-				cursor: cursor?.cursor,
-			})
-			const changedValues =
-				startTime || endTime
-					? changes.filter(e => {
-							const time = Key.getTime(e.key) ?? "0"
-							return (!startTime || startTime <= time) && (!endTime || endTime >= time)
-					  })
-					: changes
-			cfCursor = changes.cursor
-			for (const change of changedValues) {
-				const keys = (change?.value ?? "").split("\n")
-				if (Object.keys(listed).length + keys.length <= limit) {
-					usedChangeKeys++
-					const loaded = (await Promise.all(keys.map(k => this.backend.doc.get(k)))).reduce(
-						(r: Record<string, T & Document>, e) => (e?.value ? { ...r, [e.value.id]: e.value } : r),
-						{}
-					)
-					listed = { ...listed, ...loaded }
-				} else {
-					const start = Key.getTime(change.key)
-					newCursor.range = start ? { start, end: cursor.range?.end ?? isoly.DateTime.now() } : undefined
-					prefixes = []
-					break
+		let prefix
+		for (prefix of Cursor.prefix(cursor)) {
+			do {
+				let breakMe = false
+				const changes = await this.backend.changed.list({
+					prefix: this.partitions + prefix,
+					limit,
+					cursor: cursor?.cursor,
+				})
+				const changedValues =
+					startTime || endTime
+						? changes.filter(e => {
+								const time = Key.getTime(e.key) ?? "0"
+								return (!startTime || startTime <= time) && (!endTime || endTime >= time)
+						  })
+						: changes
+				cursor.cursor = changes.cursor
+				for (const change of changedValues) {
+					const keys = (change?.value ?? "").split("\n")
+					if (Object.keys(listed).length + keys.length > limit) {
+						const start = Key.getTime(change.key)
+						newCursor.range = start ? { start, end: cursor.range?.end ?? isoly.DateTime.now() } : undefined
+						breakMe = true
+						break
+					}
+					if (Object.keys(listed).length + keys.length <= limit) {
+						usedChangeKeys++
+						const loaded = (await Promise.all(keys.map(k => this.backend.doc.get(k)))).reduce(
+							(r: Record<string, T & Document>, e) => (e?.value ? { ...r, [e.value.id]: e.value } : r),
+							{}
+						)
+						listed = { ...listed, ...loaded }
+					}
 				}
-			}
+				if (breakMe)
+					break
+			} while (cursor.cursor && Object.keys(listed).length < limit)
 		}
-		if (usedChangeKeys == limit)
-			newCursor.cursor = cfCursor
+		if (usedChangeKeys == limit || prefix == isoly.DateTime.getDate(cursor.range?.start ?? ""))
+			newCursor.cursor = cursor.cursor
 		const result: (T & Document)[] & { cursor?: string } = Object.values(listed)
 		if (newCursor.cursor || (newCursor.range?.start && newCursor.range.start != cursor.range?.start))
 			result.cursor = Cursor.serialize(newCursor)
