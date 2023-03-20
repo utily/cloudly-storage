@@ -78,7 +78,7 @@ describe("Archive create, load, list", () => {
 		const listed = await partition?.items.load({ changed: selection.created, limit: 3 })
 		expect(listed?.flat()).toEqual([item, item2, item3])
 		expect(listed?.cursor).toEqual(
-			"eyJ0eXBlIjoiY2hhbmdlZCIsInJhbmdlIjp7InN0YXJ0IjoiMjAyMi0wNy0zMFQwMDoyNTowMC4wMDBaIiwiZW5kIjoiMjAyMi0wOC0wMSJ9fQ"
+			"eyJ0eXBlIjoiY2hhbmdlZCIsImxpbWl0IjozLCJyYW5nZSI6eyJzdGFydCI6IjIwMjItMDctMzBUMDA6MjU6MDAuMDAwWiIsImVuZCI6IjIwMjItMDgtMDEifX0"
 		)
 		const listedFromCursor = listed?.cursor ? await partition?.items.load({ cursor: listed?.cursor }) : undefined
 		expect(listedFromCursor).toEqual([item4, item5])
