@@ -96,9 +96,14 @@ export class FromPlatform<
 				}))
 			)
 		}
-
 		let lastInList: string | undefined = result.at(-1)?.key
-		while (lastInList && result.length <= (options.limit ?? 500) && (lastKey ? lastInList < lastKey : true)) {
+		result = result.filter(item => item.key >= firstKey && (lastKey ? lastKey > item.key : true))
+		while (
+			lastInList &&
+			result.length <= (options.limit ?? 500) &&
+			(lastKey ? lastInList < lastKey : true) &&
+			(lastInList == result.at(-1)?.key || lastInList < firstKey)
+		) {
 			const cursor: string = cryptly.Base64.encode(lastInList ?? "", "url")
 			data = await this.backend.list({ cursor: cursor })
 			result = result.concat(
@@ -115,7 +120,6 @@ export class FromPlatform<
 			lastInList = result.at(-1)?.key
 			result = result.filter(item => item.key >= firstKey && (lastKey ? lastKey > item.key : true))
 		}
-		result = result.filter(item => item.key >= firstKey && (lastKey ? lastKey > item.key : true))
 		let cursor: string | undefined
 		if (options.limit && result.length >= options.limit) {
 			result = result.slice(0, options.limit)
