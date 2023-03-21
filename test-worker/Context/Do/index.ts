@@ -12,6 +12,14 @@ export class Do {
 	}
 	async alarm(): Promise<void> {
 		const context = new Context(this.environment, this.state)
-		await context.alarm.handle()
+		context.alarm.register("printAfter1", context.alarmTester1.bind(context))
+		context.alarm.register("printAfter2", context.alarmTester2.bind(context))
+		context.alarm.register("printAfter3", context.alarmTester3.bind(context))
+		context.alarm.register("printAfter4", context.alarmTester4.bind(context))
+		context.alarm.register("printAfter5", context.alarmTester5.bind(context))
+		context.alarm.register("printEveryFive", context.alarmTesterRecurring5.bind(context))
+		context.alarm.register("printEveryTen", context.alarmTesterRecurring10.bind(context))
+		context.alarm.register("printEveryFifteen", context.alarmTesterRecurring15.bind(context))
+		context.alarm.handle()
 	}
 }
