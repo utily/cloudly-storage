@@ -25,11 +25,7 @@ export class Context {
 		console.log("print this after 4 minutes")
 	}
 	async alarmTester5(): Promise<void> {
-		console.log("wack stuff")
-
 		await this.alarm.set("printAfter1", isoly.DateTime.nextMinute(isoly.DateTime.now(), 1))
-		const test = await this.state.storage.list()
-		console.log(test)
 		console.log("print this after 5 minutes")
 	}
 	async alarmTesterRecurring10(): Promise<void> {
