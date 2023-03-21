@@ -152,7 +152,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			if (breakMe)
 				break
 		}
-		console.log("usedChangeKeys: ", usedChangeKeys)
 		if (usedChangeKeys == limit)
 			newCursor.cursor = cursor.cursor
 		const result: (T & Document)[] & { cursor?: string } = Object.values(listed)
