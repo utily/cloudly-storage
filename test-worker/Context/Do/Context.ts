@@ -6,21 +6,10 @@ import { Environment } from "../../Environment"
 import { router } from "./router"
 
 export class Context {
-	#alarm: storage.DurableObject.Alarm
-	get alarm(): storage.DurableObject.Alarm {
-		return this.#alarm
-	}
+	alarm: storage.DurableObject.Alarm
 
 	constructor(public readonly environment: Environment, readonly state: DurableObjectState) {
-		this.#alarm = new storage.DurableObject.Alarm(this.state.storage)
-		this.alarm.register("printAfter1", this.alarmTester1)
-		this.alarm.register("printAfter2", this.alarmTester2)
-		this.alarm.register("printAfter3", this.alarmTester3)
-		this.alarm.register("printAfter4", this.alarmTester4)
-		this.alarm.register("printAfter5", this.alarmTester5)
-		this.alarm.register("printEveryFive", this.alarmTesterRecurring5)
-		this.alarm.register("printEveryTen", this.alarmTesterRecurring10)
-		this.alarm.register("printEveryFifteen", this.alarmTesterRecurring15)
+		this.alarm = new storage.DurableObject.Alarm(this.state.storage)
 	}
 
 	async alarmTester1(): Promise<void> {
@@ -36,6 +25,7 @@ export class Context {
 		console.log("print this after 4 minutes")
 	}
 	async alarmTester5(): Promise<void> {
+		await this.alarm.set("printAfter1", isoly.DateTime.nextMinute(isoly.DateTime.now(), 1))
 		console.log("print this after 5 minutes")
 	}
 	async alarmTesterRecurring10(): Promise<void> {

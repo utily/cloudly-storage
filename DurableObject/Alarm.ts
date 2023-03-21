@@ -2,6 +2,14 @@ import * as isoly from "isoly"
 import * as platform from "@cloudflare/workers-types"
 
 export class Alarm {
+	private alarms?: { time: isoly.DateTime; action: string }[]
+	private recurringAlarms?: {
+		next: isoly.DateTime
+		unit: "years" | "months" | "days" | "hours" | "minutes" | "seconds" | "milliseconds"
+		interval: number
+		action: string
+	}[]
+
 	private actions: Record<string, (() => Promise<void>) | undefined> = {}
 
 	constructor(private readonly storage: platform.DurableObjectStorage) {}
@@ -9,12 +17,12 @@ export class Alarm {
 	async set(action: string, trigger: isoly.DateTime | number): Promise<{ time: isoly.DateTime; action: string }[]> {
 		trigger = typeof trigger == "number" ? isoly.DateTime.create(trigger, "milliseconds") : trigger
 		const next = (await this.storage.getAlarm()) ?? undefined
-		const alarms = (await this.storage.get<{ time: isoly.DateTime; action: string }[]>("alarms|")) ?? []
-		alarms.push({ time: trigger, action: action })
-		await this.storage.put("alarms|", alarms)
+		this.alarms ??= (await this.storage.get<{ time: isoly.DateTime; action: string }[]>("alarms|")) ?? []
+		this.alarms.push({ time: trigger, action: action })
+		await this.storage.put("alarms|", this.alarms)
 		if (!(next && isoly.DateTime.create(next, "milliseconds") < trigger))
 			await this.storage.setAlarm(isoly.DateTime.parse(trigger))
-		return alarms
+		return this.alarms
 	}
 	async recurring(
 		action: string,
@@ -31,7 +39,7 @@ export class Alarm {
 	> {
 		start = typeof start == "number" ? isoly.DateTime.create(start, "milliseconds") : start
 		const trigger = this.#nextRecurring(start, unit, interval)
-		const alarms =
+		this.recurringAlarms =
 			(await this.storage.get<
 				{
 					next: isoly.DateTime
@@ -40,39 +48,26 @@ export class Alarm {
 					action: string
 				}[]
 			>("alarms|recurring")) ?? []
-		alarms.push({ next: trigger, unit: unit, interval: interval, action: action })
-		await this.storage.put("alarms|recurring", alarms)
+		this.recurringAlarms.push({ next: trigger, unit: unit, interval: interval, action: action })
+		await this.storage.put("alarms|recurring", this.recurringAlarms)
 		const next = (await this.storage.getAlarm()) ?? undefined
 		if (!(next && isoly.DateTime.create(next, "milliseconds") < trigger))
 			await this.storage.setAlarm(isoly.DateTime.parse(trigger))
-		return alarms
+		return this.recurringAlarms
 	}
-	async register(
-		name: string,
-		action: () => Promise<void>
-	): Promise<Record<string, (() => Promise<void>) | undefined>> {
+	register(name: string, action: () => Promise<void>): Record<string, (() => Promise<void>) | undefined> {
 		this.actions[name] = action
 		return this.actions
 	}
 	async handle(): Promise<void> {
 		const now = isoly.DateTime.now()
-		const alarms = (await this.storage.get<{ time: isoly.DateTime; action: string }[]>("alarms|")) ?? []
-		alarms.sort((t1, t2) => {
-			if (t1.time < t2.time)
-				return -1
-			if (t1.time > t2.time)
-				return 1
-			return 0
-		})
-		await Promise.all(alarms.filter(a => a.time <= now).map(a => this.actions[a.action]?.()))
-		const next = alarms.filter(a => a.time > now)
-		if (next.length > 0) {
-			await this.storage.put("alarms|", next)
-		} else {
-			await this.storage.delete("alarms|")
-		}
+		this.alarms ??= (await this.storage.get<{ time: isoly.DateTime; action: string }[]>("alarms|")) ?? []
+		const does = this.alarms.filter(a => a.time <= now)
+		console.log("does", does)
 
-		const recurring =
+		await Promise.all(this.alarms.filter(a => a.time <= now).map(a => this.actions[a.action]?.()))
+
+		this.recurringAlarms ??=
 			(await this.storage.get<
 				{
 					next: isoly.DateTime
@@ -81,11 +76,12 @@ export class Alarm {
 					action: string
 				}[]
 			>("alarms|recurring")) ?? []
-		const occurring = recurring.filter(a => a.next <= now)
-		const notOccurring = recurring.filter(a => a.next > now)
+		const occurring = this.recurringAlarms.filter(a => a.next <= now)
 		await Promise.all(occurring.map(a => this.actions[a.action]?.()))
 		occurring.forEach(o => (o.next = this.#nextRecurring(o.next, o.unit, o.interval)))
+		const notOccurring = this.recurringAlarms.filter(a => !occurring.includes(a))
 		const futureOccurring = occurring.concat(notOccurring)
+
 		futureOccurring.sort((t1, t2) => {
 			if (t1.next < t2.next)
 				return -1
@@ -96,6 +92,20 @@ export class Alarm {
 		if (futureOccurring.length > 0)
 			await this.storage.put("alarms|recurring", futureOccurring)
 
+		this.alarms.sort((t1, t2) => {
+			if (t1.time < t2.time)
+				return -1
+			if (t1.time > t2.time)
+				return 1
+			return 0
+		})
+		const next = this.alarms.filter(a => a.time > now)
+		console.log("next: ", next)
+		if (next.length > 0) {
+			await this.storage.put("alarms|", next)
+		} else {
+			await this.storage.delete("alarms|")
+		}
 		if (futureOccurring.length > 0 && next.length > 0) {
 			futureOccurring[0].next > next[0].time
 				? await this.storage.setAlarm(isoly.DateTime.parse(next[0].time))
