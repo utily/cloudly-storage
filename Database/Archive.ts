@@ -115,8 +115,9 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		let usedChangeKeys = 0
 		let prefix
 		for (prefix of Cursor.prefix(cursor)) {
+			let breakMe = false
 			do {
-				let breakMe = false
+				newCursor.cursor = cursor.cursor
 				const changes = await this.backend.changed.list({
 					prefix: this.partitions + prefix,
 					limit,
@@ -126,18 +127,12 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 					startTime || endTime
 						? changes.filter(e => {
 								const time = Key.getTime(e.key) ?? "0"
-								return (!startTime || startTime <= time) && (!endTime || endTime >= time)
+								return (!startTime || startTime < time) && (!endTime || endTime >= time)
 						  })
 						: changes
 				cursor.cursor = changes.cursor
 				for (const change of changedValues) {
 					const keys = (change?.value ?? "").split("\n")
-					if (Object.keys(listed).length + keys.length > limit) {
-						const start = Key.getTime(change.key)
-						newCursor.range = start ? { start, end: cursor.range?.end ?? isoly.DateTime.now() } : undefined
-						breakMe = true
-						break
-					}
 					if (Object.keys(listed).length + keys.length <= limit) {
 						usedChangeKeys++
 						const loaded = (await Promise.all(keys.map(k => this.backend.doc.get(k)))).reduce(
@@ -146,12 +141,19 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 						)
 						listed = { ...listed, ...loaded }
 					}
+					if (Object.keys(listed).length >= limit) {
+						const start = Key.getTime(change.key)
+						newCursor.range = start ? { start, end: cursor.range?.end ?? isoly.DateTime.now() } : undefined
+						breakMe = true
+						break
+					}
 				}
-				if (breakMe)
-					break
-			} while (cursor.cursor && Object.keys(listed).length < limit)
+			} while (!breakMe && cursor.cursor && Object.keys(listed).length < limit)
+			if (breakMe)
+				break
 		}
-		if (usedChangeKeys == limit || prefix == isoly.DateTime.getDate(cursor.range?.start ?? ""))
+		console.log("usedChangeKeys: ", usedChangeKeys)
+		if (usedChangeKeys == limit)
 			newCursor.cursor = cursor.cursor
 		const result: (T & Document)[] & { cursor?: string } = Object.values(listed)
 		if (newCursor.cursor || (newCursor.range?.start && newCursor.range.start != cursor.range?.start))

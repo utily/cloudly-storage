@@ -1,4 +1,6 @@
 import * as storage from "../index"
+import { Cursor } from "./Cursor"
+
 interface Item {
 	value?: number
 	level?: number
@@ -74,14 +76,39 @@ describe("Archive create, load, list", () => {
 		expect(listedLocus?.flat()).toEqual([item3, item4])
 		expect(listedLocus?.cursor).toEqual(undefined)
 	})
-	it("list using changed query", async () => {
+	it("list using changed query limit 2", async () => {
+		const listed = await partition?.items.load({ changed: selection.created, limit: 2 })
+		expect(listed?.flat()).toEqual([item, item2])
+		expect(Cursor.parse(listed?.cursor)).toEqual({
+			limit: 2,
+			range: { end: "2022-08-01", start: "2022-07-30T00:22:00.000Z" },
+			type: "changed",
+		})
+		const listedFromCursor = listed?.cursor ? await partition?.items.load({ cursor: listed?.cursor }) : undefined
+		expect([...(listedFromCursor ?? [])]).toEqual([item3, item4])
+		expect(await partition?.items.load({ cursor: listedFromCursor?.cursor ?? "" })).toEqual([item5])
+	})
+	it("list using changed query limit 3", async () => {
 		const listed = await partition?.items.load({ changed: selection.created, limit: 3 })
 		expect(listed?.flat()).toEqual([item, item2, item3])
-		expect(listed?.cursor).toEqual(
-			"eyJ0eXBlIjoiY2hhbmdlZCIsImxpbWl0IjozLCJyYW5nZSI6eyJzdGFydCI6IjIwMjItMDctMzBUMDA6MjU6MDAuMDAwWiIsImVuZCI6IjIwMjItMDgtMDEifX0"
-		)
+		expect(Cursor.parse(listed?.cursor)).toEqual({
+			limit: 3,
+			range: { end: "2022-08-01", start: "2022-07-30T00:24:00.000Z" },
+			type: "changed",
+		})
 		const listedFromCursor = listed?.cursor ? await partition?.items.load({ cursor: listed?.cursor }) : undefined
 		expect(listedFromCursor).toEqual([item4, item5])
+	})
+	it("list using changed query limit 4", async () => {
+		const listed = await partition?.items.load({ changed: selection.created, limit: 4 })
+		expect(listed?.flat()).toEqual([item, item2, item3, item4])
+		expect(Cursor.parse(listed?.cursor)).toEqual({
+			limit: 4,
+			range: { end: "2022-08-01", start: "2022-07-30T00:25:00.000Z" },
+			type: "changed",
+		})
+		const listedFromCursor = listed?.cursor ? await partition?.items.load({ cursor: listed?.cursor }) : undefined
+		expect(listedFromCursor).toEqual([item5])
 	})
 	it("update, append, loadAll", async () => {
 		const firstAmendment = {
