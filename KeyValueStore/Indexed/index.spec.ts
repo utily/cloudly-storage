@@ -3,14 +3,21 @@ import * as storage from "../../index"
 interface Type {
 	name: { first: string; last: string }
 	email: string
+	license?: string
 }
 const joe = { name: { first: "Joe", last: "Doe" }, email: "joe@example.com" }
 const jane = { name: { first: "Jane", last: "Smith" }, email: "jane@example.com" }
-async function create(...data: Type[]): Promise<storage.KeyValueStore.Indexed<Type, "email" | "name"> | undefined> {
-	const result = storage.KeyValueStore.Indexed.create<Type, "email" | "name">(storage.KeyValueStore.open<any>(), {
-		email: item => item.email,
-		name: item => `${item.name.first} ${item.name.last}`,
-	})
+async function create(
+	...data: Type[]
+): Promise<storage.KeyValueStore.Indexed<Type, "email" | "name" | "license"> | undefined> {
+	const result = storage.KeyValueStore.Indexed.create<Type, "email" | "name" | "license">(
+		storage.KeyValueStore.open<any>(),
+		{
+			email: item => item.email,
+			name: item => `${item.name.first} ${item.name.last}`,
+			license: item => item.license,
+		}
+	)
 	if (result)
 		for (const item of data)
 			await result.set(`${item.name.last.toLowerCase()} ${item.name.first.toLowerCase()}`, item)
@@ -42,6 +49,17 @@ describe("KeyValueStore.Indexed", () => {
 				{ key: "smith jane", value: jane },
 				{ key: "doe joe", value: joe },
 			])
+		}
+	})
+	it("exclude undefined", async () => {
+		const store = await create(joe, jane)
+		expect(store).toBeTruthy()
+		if (store) {
+			expect(await store.list({ index: "license" })).toEqual([])
+			await store.set("doe joe", { ...joe, license: "111" })
+			expect(await store.list({ index: "license" })).toEqual([{ key: "doe joe" }])
+			await store.set("doe joe", joe)
+			expect(await store.list({ index: "license" })).toEqual([])
 		}
 	})
 })
