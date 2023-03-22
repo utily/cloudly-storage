@@ -37,12 +37,12 @@ export class Indexed<V, I extends string, M = any> implements KeyValueStore<V, M
 	}
 	static create<V, I extends string, M = any>(
 		backend: KeyValueStore<V, M>,
-		indexes: Record<I, (value: V) => string>
+		indexes: Record<I, (value: V) => string | undefined>
 	): Indexed<V, I, M> {
 		return new Indexed(
 			partition(backend, "|"),
 			Object.fromEntries(
-				Object.entries<(value: V) => string>(indexes).map(([index, create]) => [
+				Object.entries<(value: V) => string | undefined>(indexes).map(([index, create]) => [
 					index,
 					Index.create<V>(create, partition(backend as KeyValueStore<string, string>, index + "|")),
 				])
@@ -52,19 +52,20 @@ export class Indexed<V, I extends string, M = any> implements KeyValueStore<V, M
 }
 
 class Index<V> {
-	constructor(private index: (value: V) => string, private backend: KeyValueStore<string>) {}
+	constructor(private index: (value: V) => string | undefined, private backend: KeyValueStore<string>) {}
 	set(value: V): Promise<void>
 	set(value: V, key: string, options?: { retention?: TimeSpan | undefined }): Promise<void>
 	async set(value: V, key?: string, options?: { retention?: TimeSpan | undefined }): Promise<void> {
-		if (key)
-			await this.backend.set(this.index(value), key, options)
-		else
-			await this.backend.set(this.index(value))
+		const index = this.index(value)
+		if (key && index)
+			await this.backend.set(index, key, options)
+		else if (index)
+			await this.backend.set(index)
 	}
 	async list(options?: string | ListOptions): Promise<Continuable<string>> {
 		return (await this.backend.list(options)).map(item => item.value ?? "")
 	}
-	static create<V>(index: (value: V) => string, backend: KeyValueStore<string, string>): Index<V> {
+	static create<V>(index: (value: V) => string | undefined, backend: KeyValueStore<string, string>): Index<V> {
 		return new Index(index, OnlyMeta.create<string>(backend))
 	}
 }
