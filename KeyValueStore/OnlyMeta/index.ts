@@ -25,7 +25,9 @@ export namespace OnlyMeta {
 				)
 			},
 			list: async (options?: string | ListOptions): Promise<Continuable<ListItem<V, undefined>>> => {
-				const response = await backend.list(options)
+				const response = await backend.list(
+					typeof options == "string" ? { prefix: options, values: false } : { ...options, values: false }
+				)
 				const cont = Continuable.create(response, response.cursor)
 				const result: Continuable<ListItem<V, undefined>> = await Promise.all(
 					cont.map(async item => ({
