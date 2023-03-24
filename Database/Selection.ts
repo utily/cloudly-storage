@@ -6,6 +6,7 @@ export type Selection =
 					cursor: string
 			  }
 			| {
+					index?: string
 					created?: isoly.DateRange
 			  }
 			| {

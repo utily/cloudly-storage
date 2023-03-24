@@ -14,6 +14,7 @@ export async function list(request: http.Request, context: Context): Promise<htt
 	const end = request.search.end
 	const limit = request.search.limit ? +request.search.limit : undefined
 	const queryType: "created" | "changed" | undefined = request.search.type as "created" | "changed" | undefined
+	const index: "operation" | undefined = request.search.index == "operation" ? "operation" : undefined
 	const partition = request.search.partition
 	const database = context.collection
 	if (!authorization)
@@ -45,7 +46,7 @@ export async function list(request: http.Request, context: Context): Promise<htt
 	else {
 		const partitioned = partition ? database.partition(partition) : database
 		const listed = await partitioned.users.load(
-			cursor ? cursor : start && end && queryType ? { [queryType]: { start, end }, limit } : { limit }
+			cursor ? cursor : start && end && queryType ? { index, [queryType]: { start, end }, limit } : { limit }
 		)
 		const response = gracely.success.ok(listed) ?? gracely.server.databaseFailure()
 		result = { ...response, header: { ...response.header, cursor: "cursor" in listed ? listed.cursor : undefined } }

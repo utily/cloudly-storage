@@ -16,6 +16,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			doc: KeyValueStore<T & Document>
 			id: KeyValueStore<string>
 			changed: KeyValueStore<string>
+			index?: Record<string, KeyValueStore<string>>
 		},
 		private readonly configuration: Configuration.Archive.Complete,
 		readonly partitions: string = ""
@@ -24,6 +25,9 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	}
 	private generateKey(document: Pick<Document, "id" | "created">): Key {
 		return `${this.partitions}${document.created}/${document.id}`
+	}
+	private generateIndexKey(): Key {
+		return `${this.partitions}${isoly.DateTime.now()}/${Identifier.generate(4)}`
 	}
 	private async getKey(id: string) {
 		return (await this.backend.id.get(id))?.value
@@ -51,6 +55,16 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			result = document.id == undefined ? await this.allocateId(document) : undefined
 		return result
 	}
+	async index(document: Partial<T & Document> & Pick<Document, "id">, index?: string): Promise<void> {
+		index &&
+			(await this.backend.index?.[index]?.set(
+				this.generateIndexKey(),
+				this.generateKey({ ...document, created: document.created ?? isoly.DateTime.now() }),
+				{
+					retention: this.configuration.retention,
+				}
+			))
+	}
 	load(id: Identifier): Promise<(T & Document) | undefined>
 	load(ids: Identifier[]): Promise<((Document & T) | undefined)[]>
 	load(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }>
@@ -71,9 +85,47 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 
 	private async list(selection?: Selection): Promise<(Document & T)[] & { cursor?: string }> {
 		const cursor = Cursor.from(selection)
-		return cursor?.type == "changed" ? await this.listChanged(cursor) : await this.listDocs(cursor)
+		return cursor?.type == "changed"
+			? await this.listChanged(cursor)
+			: !cursor?.type || cursor.type == "doc"
+			? await this.listDocs(cursor)
+			: await this.listIndex(cursor)
 	}
-
+	private async listIndex(cursor: Cursor): Promise<(Document & T)[] & { cursor?: string }> {
+		const result: (T & Document)[] & { cursor?: string } & {
+			cursor?: string | undefined
+		} = []
+		let limit = cursor?.limit ?? Selection.standardLimit
+		let newCursor: string | undefined
+		for (const prefix of Cursor.prefix(cursor)) {
+			const loaded =
+				(await this.backend.index?.[cursor.type]?.list({
+					prefix: this.partitions + prefix,
+					limit,
+					cursor: cursor?.cursor,
+				})) ?? []
+			const listed = await Promise.all(
+				loaded.reduce(
+					(r, item) => [...r, ...(item?.value ? [this.backend.doc.get(this.partitions + item.value)] : [])],
+					[]
+				)
+			).then(l => l.reduce((r, d) => (d?.value ? [...r, d.value] : r), []))
+			limit -= listed.length
+			result.push(...listed)
+			cursor?.cursor && (cursor.cursor = loaded.cursor)
+			if (loaded.cursor) {
+				newCursor = Cursor.serialize({
+					...(cursor ?? { type: "doc" }),
+					range: cursor?.range ? { end: cursor.range?.end, start: prefix } : undefined,
+					cursor: loaded.cursor,
+				})
+				break
+			}
+		}
+		if (newCursor && result)
+			result.cursor = newCursor
+		return result
+	}
 	private async listDocs(cursor?: Cursor): Promise<(Document & T)[] & { cursor?: string }> {
 		const result: (T & Document)[] & { cursor?: string } & {
 			cursor?: string | undefined
@@ -160,10 +212,11 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		return result
 	}
 
-	store(document: T & Partial<Document>): Promise<(T & Document) | undefined>
-	store(documents: (T & Partial<Document>)[]): Promise<((T & Document) | undefined)[]>
+	store(document: T & Partial<Document>, index?: string): Promise<(T & Document) | undefined>
+	store(documents: (T & Partial<Document>)[], index?: string): Promise<((T & Document) | undefined)[]>
 	async store(
-		documents: (T & Partial<Document>) | (T & Partial<Document>)[]
+		documents: (T & Partial<Document>) | (T & Partial<Document>)[],
+		index?: string
 	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
 		let result: (T & Document) | undefined | (T & Document)[] = Array.isArray(documents) ? [] : undefined
 		for (let document of Array.isArray(documents) ? documents : [documents]) {
@@ -174,7 +227,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				Array.isArray(result) ? result.push(toBeStored) : (result = toBeStored)
 			}
 		}
-		return result && (await this.set(result))
+		return result && (await this.set(result, index))
 	}
 
 	async update(amendment: Partial<T & Document>): Promise<(T & Document) | undefined>
@@ -217,18 +270,21 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		}
 		return updated && (await this.set(updated))
 	}
-	private async set(document: T & Document): Promise<(T & Document) | undefined>
-	private async set(documents: (T & Document)[]): Promise<((T & Document) | undefined)[]>
+	private async set(document: T & Document, index?: string): Promise<(T & Document) | undefined>
+	private async set(documents: (T & Document)[], index?: string): Promise<((T & Document) | undefined)[]>
 	private async set(
-		documents: (T & Document) | (T & Document)[]
+		documents: (T & Document) | (T & Document)[],
+		index?: string
 	): Promise<((T & Document) | undefined) | ((T & Document) | undefined)[]>
 	private async set(
-		documents: (T & Document) | (T & Document)[]
+		documents: (T & Document) | (T & Document)[],
+		index?: string
 	): Promise<((T & Document) | undefined) | ((T & Document) | undefined)[]> {
 		let result: (T & Document) | undefined | ((T & Document) | undefined)[] = undefined
 		if (Document.is(documents, this.configuration.idLength)) {
 			const key = this.generateKey(documents)
 			await this.backend.doc.set(key, (result = documents), { retention: this.configuration.retention })
+			await this.index(documents, index)
 			const changedKey =
 				this.partitions + isoly.DateTime.truncate(isoly.DateTime.truncate(documents.changed, "minutes"), "milliseconds")
 			const changed = await this.backend.changed.get(changedKey)
@@ -320,6 +376,21 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 						KeyValueStore.Json.create<string>(backend),
 						"changed/",
 						completeConfiguration.retention
+					),
+					index: configuration.index?.reduce(
+						(r, k) => ({
+							...(!["doc", "id", "changed"].includes(k)
+								? {
+										[k]: KeyValueStore.partition(
+											KeyValueStore.OnlyMeta.create<string>(backend),
+											{ k } + "/",
+											completeConfiguration.retention
+										),
+								  }
+								: {}),
+							...r,
+						}),
+						{}
 					),
 				},
 				completeConfiguration
