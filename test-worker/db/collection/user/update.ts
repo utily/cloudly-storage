@@ -16,7 +16,7 @@ export async function append(request: http.Request, context: Context): Promise<h
 		result = database
 	else {
 		const partitioned = partition ? database.partition(partition) : database
-		const response = await partitioned.users.update(user, true)
+		const response = await partitioned.users.update(user, "operation", true)
 		result = response
 			? gracely.success.created(response)
 			: gracely.server.databaseFailure("Unable to append to user, probably doesn't exists.")

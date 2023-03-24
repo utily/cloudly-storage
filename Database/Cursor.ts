@@ -4,7 +4,7 @@ import { Selection } from "./Selection"
 
 export type Cursor = {
 	cursor?: string
-	type: "doc" | "changed"
+	type: "doc" | "changed" | string
 	range?: isoly.TimeRange | isoly.DateRange
 	limit?: number
 }
@@ -39,7 +39,7 @@ export namespace Cursor {
 				result = {
 					limit: limit(selection.limit),
 					range: selection.created,
-					type: "doc",
+					type: selection.index ?? "doc",
 				}
 				break
 			case "changed":

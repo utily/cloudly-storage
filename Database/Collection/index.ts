@@ -53,7 +53,10 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 					archiveList = Error.is(bufferList) ? bufferList : await this.archive.load(selection)
 				} else {
 					const cursor: Cursor | undefined = Cursor.from(selection)
-					bufferList = !cursor?.cursor ? await this.buffer.load(cursor) : []
+					bufferList =
+						!cursor?.cursor && (!cursor?.type || cursor.type == "doc" || cursor.type == "changed")
+							? await this.buffer.load(cursor)
+							: []
 					if (!Error.is(bufferList)) {
 						const limit =
 							(cursor && "limit" in cursor && cursor.limit ? cursor.limit : Selection.standardLimit) -
@@ -142,35 +145,47 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		}
 		return result
 	}
-	async update(amendment: Partial<T & Document> & Pick<Document, "id">, unlock?: true): Promise<(T & Document) | Error>
+	async update(
+		amendment: Partial<T & Document> & Pick<Document, "id">,
+		index?: string,
+		unlock?: true
+	): Promise<(T & Document) | Error>
 	async update(
 		amendments: (Partial<T & Document> & Pick<Document, "id">)[],
+		index?: string,
 		unlock?: true
 	): Promise<(T & Document)[] | Error>
 	async update(
 		amendments: (Partial<T & Document> & Pick<Document, "id">) | (Partial<T & Document> & Pick<Document, "id">)[],
+		index?: string,
 		unlock?: true
 	): Promise<(T & Document) | Error | ((T & Document) | Error)[]> {
 		let result: (T & Document) | Error | ((T & Document) | Error)[]
 		try {
-			result = await this.change(amendments, "update", unlock)
+			result = await this.change(amendments, "update", index, unlock)
 		} catch (e) {
 			result = this.error("update", e)
 		}
 		return result
 	}
-	async append(amendment: Partial<T & Document> & Pick<Document, "id">, unlock?: true): Promise<(T & Document) | Error>
+	async append(
+		amendment: Partial<T & Document> & Pick<Document, "id">,
+		index?: string,
+		unlock?: true
+	): Promise<(T & Document) | Error>
 	async append(
 		amendments: (Partial<T & Document> & Pick<Document, "id">)[],
+		index?: string,
 		unlock?: true
 	): Promise<(T & Document)[] | Error>
 	async append(
 		amendments: (Partial<T & Document> & Pick<Document, "id">) | (Partial<T & Document> & Pick<Document, "id">)[],
+		index?: string,
 		unlock?: true
 	): Promise<(T & Document) | Error | ((T & Document) | Error)[]> {
 		let result: (T & Document) | Error | ((T & Document) | Error)[]
 		try {
-			result = await this.change(amendments, "append", unlock)
+			result = await this.change(amendments, "append", index, unlock)
 		} catch (e) {
 			result = this.error("append", e)
 		}
@@ -179,6 +194,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 	private async change(
 		amendments: (Partial<T & Document> & Pick<Document, "id">) | (Partial<T & Document> & Pick<Document, "id">)[],
 		type: "append" | "update",
+		index?: string,
 		unlock?: true
 	): Promise<(T & Document) | Error | ((T & Document) | Error)[]> {
 		let result: Error | ((T & Document) | Error)[] = []
@@ -195,6 +211,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 					...((loaded ? amendment : await this.allocateId(amendment as any as T & Document)) ?? amendment),
 					changed: amendment.changed,
 				}
+				await this.archive.index(changes[amendment.id], index)
 				archived[amendment.id] = loaded ? loaded : undefined
 			}
 		}
