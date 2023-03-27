@@ -29,7 +29,7 @@ export namespace OnlyMeta {
 					typeof options == "string" ? { prefix: options, values: false } : { ...options, values: false }
 				)
 				const cont = Continuable.create(response, response.cursor)
-				const result: Continuable<ListItem<V, undefined>> = await Promise.all(
+				const result: Continuable<ListItem<V, undefined>> = await Continuable.awaits(
 					cont.map(async item => ({
 						...(({ meta: discard, ...r }) => r)(item),
 						value: typeof item.meta == "string" || Array.isArray(item.meta) ? item.meta : ({ ...item.meta } as V),
