@@ -87,7 +87,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		const cursor = Cursor.from(selection)
 		return cursor?.type == "changed"
 			? await this.listChanged(cursor)
-			: !cursor?.type || cursor.type == "doc"
+			: !cursor || cursor.type == "doc"
 			? await this.listDocs(cursor)
 			: await this.listIndex(cursor)
 	}
@@ -112,8 +112,8 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			cursor?.cursor && (cursor.cursor = loaded.cursor)
 			if (loaded.cursor) {
 				newCursor = Cursor.serialize({
-					...(cursor ?? { type: "doc" }),
-					range: cursor?.range ? { end: cursor.range?.end, start: prefix } : undefined,
+					...cursor,
+					range: cursor.range ? { end: cursor.range.end, start: prefix } : undefined,
 					cursor: loaded.cursor,
 				})
 				break
