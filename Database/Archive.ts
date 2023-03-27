@@ -105,10 +105,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 					cursor: cursor?.cursor,
 				})) ?? []
 			const listed = await Promise.all(
-				loaded.reduce(
-					(r, item) => [...r, ...(item?.value ? [this.backend.doc.get(this.partitions + item.value)] : [])],
-					[]
-				)
+				loaded.reduce((r, item) => [...r, ...(item?.value ? [this.backend.doc.get(item.value)] : [])], [])
 			).then(l => l.reduce((r, d) => (d?.value ? [...r, d.value] : r), []))
 			limit -= listed.length
 			result.push(...listed)
