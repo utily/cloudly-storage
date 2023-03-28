@@ -60,8 +60,8 @@
 		"wrangler": "^2.11.1"
 	},
 	"dependencies": {
-		"authly": "^3.0.1",
-		"cloudly-http": "^0.1.2",
+		"authly": "^3.0.3",
+		"cloudly-http": "^0.1.3",
 		"cloudly-router": "^0.1.1",
 		"cloudly-storage": "file:..",
 		"gracely": "^2.0.3",

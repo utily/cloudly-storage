@@ -70,7 +70,7 @@
 		"typescript": "^4.9.5"
 	},
 	"dependencies": {
-		"cloudly-http": "^0.1.2",
+		"cloudly-http": "^0.1.3",
 		"cloudly-router": "^0.1.1",
 		"cryptly": "^3.0.2",
 		"gracely": "^2.0.3",
