@@ -26,7 +26,6 @@ export class Storage {
 		lock?: isoly.DateTime
 	): Promise<T | T[] | Error> {
 		let result: T | T[] | Error
-		console.log("LISTED", await this.state.storage.list({ prefix: "operation/" }))
 		if (typeof id == "string") {
 			id = await this.locked(id, lock)
 			if (id == "locked")

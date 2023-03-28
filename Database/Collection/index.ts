@@ -48,15 +48,13 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			case "object": //TODO: will return configuration.shards * limit
 				let bufferList: (T & Document) | Error | ((Document & T) | undefined)[]
 				let archiveList: (T & Document) | Error | (((Document & T) | undefined)[] & { cursor?: string }) = []
+				let archiveRecord: Record<string, Document & T> | undefined
 				if (Array.isArray(selection)) {
 					bufferList = await this.buffer.load(selection, options)
 					archiveList = Error.is(bufferList) ? bufferList : await this.archive.load(selection)
 				} else {
 					const cursor: Cursor | undefined = Cursor.from(selection)
-					bufferList =
-						!cursor?.cursor && (!cursor?.type || cursor.type == "doc" || cursor.type == "changed")
-							? await this.buffer.load(cursor)
-							: []
+					bufferList = !cursor?.cursor ? await this.buffer.load(cursor) : []
 					if (!Error.is(bufferList)) {
 						const limit =
 							(cursor && "limit" in cursor && cursor.limit ? cursor.limit : Selection.standardLimit) -
@@ -68,6 +66,14 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 										limit,
 								  })
 								: []
+						archiveRecord = archiveList.reduce<Record<string, Document & T>>(
+							(r, document) => (document ? { [document.id]: document, ...r } : r),
+							{}
+						)
+						if (this.configuration.index?.includes(cursor?.type ?? "")) {
+							const bufferUpdates = await this.buffer.load(Object.keys(archiveRecord))
+							!Error.is(bufferUpdates) && bufferList.concat(bufferUpdates)
+						}
 					}
 				}
 				if (Error.is(archiveList)) {
@@ -75,12 +81,11 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				} else if (Error.is(bufferList)) {
 					result = bufferList
 				} else {
-					result = Object.values(
-						archiveList.reduce<(T & Document)[]>(
-							(r, document) => (document ? { [document.id]: document, ...r } : r),
-							bufferList.reduce((r, document) => (document ? { [document.id]: document, ...r } : r), [])
-						)
+					const bufferListObj = bufferList.reduce<Record<string, Document & T>>(
+						(r, document) => (document ? { [document.id]: document, ...r } : r),
+						{}
 					)
+					result = Object.values({ ...(archiveRecord ?? {}), ...bufferListObj })
 					if (archiveList.cursor)
 						result.cursor = archiveList.cursor
 				}
@@ -215,7 +220,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				archived[amendment.id] = loaded ? loaded : undefined
 			}
 		}
-		result = Error.is(result) ? result : await this.buffer.change(changes, archived, type, unlock)
+		result = Error.is(result) ? result : await this.buffer.change(changes, archived, type, index, unlock)
 		return !Array.isArray(amendments) && !Error.is(result) ? result[0] : result
 	}
 	remove(id: Identifier): Promise<boolean>
