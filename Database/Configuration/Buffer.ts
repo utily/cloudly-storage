@@ -10,10 +10,11 @@ export interface Buffer {
 	retainChanged?: boolean
 	superimposeFor?: isoly.TimeSpan //time documents should be stored in buffer after its beem archived.
 	retention?: isoly.TimeSpan
+	index?: string[] // indices to query listing
 }
 
 export namespace Buffer {
-	export type Complete = Required<Omit<Buffer, "retention">> & Pick<Buffer, "retention">
+	export type Complete = Required<Omit<Buffer, "index" | "retention">> & Pick<Buffer, "index" | "retention">
 	export const standard: Complete = {
 		shards: 4,
 		reconciliationInterval: { seconds: 30 },

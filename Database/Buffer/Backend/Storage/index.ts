@@ -1,8 +1,10 @@
 import * as isoly from "isoly"
 import * as platform from "@cloudflare/workers-types"
 import { Document } from "../../../Document"
+import { Identifier } from "../../../Identifier"
 import { error } from "../error"
 import { Portion } from "./Portion"
+
 export class Storage {
 	private constructor(
 		private readonly state: platform.DurableObjectState,
@@ -24,6 +26,7 @@ export class Storage {
 		lock?: isoly.DateTime
 	): Promise<T | T[] | Error> {
 		let result: T | T[] | Error
+		console.log("LISTED", await this.state.storage.list({ prefix: "operation/" }))
 		if (typeof id == "string") {
 			id = await this.locked(id, lock)
 			if (id == "locked")
@@ -52,20 +55,26 @@ export class Storage {
 	}
 	async storeDocuments<T extends { id: string } & Record<string, any>>(
 		documents: Record<string, T>,
+		index?: string,
 		unlock?: true
 	): Promise<T | T[]> {
 		const oldIdIndices = Object.fromEntries(
 			(await this.portion.get<string>(Object.values(documents).map(document => "id/" + document.id))).entries()
 		)
-		const { newDocuments, idIndices } = Object.entries(documents).reduce(
-			(r: { newDocuments: Record<string, T>; idIndices: Record<string, string> }, [key, document]) => ({
+		const { newDocuments, idIndices, indices } = Object.entries(documents).reduce(
+			(
+				r: { newDocuments: Record<string, T>; idIndices: Record<string, string>; indices: Record<string, string> },
+				[key, document]
+			) => ({
+				indices: { ...r.indices, [index + "/" + isoly.DateTime.now() + "/" + Identifier.generate(4)]: key },
 				newDocuments: { ...r.newDocuments, [oldIdIndices["id/" + document.id] ?? key]: document },
 				idIndices: { ...r.idIndices, ["id/" + document.id]: key },
 			}),
-			{ newDocuments: {}, idIndices: {} }
+			{ newDocuments: {}, idIndices: {}, indices: {} }
 		)
 		const changedIndex = await this.updateChangedIndex(newDocuments, unlock)
 		await this.portion.put({
+			...indices,
 			...newDocuments,
 			...idIndices,
 			...changedIndex,
@@ -78,16 +87,18 @@ export class Storage {
 		changes: [T & Partial<Document> & Pick<Document, "id">, T & Document][],
 		type: "update" | "append",
 		prefix: string,
+		index?: string,
 		unlock?: true
 	): Promise<((T & Document) | Error)[]> {
 		return await Promise.all(
-			changes.map(([amendment, archived]) => this.changeDocument(amendment, type, prefix, archived, unlock))
+			changes.map(([amendment, archived]) => this.changeDocument(amendment, type, prefix, index, archived, unlock))
 		)
 	}
 	async changeDocument<T extends Document & Record<string, any>>(
 		amendment: T & Partial<Document> & Pick<Document, "id">,
 		type: "update" | "append",
 		prefix: string,
+		index?: string,
 		archived?: T & Document,
 		unlock?: true
 	): Promise<(T & Document) | Error> {
@@ -104,7 +115,7 @@ export class Storage {
 					amendment.changed == old?.changed ? isoly.DateTime.nextMillisecond(amendment.changed) : amendment.changed,
 			})
 			response = updated
-				? await this.storeDocuments({ [key ?? `${prefix}${updated.created}/${updated.id}`]: updated }, unlock)
+				? await this.storeDocuments({ [key ?? `${prefix}${updated.created}/${updated.id}`]: updated }, index, unlock)
 				: undefined
 		}
 		return response && updated

@@ -27,6 +27,7 @@ export class Buffer<T = any> {
 			superimposeFor: JSON.stringify(this.configuration.superimposeFor),
 			documentType: this.backend.partitions.slice(0, -1),
 			retention: JSON.stringify(this.configuration.retention),
+			index: JSON.stringify(this.configuration.index),
 		}
 	}
 	partition(...partition: string[]): Buffer<T> {
@@ -43,8 +44,8 @@ export class Buffer<T = any> {
 		return `${this.backend.partitions}doc/${this.partitions}${document.created}/${document.id}`
 	}
 
-	private generatePrefix(prefix?: string): string {
-		return this.backend.partitions + "doc/" + this.partitions + (prefix ?? "")
+	private generatePrefix(prefix?: string, index?: string): string {
+		return index ? index + "/" + prefix : this.backend.partitions + "doc/" + this.partitions + (prefix ?? "")
 	}
 
 	load(): Promise<(T & Document)[] | Error>
@@ -140,6 +141,7 @@ export class Buffer<T = any> {
 		amendments: Record<string, Partial<T & Document> & { id: Document["id"] }>,
 		archived: Record<string, (T & Document) | undefined> | undefined,
 		type: "update" | "append",
+		index?: string,
 		unlock?: true
 	): Promise<((T & Document) | Error)[] | Error> {
 		let result: ((T & Document) | Error)[] | Error
@@ -164,7 +166,11 @@ export class Buffer<T = any> {
 								],
 								[]
 							),
-							{ ...this.header, ...(unlock ? { unlock: unlock.toString() } : {}) }
+							{
+								...this.header,
+								...(unlock ? { unlock: unlock.toString() } : {}),
+								...(index ? { updateIndex: index } : {}),
+							}
 						)
 					)
 				)
