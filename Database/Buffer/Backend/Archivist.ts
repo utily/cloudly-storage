@@ -60,6 +60,18 @@ export class Archivist {
 			const changed = Array.from(
 				(await this.state.storage.list<string>({ prefix: "changed/", limit: 2 * this.limit })).entries()
 			)
+			const indices =
+				this.configuration.index &&
+				(await Promise.all(
+					this.configuration.index.flatMap(async i =>
+						this.state.storage.list<string>({ prefix: i + "/", limit: 2 * this.limit })
+					)
+				).then(listed => listed.flatMap(map => Array.from(map.entries()))))
+			for (const [key] of indices ?? []) {
+				const time = Key.getTime(key)
+				if (time && time <= remove && time <= archived)
+					keys.push(key)
+			}
 			for (const [key, value] of changed) {
 				const time = Key.getTime(key)
 				if (time && time <= remove && time <= archived)

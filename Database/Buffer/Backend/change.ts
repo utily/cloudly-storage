@@ -13,6 +13,7 @@ export async function update(request: http.Request, context: Context): Promise<h
 			: undefined
 	const storage = context.storage
 	const unlock = request.header.unlock == "true" || undefined
+	const index = Array.isArray(request.header.updateIndex) ? request.header.updateIndex[0] : request.header.updateIndex
 	if (!body)
 		result = error("update", "The body must contain a Partial<Document>[]")
 	else if (!storage)
@@ -27,6 +28,7 @@ export async function update(request: http.Request, context: Context): Promise<h
 						body,
 						request.method == "PUT" ? "update" : "append",
 						prefix,
+						index,
 						unlock
 					)
 				)) ?? error("update", "Document not found")
