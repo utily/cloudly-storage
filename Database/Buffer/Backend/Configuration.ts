@@ -7,10 +7,12 @@ export type Configuration = {
 	snooze?: number
 	removeAfter?: number
 	timeToLive?: isoly.TimeSpan
+	index?: string[]
 }
 
 export namespace Configuration {
-	export type Complete = Required<Omit<Configuration, "timeToLive">> & Pick<Configuration, "timeToLive">
+	export type Complete = Required<Omit<Configuration, "index" | "timeToLive">> &
+		Pick<Configuration, "index" | "timeToLive">
 	export const standard: Complete = {
 		retention: isoly.TimeSpan.toSeconds({ minutes: 5 }),
 		documentType: "unknown",
@@ -20,7 +22,7 @@ export namespace Configuration {
 	}
 	export function from(request: Request, configuration?: Configuration): Configuration {
 		return Object.entries(headers).reduce(
-			(r: Configuration, [key, from]) => ({ ...r, [key]: from(request, configuration) }),
+			(r: Configuration, [key, configure]) => ({ ...r, [key]: configure(request, configuration) }),
 			{}
 		)
 	}
@@ -46,6 +48,10 @@ export namespace Configuration {
 		timeToLive: (request: Request, configuration?: Configuration): isoly.TimeSpan | undefined => {
 			const timeToLive = JSON.parse(request.headers.get("retention") ?? "{}")
 			return isoly.TimeSpan.is(timeToLive) ? timeToLive : configuration?.timeToLive
+		},
+		index: (request: Request, configuration?: Configuration): string[] | undefined => {
+			const index = JSON.parse(request.headers.get("index") ?? "{}")
+			return typeof index == "string" ? [index] : Array.isArray(index) ? index : configuration?.index
 		},
 	}
 }
