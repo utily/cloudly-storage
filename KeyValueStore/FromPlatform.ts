@@ -146,7 +146,8 @@ export class FromPlatform<
 		const endDate = options.range && options.range[1] ? options.range[1] : ""
 		let limit = options.limit ?? 100
 
-		let data = await this.backend.list({ prefix: options.prefix ?? "" + date, cursor: options.cursor, limit: limit })
+		let data = await this.backend.list({ prefix: (options.prefix ?? "") + date, cursor: options.cursor, limit: limit })
+
 		let result: Continuable<ListItem<V, M>> = await Promise.all(
 			data.keys.map(async item => ({
 				key: item.name,
@@ -163,7 +164,7 @@ export class FromPlatform<
 			) {
 				date = isoly.Date.invert(isoly.Date.previousYear(isoly.Date.invert(date)))
 				data = await this.backend.list({
-					prefix: options.prefix ?? "" + date.substring(0, 4),
+					prefix: (options.prefix ?? "") + date.substring(0, 4),
 					cursor: options.cursor,
 					limit: limit,
 				})
@@ -175,13 +176,17 @@ export class FromPlatform<
 				) {
 					date = isoly.Date.invert(isoly.Date.previousMonth(isoly.Date.invert(date)))
 					data = await this.backend.list({
-						prefix: options.prefix ?? "" + date.substring(0, 7),
+						prefix: (options.prefix ?? "") + date.substring(0, 7),
 						cursor: options.cursor,
 						limit: limit,
 					})
 				} else {
 					date = isoly.Date.invert(isoly.Date.previous(isoly.Date.invert(date)))
-					data = await this.backend.list({ prefix: options.prefix ?? "" + date, cursor: options.cursor, limit: limit })
+					data = await this.backend.list({
+						prefix: (options.prefix ?? "") + date,
+						cursor: options.cursor,
+						limit: limit,
+					})
 				}
 			}
 			limit -= data.keys.length
