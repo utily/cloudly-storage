@@ -46,7 +46,10 @@ export class FromPlatform<
 		let result: Continuable<ListItem<V, M>>
 		const o = ListOptions.get(options)
 		if (o.range && (o.range[0] || o.range[1]))
-			result = await this.range(o)
+			if (isoly.Date.is(o.range[0]) && isoly.Date.is(o.range[1]))
+				result = await this.inverseDateRange(o)
+			else
+				result = await this.range(o)
 		else {
 			const data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
 			result = await Promise.all(
@@ -135,6 +138,76 @@ export class FromPlatform<
 				  )
 				: result
 		result.cursor = cursor
+		return result
+	}
+
+	private async inverseDateRange(options: ListOptions): Promise<Continuable<ListItem<V, M>>> {
+		let date = options.range && options.range[0] ? options.range[0] : ""
+		const endDate = options.range && options.range[1] ? options.range[1] : ""
+		let limit = options.limit ?? 100
+
+		let data = await this.backend.list({ prefix: date, cursor: options.cursor, limit: limit })
+		let result: Continuable<ListItem<V, M>> = await Promise.all(
+			data.keys.map(async item => ({
+				key: item.name,
+				expires: item.expiration ? isoly.DateTime.create(item.expiration) : undefined,
+				meta: item.metadata as M,
+			}))
+		)
+
+		while (date < endDate && 0 < limit) {
+			if (
+				isoly.Date.getYear(endDate) - isoly.Date.getYear(date) > 1 &&
+				isoly.Date.getMonth(date) == 12 &&
+				isoly.Date.getDay(date) == 31
+			) {
+				date = isoly.Date.invert(isoly.Date.previousYear(isoly.Date.invert(date)))
+				data = await this.backend.list({
+					prefix: date.substring(0, 4),
+					cursor: options.cursor,
+					limit: limit,
+				})
+			} else {
+				if (
+					(isoly.Date.getMonth(endDate) - isoly.Date.getMonth(date) > 1 ||
+						isoly.Date.getYear(endDate) - isoly.Date.getYear(date) > 0) &&
+					isoly.Date.getDay(date) == 31
+				) {
+					date = isoly.Date.invert(isoly.Date.previousMonth(isoly.Date.invert(date)))
+					data = await this.backend.list({
+						prefix: date.substring(0, 7),
+						cursor: options.cursor,
+						limit: limit,
+					})
+				} else {
+					date = isoly.Date.invert(isoly.Date.previous(isoly.Date.invert(date)))
+					data = await this.backend.list({ prefix: date, cursor: options.cursor, limit: limit })
+				}
+			}
+			limit -= data.keys.length
+			result = result.concat(
+				await Promise.all(
+					data.keys.map(async item => ({
+						key: item.name,
+						expires: item.expiration ? isoly.DateTime.create(item.expiration) : undefined,
+						meta: item.metadata as M,
+					}))
+				)
+			)
+		}
+
+		result =
+			options.values == true
+				? await Promise.all(
+						result.map(async item => ({
+							...item,
+							value: ((await this.backend.get(item.key, { type: this.type as any })) as any) ?? undefined,
+						}))
+				  )
+				: result
+		if (!data.list_complete && data.cursor)
+			result.cursor = data.cursor
+
 		return result
 	}
 }
