@@ -46,7 +46,12 @@ export class FromPlatform<
 		let result: Continuable<ListItem<V, M>>
 		const o = ListOptions.get(options)
 		if (o.range && (o.range[0] || o.range[1]))
-			if (isoly.Date.is(o.range[0]) && isoly.Date.is(o.range[1]))
+			if (
+				o.range[0] &&
+				o.range[1] &&
+				isoly.Date.is(isoly.Date.invert(o.range[0])) &&
+				isoly.Date.is(isoly.Date.invert(o.range[1]))
+			)
 				result = await this.inverseDateRange(o)
 			else
 				result = await this.range(o)
@@ -199,6 +204,8 @@ export class FromPlatform<
 					}))
 				)
 			)
+			if (options.cursor && result.length)
+				delete options.cursor
 		}
 
 		result =
