@@ -53,7 +53,13 @@ export class FromPlatform<
 				isoly.Date.is(isoly.Date.invert(o.range[1]))
 			)
 				result = await this.inverseDateRange(o)
-			else
+			else if (o.range[0] && isoly.Date.is(isoly.Date.invert(o.range[0]))) {
+				o.range[1] = isoly.Date.invert("2000-01-01")
+				result = await this.inverseDateRange(o)
+			} else if (o.range[1] && isoly.Date.is(isoly.Date.invert(o.range[1]))) {
+				o.range[0] = isoly.Date.invert(isoly.Date.next(isoly.Date.now()))
+				result = await this.inverseDateRange(o)
+			} else
 				result = await this.range(o)
 		else {
 			const data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })

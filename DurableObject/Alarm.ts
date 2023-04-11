@@ -62,8 +62,6 @@ export class Alarm {
 	async handle(): Promise<void> {
 		const now = isoly.DateTime.now()
 		this.alarms ??= (await this.storage.get<{ time: isoly.DateTime; action: string }[]>("alarms|")) ?? []
-		const does = this.alarms.filter(a => a.time <= now)
-		console.log("does", does)
 
 		await Promise.all(this.alarms.filter(a => a.time <= now).map(a => this.actions[a.action]?.()))
 
@@ -100,7 +98,6 @@ export class Alarm {
 			return 0
 		})
 		const next = this.alarms.filter(a => a.time > now)
-		console.log("next: ", next)
 		if (next.length > 0) {
 			await this.storage.put("alarms|", next)
 		} else {
