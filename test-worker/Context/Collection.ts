@@ -12,6 +12,7 @@ export namespace Collection {
 			{
 				silos: {
 					users: {
+						meta: ["name", "groups"],
 						type: "collection",
 						idLength: 4,
 						shards: 2,

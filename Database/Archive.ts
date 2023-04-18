@@ -92,9 +92,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			: await this.listIndex(cursor)
 	}
 	private async listIndex(cursor: Cursor): Promise<(Document & T)[] & { cursor?: string }> {
-		const result: (T & Document)[] & { cursor?: string } & {
-			cursor?: string | undefined
-		} = []
+		const result: (T & Document)[] & { cursor?: string } = []
 		let limit = cursor?.limit ?? Selection.standardLimit
 		let newCursor: string | undefined
 		for (const prefix of Cursor.prefix(cursor)) {
@@ -124,9 +122,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		return result
 	}
 	private async listDocs(cursor?: Cursor): Promise<(Document & T)[] & { cursor?: string }> {
-		const result: (T & Document)[] & { cursor?: string } & {
-			cursor?: string | undefined
-		} = []
+		const result: (T & Document)[] & { cursor?: string } = []
 		let limit = cursor?.limit ?? Selection.standardLimit
 		let newCursor: string | undefined
 		for (const prefix of Cursor.prefix(cursor)) {
@@ -134,6 +130,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				prefix: this.partitions + prefix,
 				limit,
 				cursor: cursor?.cursor,
+				values: !cursor?.meta,
 			})
 			const listed = loaded.map(item => ({
 				...(item.value ?? {}),

@@ -8,7 +8,7 @@ import { Portion } from "./Portion"
 export class Storage {
 	private constructor(
 		private readonly state: platform.DurableObjectState,
-		private readonly portion: Portion,
+		public readonly portion: Portion,
 		public readonly changedPrecision: "seconds" | "minutes" | "hours"
 	) {}
 
@@ -52,22 +52,31 @@ export class Storage {
 		}
 		return result
 	}
-	async storeDocuments<T extends { id: string } & Record<string, any>>(
+	async storeDocuments<
+		T extends [Document & Record<string, any>, Record<string, any>] | (Document & Record<string, any>)
+	>(
 		documents: Record<string, T>,
 		index?: string,
 		unlock?: true
-	): Promise<T | T[]> {
+	): Promise<(Document & Record<string, any>) | (Document & Record<string, any>)[]> {
 		const oldIdIndices = Object.fromEntries(
-			(await this.portion.get<string>(Object.values(documents).map(document => "id/" + document.id))).entries()
-		)
-		const { newDocuments, idIndices, indices } = Object.entries(documents).reduce(
 			(
-				r: { newDocuments: Record<string, T>; idIndices: Record<string, string>; indices: Record<string, string> },
-				[key, document]
-			) => ({
-				indices: { ...r.indices, [index + "/" + isoly.DateTime.now() + "/" + Identifier.generate(4)]: key },
-				newDocuments: { ...r.newDocuments, [oldIdIndices["id/" + document.id] ?? key]: document },
-				idIndices: { ...r.idIndices, ["id/" + document.id]: key },
+				await this.portion.get<string>(
+					Object.values(documents).map(document => "id/" + (Array.isArray(document) ? document[0].id : document.id))
+				)
+			).entries()
+		)
+		const { newDocuments, idIndices, indices } = Object.entries(documents).reduce<{
+			newDocuments: Record<string, T>
+			idIndices: Record<string, string>
+			indices?: Record<string, string>
+		}>(
+			(r, [key, document]) => ({
+				indices: index
+					? { ...r.indices, [index + "/" + isoly.DateTime.now() + "/" + Identifier.generate(4)]: key }
+					: undefined,
+				newDocuments: { ...r.newDocuments, [oldIdIndices["id/" + document[0].id] ?? key]: document },
+				idIndices: { ...r.idIndices, ["id/" + document[0].id]: key },
 			}),
 			{ newDocuments: {}, idIndices: {}, indices: {} }
 		)
@@ -78,7 +87,7 @@ export class Storage {
 			...idIndices,
 			...changedIndex,
 		})
-		const result = Object.values(documents)
+		const result = Object.values(documents).map(d => ({ ...d[0], ...d[1] }))
 		return result.length == 1 ? result[0] : result
 	}
 
@@ -114,7 +123,11 @@ export class Storage {
 					amendment.changed == old?.changed ? isoly.DateTime.nextMillisecond(amendment.changed) : amendment.changed,
 			})
 			response = updated
-				? await this.storeDocuments({ [key ?? `${prefix}${updated.created}/${updated.id}`]: updated }, index, unlock)
+				? await this.storeDocuments(
+						{ [key ?? `${prefix}${updated.created}/${updated.id}`]: [updated, {}] },
+						index,
+						unlock
+				  )
 				: undefined
 		}
 		return response && updated
@@ -129,10 +142,10 @@ export class Storage {
 		const ids = Object.keys(documents)
 		const oldDocuments = Array.from((await this.portion.get<Record<string, any>>(ids)).values())
 		await this.portion.remove([
-			...oldDocuments.map(document => this.changedKey(document)),
+			...oldDocuments.map(document => this.changedKey(document[0])),
 			...(unlock ? oldDocuments.map(document => "lock/" + document.id) : []),
 		])
-		return Object.entries(documents).reduce((r, [key, document]) => ({ ...r, [this.changedKey(document)]: key }), {})
+		return Object.entries(documents).reduce((r, [key, document]) => ({ ...r, [this.changedKey(document[0])]: key }), {})
 	}
 
 	async removeDocuments(ids: string | string[]): Promise<boolean | boolean[]> {
@@ -153,6 +166,7 @@ export class Storage {
 			const deleted = await this.portion.remove([...key, ...idKey, ...changed, ...lockKey])
 			result = deleted.slice(0)
 		}
+		await this.state.storage.deleteAll()
 		return result
 	}
 
