@@ -113,7 +113,7 @@ export class Storage {
 			}),
 			{ newDocuments: {}, idIndices: {}, indices: {} }
 		)
-		const changedIndex = await this.updateChangedIndex(newDocuments, unlock)
+		const changedIndex = index ? await this.updateChangedIndex(newDocuments, unlock) : {}
 		await this.portion.put({
 			...indices,
 			...newDocuments,
@@ -124,47 +124,28 @@ export class Storage {
 		return result.length == 1 ? result[0] : result
 	}
 
-	async changeDocuments<T extends Document & Record<string, any>>(
-		changes: [T & Partial<Document> & Pick<Document, "id">, T & Document][],
-		type: "update" | "append",
+	async update<T extends Document & Record<string, any>>(
+		updates: (T & Partial<Document> & Pick<Document, "id">)[],
 		prefix: string,
 		index?: string,
 		unlock?: true
-	): Promise<((T & Document) | Error)[]> {
-		return await Promise.all(
-			changes.map(([amendment, archived]) => this.changeDocument(amendment, type, prefix, index, archived, unlock))
-		)
-	}
-	async changeDocument<T extends Document & Record<string, any>>(
-		amendment: T & Partial<Document> & Pick<Document, "id">,
-		type: "update" | "append",
-		prefix: string,
-		index?: string,
-		archived?: T & Document,
-		unlock?: true
-	): Promise<(T & Document) | Error> {
-		const key = await this.state.storage.get<string>("id/" + amendment.id)
-		const temp = key ? await this.state.storage.get<T>(key) : undefined
-		const old = temp ?? archived
+	): Promise<(Document & Record<string, any>) | (Document & Record<string, any>)[] | Error> {
+		const keys = await this.state.storage.get<string>(updates.map(c => "id/" + c.id))
+		const oldDocuments = keys ? await this.state.storage.get<T>(Array.from(keys.values())) : undefined
 		let response
-		let updated
-		if (!amendment.changed || old?.changed == amendment.changed || !old) {
-			updated = Document[type]<T>(old ?? ({} as any as T), amendment)
-			response = updated
-				? ((await this.storeDocuments(
-						{ [key ?? `${prefix}${updated.created}/${updated.id}`]: updated },
-						index,
-						unlock
-				  )) as T)
-				: undefined
+		let toBeStored: Record<string, T> = {}
+		for (const update of updates) {
+			const old = oldDocuments?.get(keys.get("id/" + update.id) ?? "")
+			if (!update.changed || old?.changed == update.changed || !old)
+				toBeStored = {
+					...toBeStored,
+					[`${prefix}${update.created}/${update.id}`]: update,
+				}
+			response = await this.storeDocuments(toBeStored, index, unlock)
 		}
-		return response && updated
-			? response
-			: error(
-					type,
-					`failed to ${type} the document due to ${!updated ? "updated" : "response"} is undefined.`,
-					amendment.id
-			  )
+		return (
+			response ?? error("update", `failed to update the document.`, updates.length == 1 ? updates[0].id : undefined)
+		)
 	}
 	async updateChangedIndex(documents: Record<string, any>, unlock?: true): Promise<Record<string, string>> {
 		const ids = Object.keys(documents)

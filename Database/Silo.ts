@@ -13,9 +13,11 @@ export abstract class Silo<T = any, S extends Silo<T, S> = Silo<T, any>> {
 		index?: string
 	): Promise<((T & Document) | undefined)[] | Error | undefined>
 
-	abstract update(amendment: Partial<T & Document>, index?: string): Promise<(T & Document) | Error | undefined>
-
-	abstract append(amendment: Partial<T & Document>, index?: string): Promise<(T & Document) | Error | undefined>
+	abstract update(document: T & Partial<Document>, index?: string): Promise<(T & Document) | Error | undefined>
+	abstract update(
+		documents: (T & Partial<Document>)[],
+		index?: string
+	): Promise<((T & Document) | undefined)[] | Error | undefined>
 
 	abstract remove(id: Identifier): Promise<boolean | Error | undefined>
 	abstract remove(id: Identifier[]): Promise<boolean[] | Error | undefined>

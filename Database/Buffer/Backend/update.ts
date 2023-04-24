@@ -24,13 +24,7 @@ export async function update(request: http.Request, context: Context): Promise<h
 		try {
 			result =
 				(await context.state.blockConcurrencyWhile(() =>
-					storage.changeDocuments<Record<string, any> & Document>(
-						body,
-						request.method == "PUT" ? "update" : "append",
-						prefix,
-						index,
-						unlock
-					)
+					storage.update<Record<string, any> & Document>(body, prefix, index, unlock)
 				)) ?? error("update", "Document not found")
 			context.state.waitUntil(context.setAlarm())
 		} catch (e) {
@@ -41,4 +35,3 @@ export async function update(request: http.Request, context: Context): Promise<h
 }
 
 router.add("PUT", "/buffer/documents", update)
-router.add("PATCH", "/buffer/documents", update)
