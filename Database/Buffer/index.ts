@@ -137,10 +137,8 @@ export class Buffer<T = any> {
 		}
 		return result
 	}
-	async change(
+	async udpate(
 		amendments: Record<string, Partial<T & Document> & { id: Document["id"] }>,
-		archived: Record<string, (T & Document) | undefined> | undefined,
-		type: "update" | "append",
 		index?: string,
 		unlock?: true
 	): Promise<((T & Document) | Error)[] | Error> {
@@ -150,19 +148,16 @@ export class Buffer<T = any> {
 			const response = (
 				await Promise.all(
 					Object.entries(shards).map(([shard, keys]) =>
-						this.backend.open(this.partitions + shard)[type == "update" ? "put" : "patch"]<((T & Document) | Error)[]>(
+						this.backend.open(this.partitions + shard).put<((T & Document) | Error)[]>(
 							`/buffer/documents`,
 							keys.reduce(
 								(r, id) => [
 									...r,
-									[
-										{
-											...amendments[id],
-											changed: !this.configuration.retainChanged ? isoly.DateTime.now() : amendments[id].changed,
-											applyTo: amendments[id].changed,
-										},
-										archived?.[id],
-									],
+									{
+										...amendments[id],
+										changed: !this.configuration.retainChanged ? isoly.DateTime.now() : amendments[id].changed,
+										applyTo: amendments[id].changed,
+									},
 								],
 								[]
 							),
@@ -175,11 +170,11 @@ export class Buffer<T = any> {
 					)
 				)
 			).reduce((r: any[], e) => {
-				return Error.is(e) ? [e, ...r] : [...e, ...r]
+				return Error.is(e) ? [e, ...r] : [...(Array.isArray(e) ? e : [e]), ...r]
 			}, [])
 			result = response
 		} catch (e) {
-			result = this.error(type, e)
+			result = this.error("update", e)
 		}
 		return result
 	}
