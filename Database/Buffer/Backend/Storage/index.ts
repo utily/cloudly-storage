@@ -71,7 +71,7 @@ export class Storage {
 			}),
 			{ newDocuments: {}, idIndices: {}, indices: {} }
 		)
-		const changedIndex = index ? await this.updateChangedIndex(newDocuments, unlock) : {}
+		const changedIndex = await this.updateChangedIndex(newDocuments, unlock)
 		await this.portion.put({
 			...indices,
 			...newDocuments,
