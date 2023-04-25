@@ -192,7 +192,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			}
 			await this.archive.index(changes[amendment.id], index)
 		}
-		result = Error.is(result) ? result : await this.buffer.udpate(changes, index, unlock)
+		result = Error.is(result) ? result : await this.buffer.update(changes, index, unlock)
 		return !Array.isArray(amendments) && !Error.is(result) ? result[0] : result
 	}
 	remove(id: Identifier): Promise<boolean>

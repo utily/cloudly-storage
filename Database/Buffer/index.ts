@@ -137,7 +137,7 @@ export class Buffer<T = any> {
 		}
 		return result
 	}
-	async udpate(
+	async update(
 		amendments: Record<string, Partial<T & Document> & { id: Document["id"] }>,
 		index?: string,
 		unlock?: true
