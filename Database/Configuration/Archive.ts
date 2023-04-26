@@ -7,11 +7,12 @@ export interface Archive {
 	retainChanged?: boolean
 	index?: string[]
 	partitions?: { [key: string]: Archive }
+	meta?: string[]
 }
 
 export namespace Archive {
-	export type Complete = Required<Omit<Archive, "partitions" | "retention" | "index">> &
-		Pick<Archive, "partitions" | "retention" | "index">
+	export type Complete = Required<Omit<Archive, "partitions" | "retention" | "index" | "meta">> &
+		Pick<Archive, "partitions" | "retention" | "index" | "meta">
 	export const Complete = {}
 	export const standard: Complete = {
 		idLength: Identifier.Length.standard,

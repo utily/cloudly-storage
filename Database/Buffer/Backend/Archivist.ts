@@ -13,7 +13,7 @@ export class Archivist {
 	}
 	private constructor(
 		private readonly backend: {
-			doc: KeyValueStore<Record<string, any> & Document>
+			doc: KeyValueStore<Record<string, any>, Document & Record<string, any>>
 			changed: KeyValueStore<string>
 		},
 		private readonly storage: Storage,
@@ -33,16 +33,17 @@ export class Archivist {
 		const promises: Promise<void>[] = []
 		const result: Document[] = []
 		const { documents, changed } = await this.getStale(threshold)
-		if (documents.length > 0) {
-			for (const document of documents) {
+		if (documents.size > 0) {
+			for (const [, document] of documents) {
+				const [meta, value] = Array.isArray(document) ? document : Document.split(document)
 				promises.push(
-					this.backend.doc.set(this.generateKey(document), document, { retention: this.configuration.timeToLive })
+					this.backend.doc.set(this.generateKey(meta), value, { retention: this.configuration.timeToLive, meta })
 				)
-				result.push(document)
+				result.push({ ...value, ...meta })
 			}
 			promises.push(
 				this.backend.changed.set(
-					`changed/${this.configuration.partitions}${isoly.DateTime.now()}/${documents[0].id}`,
+					`changed/${this.configuration.partitions}${isoly.DateTime.now()}/${result[0].id}`,
 					changed.replaceAll(this.configuration.documentType + "/doc/", ""),
 					{ retention: this.configuration.timeToLive }
 				)
@@ -80,7 +81,10 @@ export class Archivist {
 			await this.storage.remove(keys)
 		}
 	}
-	private async getStale(threshold: string): Promise<{ documents: Document[]; changed: string }> {
+	private async getStale(threshold: string): Promise<{
+		documents: Map<string, [Document & Record<string, any>, Record<string, any>] | (Document & Record<string, any>)>
+		changed: string
+	}> {
 		const changes = Array.from(
 			(
 				await this.state.storage.list<string>({
@@ -104,7 +108,12 @@ export class Archivist {
 			Archivist.#lastArchived = Promise.resolve(lastChanged)
 			await this.state.storage.put<string>("lastArchived", lastChanged)
 		}
-		return { documents: await this.storage.load<Document>(staleKeys), changed: staleKeys.join("\n") } ?? {}
+		return (
+			{
+				documents: await this.storage.portion.get<[Document, Record<string, any>]>(staleKeys),
+				changed: staleKeys.join("\n"),
+			} ?? {}
+		)
 	}
 	static open(
 		keyValueNamespace: platform.KVNamespace | undefined,
@@ -117,10 +126,7 @@ export class Archivist {
 				(configuration?.documentType ?? "unknown") + "/"
 			)
 		)
-		const doc = KeyValueStore.partition(
-			KeyValueStore.InMeta.create<Record<string, any>, Document>(Document.split, kv),
-			"doc/"
-		)
+		const doc = KeyValueStore.partition<Record<string, any>, Document & Record<string, any>>(kv, "doc/")
 		return new Archivist({ doc, changed: kv }, Storage.open(state), state, configuration)
 	}
 }

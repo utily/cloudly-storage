@@ -8,7 +8,7 @@ import { Portion } from "./Portion"
 export class Storage {
 	private constructor(
 		private readonly state: platform.DurableObjectState,
-		private readonly portion: Portion,
+		public readonly portion: Portion,
 		public readonly changedPrecision: "seconds" | "minutes" | "hours"
 	) {}
 
@@ -52,22 +52,31 @@ export class Storage {
 		}
 		return result
 	}
-	async storeDocuments<T extends { id: string } & Record<string, any>>(
+	async storeDocuments<
+		T extends [Document & Record<string, any>, Record<string, any>] | (Document & Record<string, any>)
+	>(
 		documents: Record<string, T>,
 		index?: string,
 		unlock?: true
-	): Promise<T | T[]> {
+	): Promise<(Document & Record<string, any>) | (Document & Record<string, any>)[]> {
 		const oldIdIndices = Object.fromEntries(
-			(await this.portion.get<string>(Object.values(documents).map(document => "id/" + document.id))).entries()
-		)
-		const { newDocuments, idIndices, indices } = Object.entries(documents).reduce(
 			(
-				r: { newDocuments: Record<string, T>; idIndices: Record<string, string>; indices: Record<string, string> },
-				[key, document]
-			) => ({
-				indices: { ...r.indices, [index + "/" + isoly.DateTime.now() + "/" + Identifier.generate(4)]: key },
-				newDocuments: { ...r.newDocuments, [oldIdIndices["id/" + document.id] ?? key]: document },
-				idIndices: { ...r.idIndices, ["id/" + document.id]: key },
+				await this.portion.get<string>(
+					Object.values(documents).map(document => "id/" + (Array.isArray(document) ? document[0].id : document.id))
+				)
+			).entries()
+		)
+		const { newDocuments, idIndices, indices } = Object.entries(documents).reduce<{
+			newDocuments: Record<string, T>
+			idIndices: Record<string, string>
+			indices?: Record<string, string>
+		}>(
+			(r, [key, document]) => ({
+				indices: index
+					? { ...r.indices, [index + "/" + isoly.DateTime.now() + "/" + Identifier.generate(4)]: key }
+					: undefined,
+				newDocuments: { ...r.newDocuments, [oldIdIndices["id/" + document[0].id] ?? key]: document },
+				idIndices: { ...r.idIndices, ["id/" + document[0].id]: key },
 			}),
 			{ newDocuments: {}, idIndices: {}, indices: {} }
 		)
@@ -78,47 +87,57 @@ export class Storage {
 			...idIndices,
 			...changedIndex,
 		})
-		const result = Object.values(documents)
+		const result = Object.values(documents).map(d => ({ ...d[0], ...d[1] }))
 		return result.length == 1 ? result[0] : result
 	}
 
-	async changeDocuments<T extends Document & Record<string, any>>(
-		updates: (T & Partial<Document> & Pick<Document, "id">)[],
+	async changeDocuments<
+		T extends [Partial<Document> & Pick<Document, "id"> & Record<string, any>, Record<string, any>]
+	>(
+		updates: T[],
 		prefix: string,
 		index?: string,
 		unlock?: true
 	): Promise<(Document & Record<string, any>) | (Document & Record<string, any>)[] | Error> {
-		const keys = await this.state.storage.get<string>(updates.map(c => "id/" + c.id))
+		const keys = await this.state.storage.get<string>(updates.map(c => "id/" + c[0].id))
 		const oldDocuments = keys ? await this.state.storage.get<T>(Array.from(keys.values())) : undefined
+		const now = isoly.DateTime.now()
 		let response
-		let toBeStored: Record<string, T> = {}
+		let toBeStored: Record<string, [Document & Record<string, any>, Record<string, any>]> = {}
 		for (const update of updates) {
-			const old = oldDocuments?.get(keys.get("id/" + update.id) ?? "")
-			if (!update.applyTo || old?.changed == update.applyTo || !old) {
-				delete update.applyTo
+			const old = oldDocuments?.get(keys.get("id/" + update[0].id) ?? "")
+			if (!update[0].applyTo || old?.[0]?.changed == update?.[1].applyTo || !old) {
+				delete update[1].applyTo
+				const created = old?.[0]?.created ?? update[0].created ?? now
 				toBeStored = {
 					...toBeStored,
-					[`${prefix}${update.created}/${update.id}`]: {
-						...update,
-						created: old?.created ?? update.created,
-						changed: update.changed == old?.changed ? isoly.DateTime.nextMillisecond(update.changed) : update.changed,
-					},
+					[`${prefix}${created}/${update[0].id}`]: [
+						{
+							...update[0],
+							created,
+							changed:
+								(update[0].changed && update[0].changed == old?.[0]?.changed
+									? isoly.DateTime.nextMillisecond(update[0].changed)
+									: update[0].changed) ?? now,
+						},
+						update[1],
+					],
 				}
 			}
 			response = await this.storeDocuments(toBeStored, index, unlock)
 		}
 		return (
-			response ?? error("update", `failed to update the document.`, updates.length == 1 ? updates[0].id : undefined)
+			response ?? error("update", `failed to update the document.`, updates.length == 1 ? updates[0][0].id : undefined)
 		)
 	}
 	async updateChangedIndex(documents: Record<string, any>, unlock?: true): Promise<Record<string, string>> {
 		const ids = Object.keys(documents)
 		const oldDocuments = Array.from((await this.portion.get<Record<string, any>>(ids)).values())
 		await this.portion.remove([
-			...oldDocuments.map(document => this.changedKey(document)),
-			...(unlock ? oldDocuments.map(document => "lock/" + document.id) : []),
+			...oldDocuments.map(document => this.changedKey(document[0])),
+			...(unlock ? oldDocuments.map(document => "lock/" + document[0].id) : []),
 		])
-		return Object.entries(documents).reduce((r, [key, document]) => ({ ...r, [this.changedKey(document)]: key }), {})
+		return Object.entries(documents).reduce((r, [key, document]) => ({ ...r, [this.changedKey(document[0])]: key }), {})
 	}
 
 	async removeDocuments(ids: string | string[]): Promise<boolean | boolean[]> {

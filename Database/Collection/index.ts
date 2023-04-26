@@ -40,7 +40,14 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		switch (typeof selection) {
 			case "string":
 				const [bufferDoc, archiveDoc] = await Promise.all([
-					this.buffer.load(selection, options),
+					await this.archive.getKey(selection).then(async key => {
+						const partitions = key
+							?.split("/")
+							.slice(0, -2)
+							.filter(e => !this.partitions.includes(e))
+						const buffer = partitions && partitions?.length > 0 ? this.buffer.partition(...partitions) : this.buffer
+						return await buffer.load(selection, options)
+					}),
 					this.archive.load(selection),
 				])
 				result = Error.is(bufferDoc) && archiveDoc ? archiveDoc : bufferDoc

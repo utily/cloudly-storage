@@ -21,7 +21,7 @@ export function create<B, V, M = any>(
 			const response = await backend.list(options)
 			const result = Continuable.create(response, response.cursor)
 			return await Continuable.awaits(
-				result.map(async user => ({ ...user, value: user.value && (await from(user.value)) }))
+				result.map(async item => ({ ...item, value: item.value && (await from(item.value)) }))
 			)
 		},
 	}

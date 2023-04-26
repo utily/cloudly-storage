@@ -7,9 +7,9 @@ import { Collection as DBCollection } from "./Collection"
 import { Configuration as DBConfiguration } from "./Configuration"
 import { Document as DBDocument } from "./Document"
 import { Identifier as DBIdentifier } from "./Identifier"
-export { Selection } from "./Selection"
 import { Silo as DBSilo } from "./Silo"
 
+export { Selection } from "./Selection"
 export { Backend } from "./Buffer"
 
 export type Database<T extends { archive?: Record<string, any>; collection?: Record<string, any> }> =

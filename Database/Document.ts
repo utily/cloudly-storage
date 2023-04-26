@@ -17,11 +17,28 @@ export namespace Document {
 			(value.purged == undefined || isoly.DateTime.is(value.purged))
 		)
 	}
-	export function split<T>(document: Document): [Document, T]
-	export function split<T>(document: Partial<Document>): [Partial<Document>, T]
-	export function split<T>(document: Partial<Document>): [Partial<Document>, T] {
-		const { id, created, changed, purged, ...remainder } = document
-		return [{ id, created, changed, purged }, remainder as T]
+	export function split<T extends Record<string, any>>(document: Document & T, keys?: string[]): [Document, T]
+	export function split<T extends Record<string, any>>(
+		document: Partial<Document> & T,
+		keys?: string[]
+	): [Partial<Document>, T]
+	export function split<T extends Record<string, any>>(
+		document: Partial<Document> & T,
+		keys?: string[]
+	): [Partial<Document>, T] {
+		const [left, right] =
+			keys?.reduce(
+				(r, k) =>
+					k in document
+						? [
+								{ ...r[0], [k]: document[k] },
+								{ ...r[1], [k]: undefined },
+						  ]
+						: r,
+				[{}, document]
+			) ?? []
+		const { id, created, changed, purged, ...remainder } = right ?? document
+		return [{ id, created, changed, purged, ...left }, remainder as T]
 	}
 	export function update<T extends Record<string, any> = Document>(original: T, appendee: Partial<T>): T {
 		return JSON.parse(JSON.stringify({ ...original, ...appendee }))

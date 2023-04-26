@@ -29,7 +29,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	private generateIndexKey(): Key {
 		return `${this.partitions}${isoly.DateTime.now()}/${Identifier.generate(4)}`
 	}
-	private async getKey(id: string) {
+	async getKey(id: string) {
 		return (await this.backend.id.get(id))?.value
 	}
 	async allocateId(document?: Identifier | Partial<Document>): Promise<Document | undefined> {
@@ -92,9 +92,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			: await this.listIndex(cursor)
 	}
 	private async listIndex(cursor: Cursor): Promise<(Document & T)[] & { cursor?: string }> {
-		const result: (T & Document)[] & { cursor?: string } & {
-			cursor?: string | undefined
-		} = []
+		const result: (T & Document)[] & { cursor?: string } = []
 		let limit = cursor?.limit ?? Selection.standardLimit
 		let newCursor: string | undefined
 		for (const prefix of Cursor.prefix(cursor)) {
@@ -124,16 +122,15 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		return result
 	}
 	private async listDocs(cursor?: Cursor): Promise<(Document & T)[] & { cursor?: string }> {
-		const result: (T & Document)[] & { cursor?: string } & {
-			cursor?: string | undefined
-		} = []
+		const result: (T & Document)[] & { cursor?: string } = []
 		let limit = cursor?.limit ?? Selection.standardLimit
 		let newCursor: string | undefined
 		for (const prefix of Cursor.prefix(cursor)) {
 			const loaded = await this.backend.doc.list({
 				prefix: this.partitions + prefix,
-				limit,
+				limit: limit <= 0 ? 1 : limit,
 				cursor: cursor?.cursor,
+				values: !cursor?.onlyMeta,
 			})
 			const listed = loaded.map(item => ({
 				...(item.value ?? {}),

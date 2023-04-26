@@ -12,12 +12,13 @@ export namespace Collection {
 			{
 				silos: {
 					users: {
+						meta: ["name", "groups"],
 						type: "collection",
 						idLength: 4,
 						shards: 2,
-						reconcileAfter: { seconds: 10 },
-						superimposeFor: { seconds: 15 },
-						reconciliationInterval: { seconds: 10 },
+						reconcileAfter: { minutes: 10 },
+						superimposeFor: { minutes: 15 },
+						reconciliationInterval: { minutes: 1 },
 						retention: { hours: 1 },
 						index: ["operation"],
 						partitions: {
