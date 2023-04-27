@@ -133,7 +133,7 @@ export class Buffer<T = any> {
 					.open(this.partitions + Configuration.Buffer.getShard(this.configuration, document.id))
 					.post<T & Document>(
 						`/buffer`,
-						{ [this.generateKey(document)]: Document.split(document, this.configuration.meta) },
+						{ [this.generateKey(document)]: Document.split(this.configuration.meta)(document) },
 						this.header
 					)
 			} else {
@@ -150,7 +150,7 @@ export class Buffer<T = any> {
 								document.reduce(
 									(r, d) =>
 										ids.includes(d.id)
-											? { [this.generateKey(d)]: Document.split(document, this.configuration.meta), ...r }
+											? { [this.generateKey(d)]: Document.split(this.configuration.meta)(document), ...r }
 											: r,
 									{}
 								),
@@ -181,14 +181,11 @@ export class Buffer<T = any> {
 							keys.reduce(
 								(r, id) => [
 									...r,
-									Document.split(
-										{
-											...amendments[id],
-											changed: !this.configuration.retainChanged ? isoly.DateTime.now() : amendments[id].changed,
-											applyTo: amendments[id].changed,
-										},
-										this.configuration.meta
-									),
+									Document.split(this.configuration.meta)({
+										...amendments[id],
+										changed: !this.configuration.retainChanged ? isoly.DateTime.now() : amendments[id].changed,
+										applyTo: amendments[id].changed,
+									}),
 								],
 								[]
 							),

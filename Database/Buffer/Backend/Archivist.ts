@@ -35,11 +35,13 @@ export class Archivist {
 		const { documents, changed } = await this.getStale(threshold)
 		if (documents.size > 0) {
 			for (const [, document] of documents) {
-				const [meta, value] = Array.isArray(document) ? document : Document.split(document)
+				const [meta, value] = Array.isArray(document)
+					? document
+					: Document.split<Record<string, any>, Document>()(document)
 				promises.push(
 					this.backend.doc.set(this.generateKey(meta), value, { retention: this.configuration.timeToLive, meta })
 				)
-				result.push({ ...value, ...meta })
+				result.push({ ...meta, ...value })
 			}
 			promises.push(
 				this.backend.changed.set(

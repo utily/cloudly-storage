@@ -7,7 +7,7 @@ export interface Archive {
 	retainChanged?: boolean
 	index?: string[]
 	partitions?: { [key: string]: Archive }
-	meta?: string[]
+	meta?: (value: any) => { meta: any; value: any }
 }
 
 export namespace Archive {

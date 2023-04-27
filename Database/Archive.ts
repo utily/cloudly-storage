@@ -133,8 +133,8 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				values: !cursor?.onlyMeta,
 			})
 			const listed = loaded.map(item => ({
-				...(item.value ?? {}),
 				...(item.meta ?? {}),
+				...(item.value ?? {}),
 			})) as (T & Document)[]
 			limit -= listed.length
 			result.push(...listed)
@@ -337,7 +337,10 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			new Archive<T>(
 				{
 					doc: KeyValueStore.partition(
-						KeyValueStore.InMeta.create<T, Document>(Document.split, KeyValueStore.Json.create(backend)),
+						KeyValueStore.InMeta.create<T, Document>(
+							Document.split<T, Document>(configuration.meta),
+							KeyValueStore.Json.create(backend)
+						),
 						"doc/",
 						completeConfiguration.retention
 					),

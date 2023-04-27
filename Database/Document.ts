@@ -7,6 +7,7 @@ export interface Document {
 	changed: isoly.DateTime
 	purged?: isoly.Date
 }
+// type Key = ({ [k: string]: Key } | string)[]
 export namespace Document {
 	export function is(value: Document | any, idLength?: Identifier.Length): value is Document {
 		return (
@@ -17,54 +18,14 @@ export namespace Document {
 			(value.purged == undefined || isoly.DateTime.is(value.purged))
 		)
 	}
-	export function split<T extends Record<string, any>>(document: Document & T, keys?: string[]): [Document, T]
-	export function split<T extends Record<string, any>>(
-		document: Partial<Document> & T,
-		keys?: string[]
-	): [Partial<Document>, T]
-	export function split<T extends Record<string, any>>(
-		document: Partial<Document> & T,
-		keys?: string[]
-	): [Partial<Document>, T] {
-		const [left, right] =
-			keys?.reduce(
-				(r, k) =>
-					k in document
-						? [
-								{ ...r[0], [k]: document[k] },
-								{ ...r[1], [k]: undefined },
-						  ]
-						: r,
-				[{}, document]
-			) ?? []
-		const { id, created, changed, purged, ...remainder } = right ?? document
-		return [{ id, created, changed, purged, ...left }, remainder as T]
-	}
-	export function update<T extends Record<string, any> = Document>(original: T, appendee: Partial<T>): T {
-		return JSON.parse(JSON.stringify({ ...original, ...appendee }))
-	}
-	export function append<T extends Record<string, any> = Document>(
-		originalDoc: T,
-		appendee: Partial<T>
-	): T | undefined {
-		const result: T = { ...originalDoc }
-		for (const [key, value] of Object.entries(appendee)) {
-			if (Array.isArray(value)) {
-				Object.defineProperty(result, key, {
-					value: [...(Array.isArray(result[key]) ? result[key] : []), ...value],
-					enumerable: true,
-					writable: true,
-				})
-			} else if (typeof value == "object") {
-				Object.defineProperty(result, key, {
-					value: append<typeof result[typeof key]>(result[key], value),
-					enumerable: true,
-					writable: true,
-				})
-			} else {
-				Object.defineProperty(result, key, { value, enumerable: true, writable: true })
-			}
+	export function split<T extends Record<string, any>, D extends Document | Partial<Document>>(
+		splitter?: (document: D & T) => { meta: any; value: any }
+	): (document: D & T) => [D, T] {
+		return (document: D & T) => {
+			const { meta, value } = splitter ? splitter(document) : { meta: undefined, value: undefined }
+			const { id, created, changed, purged, ...remainder } = value ?? document
+			const result: [D, T] = [{ id, created, changed, purged, ...meta }, remainder as T]
+			return result
 		}
-		return result
 	}
 }

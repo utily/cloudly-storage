@@ -12,7 +12,7 @@ export namespace Collection {
 			{
 				silos: {
 					users: {
-						meta: ["name", "groups"],
+						meta: model.User.split,
 						type: "collection",
 						idLength: 4,
 						shards: 2,
@@ -22,7 +22,7 @@ export namespace Collection {
 						retention: { hours: 1 },
 						index: ["operation"],
 						partitions: {
-							testtest: { retention: { minutes: 30 }, reconcileAfter: { seconds: 10 } },
+							testtest: { retention: { minutes: 30 }, reconcileAfter: { seconds: 200 } },
 						},
 					},
 				},

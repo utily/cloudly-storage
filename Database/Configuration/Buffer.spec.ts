@@ -25,6 +25,7 @@ describe("Buffer", () => {
 	})
 	it("shard no id", () => {
 		expect(Buffer.getShard(configuration)).toEqual(["AA", "AQ", "Ag", "Aw"])
+		expect(Buffer.getShard({ shards: 8 })).toEqual(["AA", "AQ", "Ag", "Aw", "BA", "BQ", "Bg", "Bw"])
 	})
 	it("shard id array", () => {
 		expect(Buffer.getShard(configuration, ["AAAA", "AQAA", "AgAA", "AhAA", "AwAA"])).toEqual({
