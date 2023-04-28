@@ -27,7 +27,7 @@ export class Archivist {
 	async reconcile(now: isoly.DateTime): Promise<Document[]> {
 		const threshold = isoly.DateTime.previousSecond(now, this.configuration.retention)
 		await this.removeArchived(threshold)
-		return await this.store(threshold)
+		return await this.store(threshold) // => saved/datetime/auth.id: [id/auth.id, changed/dniwnadiow/id, index/id]
 	}
 	private async store(threshold: isoly.DateTime): Promise<Document[]> {
 		const promises: Promise<void>[] = []
