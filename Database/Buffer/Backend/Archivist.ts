@@ -57,9 +57,15 @@ export class Archivist {
 		if (archived) {
 			const keys = []
 			const remove = isoly.DateTime.previousSecond(threshold, this.configuration.removeAfter)
-			const changed = Array.from(
-				(await this.state.storage.list<string>({ prefix: "changed/", limit: 2 * this.limit })).entries()
-			)
+			const lastDocument = lastArchived && (await this.state.storage.get<string>(lastArchived))
+			const changed = [
+				...Array.from(
+					(
+						await this.state.storage.list<string>({ prefix: "changed/", limit: 2 * this.limit, end: lastArchived })
+					).entries()
+				),
+				...(lastDocument ? [[lastArchived, lastDocument]] : []),
+			]
 			const indices =
 				this.configuration.index &&
 				(await Promise.all(
@@ -92,10 +98,11 @@ export class Archivist {
 		)
 		const staleKeys: string[] = []
 		let lastChanged: string | undefined
+		const lastChangedTime = Key.getTime(lastChanged ?? "")
 		for (const [key, value] of changes) {
 			const time = Key.getTime(key)
-			if ((time ?? "") < threshold) {
-				lastChanged = time ? key : lastChanged
+			if ((time ?? "") <= threshold) {
+				lastChanged = (time ?? "") > (lastChangedTime ?? "") ? key : lastChanged
 				staleKeys.push(value)
 			} else
 				break
