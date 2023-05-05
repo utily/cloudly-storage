@@ -8,6 +8,7 @@ export async function status(request: http.Request, context: Context): Promise<h
 	const database = context.collection
 	const id: string | undefined = request.search.id
 	const partition = request.search.partition
+	const dump = request.search.dump == "true"
 	const list: true | undefined = request.search.list == "true" ? true : undefined
 	const lastArchived: true | undefined = request.search.lastArchived == "true" ? true : undefined
 	const index: ["id", "changed"] | undefined = request.search.index
@@ -21,7 +22,7 @@ export async function status(request: http.Request, context: Context): Promise<h
 		result = database
 	else {
 		const partitioned = partition ? database.partition(partition) : database
-		const response = await partitioned.users.status({ id, list, lastArchived, index })
+		const response = await partitioned.users.status({ id, list, lastArchived, index, dump })
 		result =
 			gracely.success.ok(response) ??
 			gracely.client.invalidPathArgument("user/:id", "id", "string", "Unable to find user with that identifier.")

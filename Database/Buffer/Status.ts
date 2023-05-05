@@ -15,6 +15,7 @@ export namespace Status {
 		index?: ["id", "changed"]
 		lastArchived?: boolean
 		list?: T
+		dump?: boolean
 	}
 
 	export namespace Options {
