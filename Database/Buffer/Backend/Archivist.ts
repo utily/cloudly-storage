@@ -30,6 +30,7 @@ export class Archivist {
 		try {
 			await this.removeArchived(threshold)
 			stored = await this.store(threshold)
+			await this.removeStaleKeys(threshold)
 		} catch (error) {
 			await this.state.storage.put("error", {
 				timestamp: now,
@@ -46,13 +47,15 @@ export class Archivist {
 		const promises: Promise<void>[] = []
 		const result: Document[] = []
 		const { documents, changed } = await this.getStale(threshold)
+		const staleKeys: string[] = []
 		if (documents.length > 0) {
 			for (const document of documents) {
-				promises.push(
-					this.backend.doc.set(this.generateKey(document), document, { retention: this.configuration.timeToLive })
-				)
+				const key = this.generateKey(document)
+				staleKeys.push(key)
+				promises.push(this.backend.doc.set(key, document, { retention: this.configuration.timeToLive }))
 				result.push(document)
 			}
+			await this.state.storage.put("stale/keys/" + threshold, staleKeys)
 			promises.push(
 				this.backend.changed.set(
 					`changed/${this.configuration.partitions}${isoly.DateTime.now()}/${documents[0].id}`,
@@ -63,6 +66,14 @@ export class Archivist {
 			await Promise.all(promises)
 		}
 		return result
+	}
+	private async removeStaleKeys(threshold: string): Promise<void> {
+		const removeTime = isoly.DateTime.previousHour(threshold, 1)
+		await this.storage.remove(
+			Array.from((await this.state.storage.list<string[]>({ prefix: "stale/keys/" })).keys()).filter(
+				k => (Key.getTime(k) ?? "") < removeTime
+			)
+		)
 	}
 	private async removeArchived(threshold: string): Promise<void> {
 		const lastArchived = await this.lastArchived
