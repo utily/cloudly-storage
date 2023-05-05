@@ -24,10 +24,23 @@ export class Archivist {
 	private generateKey(document: Pick<Document, "id" | "created">): string {
 		return `${this.configuration.partitions}${document.created}/${document.id}`
 	}
-	async reconcile(now: isoly.DateTime): Promise<Document[]> {
+	async reconcile(now: isoly.DateTime): Promise<Document[] | undefined> {
 		const threshold = isoly.DateTime.previousSecond(now, this.configuration.retention)
-		await this.removeArchived(threshold)
-		return await this.store(threshold)
+		let stored: Document[] | undefined
+		try {
+			await this.removeArchived(threshold)
+			stored = await this.store(threshold)
+		} catch (error) {
+			await this.state.storage.put("error", {
+				timestamp: now,
+				message: error.message,
+				status: {
+					changed: Object.fromEntries((await this.state.storage.list({ prefix: "changed/" })).entries()),
+					lastArchived: await this.lastArchived,
+				},
+			})
+		}
+		return stored
 	}
 	private async store(threshold: isoly.DateTime): Promise<Document[]> {
 		const promises: Promise<void>[] = []

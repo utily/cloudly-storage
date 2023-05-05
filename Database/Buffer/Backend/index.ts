@@ -51,7 +51,7 @@ export class Backend {
 		this.state.blockConcurrencyWhile(async () => {
 			const stored = await archivist.reconcile(isoly.DateTime.create(now, "milliseconds"))
 			if (
-				(stored.length == 0 && (await this.state.storage.list({ prefix: "changed/", limit: 1 })).size) == 0 &&
+				(stored?.length == 0 && (await this.state.storage.list({ prefix: "changed/", limit: 1 })).size) == 0 &&
 				(await this.state.storage.list({ prefix: "id/", limit: 1 })).size == 0 &&
 				(await this.state.storage.list({ prefix: configuration?.documentType + "/doc/", limit: 1 })).size == 0
 			) {
