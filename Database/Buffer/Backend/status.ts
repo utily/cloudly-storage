@@ -5,7 +5,7 @@ import { error } from "./error"
 import { router } from "./router"
 
 export async function status(request: http.Request, context: Context): Promise<http.Response.Like | any> {
-	let result: Status | Error
+	let result: Status | Record<string, unknown> | Error
 	const storage = context.storage
 	const body = await request.body
 	if (!storage)
