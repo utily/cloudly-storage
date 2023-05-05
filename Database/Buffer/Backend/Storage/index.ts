@@ -101,7 +101,9 @@ export class Storage {
 				r: { newDocuments: Record<string, T>; idIndices: Record<string, string>; indices: Record<string, string> },
 				[key, document]
 			) => ({
-				indices: { ...r.indices, [index + "/" + isoly.DateTime.now() + "/" + Identifier.generate(4)]: key },
+				indices: index
+					? { ...r.indices, [index + "/" + isoly.DateTime.now() + "/" + Identifier.generate(4)]: key }
+					: r.idIndices,
 				newDocuments: { ...r.newDocuments, [oldIdIndices["id/" + document.id] ?? key]: document },
 				idIndices: { ...r.idIndices, ["id/" + document.id]: key },
 			}),
