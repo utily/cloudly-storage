@@ -2,6 +2,7 @@ import * as isoly from "isoly"
 import * as platform from "@cloudflare/workers-types"
 import { Document } from "../../../Document"
 import { Identifier } from "../../../Identifier"
+import { Status } from "../../Status"
 import { error } from "../error"
 import { Portion } from "./Portion"
 
@@ -14,6 +15,37 @@ export class Storage {
 
 	private changedKey(document: Record<string, any>): string {
 		return "changed/" + document.changed + "/" + document.id
+	}
+	async status(options: Status.Options): Promise<Status | Error> {
+		const idKey: string | undefined = !options.list
+			? await this.state.storage.get<string>(`id/${options.id}`)
+			: undefined
+		const document: (Record<string, any> & Document) | undefined = idKey
+			? await this.state.storage.get<Record<string, any> & Document>(idKey)
+			: undefined
+		const result: Status = {
+			lastArchived: options.lastArchived ? await this.state.storage.get("lastArchived") : undefined,
+			index: {
+				id: !options.index?.includes("id")
+					? undefined
+					: options.list
+					? Array.from((await this.state.storage.list<string>({ prefix: "id/" })).entries())
+					: [`id/${options.id}`, idKey ?? "undefined"],
+				changed: !options.index?.includes("changed")
+					? undefined
+					: options.list
+					? Array.from((await this.state.storage.list<string>({ prefix: "changed/" })).entries())
+					: document
+					? [
+							this.changedKey(document),
+							(await this.state.storage.get<string>(this.changedKey(document))) ?? "undefined",
+					  ]
+					: ["undefined", "undefined"],
+			},
+			doc: document,
+		}
+
+		return result
 	}
 
 	async load<T extends Document & Record<string, any>>(id: string[], lock?: isoly.DateTime): Promise<T[]>

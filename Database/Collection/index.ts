@@ -2,6 +2,7 @@ import * as isoly from "isoly"
 import { Error } from "../../Error"
 import { Archive } from "../Archive"
 import { Buffer } from "../Buffer"
+import { Status } from "../Buffer/Status"
 import { Configuration } from "../Configuration"
 import { Cursor } from "../Cursor"
 import { Document } from "../Document"
@@ -29,6 +30,15 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			this.partitions + partition.join("/") + "/"
 		)
 	}
+
+	status(options: Status.Options): Promise<Status<T, [string, string]> | Error>
+	status(options: Status.Options<boolean>): Promise<Status<T, [string, string][]> | Error>
+	async status(
+		options: Status.Options<boolean | undefined>
+	): Promise<Status<T, [string, string] | [string, string][]> | Error> {
+		return await this.buffer.status(options)
+	}
+
 	load(id: Identifier, options?: { lock?: isoly.TimeSpan }): Promise<(T & Document) | undefined | Error>
 	load(ids?: Identifier[]): Promise<((Document & T) | undefined)[] | Error>
 	load(selection?: Selection): Promise<((Document & T)[] & { cursor?: string }) | Error>
