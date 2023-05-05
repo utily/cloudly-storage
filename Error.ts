@@ -7,7 +7,7 @@ export interface Error {
 export namespace Error {
 	export const origin = <const>["Archive", "Buffer", "Collection", "Backend"]
 	export type Origin = typeof Error.origin[number]
-	export const point = <const>["store", "update", "append", "load", "remove"]
+	export const point = <const>["store", "update", "append", "load", "remove", "status"]
 	export type Point = typeof Error.point[number]
 	export type Name = `${Origin}.${Point}`
 	export function is(value: Error | any): value is Error {

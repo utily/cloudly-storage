@@ -6,6 +6,7 @@ import { Cursor } from "../Cursor"
 import { Document } from "../Document"
 import { Identifier } from "../Identifier"
 import { Backend as BufferBackend } from "./Backend"
+import { Status } from "./Status"
 
 export type Backend = BufferBackend
 export const Backend = BufferBackend
@@ -46,6 +47,14 @@ export class Buffer<T = any> {
 
 	private generatePrefix(prefix?: string, index?: string): string {
 		return index ? index + "/" + prefix : this.backend.partitions + "doc/" + this.partitions + (prefix ?? "")
+	}
+
+	async status(
+		options: Status.Options<boolean | undefined>
+	): Promise<Status<T, [string, string] | [string, string][]> | Error> {
+		return await this.backend
+			.open(this.partitions + Configuration.Buffer.getShard(this.configuration, options.id))
+			.post<Status<T, [string, string] | [string, string][]>>("/buffer/status", options, this.header)
 	}
 
 	load(): Promise<(T & Document)[] | Error>
