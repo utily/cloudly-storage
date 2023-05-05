@@ -102,7 +102,7 @@ export class Archivist {
 			const time = Key.getTime(key)
 			if ((time ?? "") <= threshold) {
 				lastChanged = (time ?? "") > (Key.getTime(lastChanged ?? "") ?? "") ? key : lastChanged
-				staleKeys.push(value)
+				!staleKeys.includes(value) && staleKeys.push(value)
 			} else
 				break
 		}
