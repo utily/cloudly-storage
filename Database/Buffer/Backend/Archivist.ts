@@ -98,11 +98,10 @@ export class Archivist {
 		)
 		const staleKeys: string[] = []
 		let lastChanged: string | undefined
-		const lastChangedTime = Key.getTime(lastChanged ?? "")
 		for (const [key, value] of changes) {
 			const time = Key.getTime(key)
 			if ((time ?? "") <= threshold) {
-				lastChanged = (time ?? "") > (lastChangedTime ?? "") ? key : lastChanged
+				lastChanged = (time ?? "") > (Key.getTime(lastChanged ?? "") ?? "") ? key : lastChanged
 				staleKeys.push(value)
 			} else
 				break
