@@ -70,9 +70,10 @@ export class Archivist {
 	private async removeStaleKeys(threshold: string): Promise<void> {
 		const removeTime = isoly.DateTime.previousHour(threshold, 1)
 		await this.storage.remove(
-			Array.from((await this.state.storage.list<string[]>({ prefix: "stale/keys/" })).keys()).filter(
-				k => (Key.getTime(k) ?? "") < removeTime
-			)
+			[
+				...Array.from((await this.state.storage.list<string[]>({ prefix: "listed/changed/" })).keys()),
+				...Array.from((await this.state.storage.list<string[]>({ prefix: "stale/keys/" })).keys()),
+			].filter(k => (Key.getTime(k) ?? "") < removeTime)
 		)
 	}
 	private async removeArchived(threshold: string): Promise<void> {
@@ -119,6 +120,10 @@ export class Archivist {
 					startAfter: await this.lastArchived,
 				})
 			).entries()
+		)
+		await this.state.storage.put(
+			"listed/changed/" + threshold,
+			changes.map(([c, _]) => c)
 		)
 		const staleKeys: string[] = []
 		let lastChanged: string | undefined
