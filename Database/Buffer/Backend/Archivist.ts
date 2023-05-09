@@ -28,8 +28,9 @@ export class Archivist {
 		const threshold = isoly.DateTime.previousSecond(now, this.configuration.retention)
 		let stored: Document[] | undefined
 		try {
-			await this.removeArchived(threshold)
-			stored = await this.store(threshold)
+			const lastArchived = await this.lastArchived
+			stored = await this.store(threshold, lastArchived)
+			await this.removeArchived(threshold, lastArchived)
 			await this.removeStaleKeys(threshold)
 		} catch (error) {
 			await this.state.storage.put("error", {
@@ -43,10 +44,10 @@ export class Archivist {
 		}
 		return stored
 	}
-	private async store(threshold: isoly.DateTime): Promise<Document[]> {
+	private async store(threshold: isoly.DateTime, lastArchived?: string): Promise<Document[]> {
 		const promises: Promise<void>[] = []
 		const result: Document[] = []
-		const { documents, changed } = await this.getStale(threshold)
+		const { documents, changed } = await this.getStale(threshold, lastArchived)
 		const staleKeys: string[] = []
 		if (documents.length > 0) {
 			for (const document of documents) {
@@ -76,8 +77,7 @@ export class Archivist {
 			].filter(k => (Key.getTime(k) ?? "") < removeTime)
 		)
 	}
-	private async removeArchived(threshold: string): Promise<void> {
-		const lastArchived = await this.lastArchived
+	private async removeArchived(threshold: string, lastArchived?: string): Promise<void> {
 		const archived: isoly.DateTime | undefined = lastArchived ? Key.getTime(lastArchived) : undefined
 		if (archived) {
 			const keys = []
@@ -105,19 +105,27 @@ export class Archivist {
 			}
 			for (const [key, value] of changed) {
 				const time = Key.getTime(key)
-				if (time && time <= remove && time <= archived)
+				if (time && time <= remove && time <= archived) {
 					keys.push("lock/" + Key.getLast(value), "id/" + Key.getLast(value), key, value)
+					if (key == (await this.lastArchived)) {
+						await this.state.storage.delete("lastArchived")
+						Archivist.#lastArchived = Promise.resolve(undefined)
+					}
+				}
 			}
 			await this.storage.remove(keys)
 		}
 	}
-	private async getStale(threshold: string): Promise<{ documents: Document[]; changed: string }> {
+	private async getStale(
+		threshold: string,
+		lastArchived?: string
+	): Promise<{ documents: Document[]; changed: string }> {
 		const changes = Array.from(
 			(
 				await this.state.storage.list<string>({
 					prefix: "changed/",
 					limit: this.limit,
-					startAfter: await this.lastArchived,
+					startAfter: lastArchived,
 				})
 			).entries()
 		)
