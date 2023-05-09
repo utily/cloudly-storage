@@ -13,14 +13,12 @@ export class Indexed<V, I extends string, M = any> implements KeyValueStore<V, M
 	async set(key: string, value?: V, options?: { retention?: TimeSpan; meta?: M }): Promise<void> {
 		const old = (await this.data.get(key))?.value
 		if (old) {
-			this.data.set(key)
-			for (const index of Object.values(this.indexes) as Index<V>[])
-				index.set(old)
+			await this.data.set(key)
+			await Promise.all((Object.values(this.indexes) as Index<V>[]).map(index => index.set(old)))
 		}
 		if (value) {
-			this.data.set(key, value, options)
-			for (const index of Object.values(this.indexes) as Index<V>[])
-				index.set(value, key, options)
+			await this.data.set(key, value, options)
+			await Promise.all((Object.values(this.indexes) as Index<V>[]).map(index => index.set(value, key, options)))
 		}
 	}
 	async get(key: string): Promise<{ value: V; meta?: M | undefined } | undefined> {
