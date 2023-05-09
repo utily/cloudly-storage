@@ -127,10 +127,7 @@ export class Archivist {
 				})
 			).entries()
 		)
-		await this.state.storage.put(
-			"listed/changed/" + threshold,
-			changes.map(([c, _]) => c)
-		)
+		await this.state.storage.put("listed/changed/" + threshold, { changes: changes.map(([c, _]) => c), lastArchived })
 		const staleKeys: string[] = []
 		let lastChanged: string | undefined
 		for (const [key, value] of changes) {
@@ -140,7 +137,7 @@ export class Archivist {
 			} else
 				break
 		}
-		await this.state.storage.put("stale/keys/" + threshold, staleKeys)
+		await this.state.storage.put("stale/keys/" + threshold, { staleKeys, lastChanged })
 		if (lastChanged) {
 			Archivist.#lastArchived = Promise.resolve(lastChanged)
 			await this.state.storage.put<string>("lastArchived", lastChanged)
