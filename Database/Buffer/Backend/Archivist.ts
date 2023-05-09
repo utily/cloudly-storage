@@ -48,15 +48,13 @@ export class Archivist {
 		const promises: Promise<void>[] = []
 		const result: Document[] = []
 		const { documents, changed } = await this.getStale(threshold, lastArchived)
-		const staleKeys: string[] = []
 		if (documents.length > 0) {
 			for (const document of documents) {
-				const key = this.generateKey(document)
-				staleKeys.push(key)
-				promises.push(this.backend.doc.set(key, document, { retention: this.configuration.timeToLive }))
+				promises.push(
+					this.backend.doc.set(this.generateKey(document), document, { retention: this.configuration.timeToLive })
+				)
 				result.push(document)
 			}
-			await this.state.storage.put("stale/keys/" + threshold, staleKeys)
 			promises.push(
 				this.backend.changed.set(
 					`changed/${this.configuration.partitions}${isoly.DateTime.now()}/${documents[0].id}`,
@@ -142,11 +140,12 @@ export class Archivist {
 			} else
 				break
 		}
+		await this.state.storage.put("stale/keys/" + threshold, staleKeys)
 		if (lastChanged) {
 			Archivist.#lastArchived = Promise.resolve(lastChanged)
 			await this.state.storage.put<string>("lastArchived", lastChanged)
 		}
-		return { documents: await this.storage.load<Document>(staleKeys), changed: staleKeys.join("\n") } ?? {}
+		return { documents: await this.storage.load<Document>(staleKeys), changed: staleKeys.join("\n") }
 	}
 	static open(
 		keyValueNamespace: platform.KVNamespace | undefined,
