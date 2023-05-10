@@ -29,10 +29,8 @@ export class Archivist {
 		let stored: Document[] | undefined
 		try {
 			await this.state.storage.put<Record<string, any>>("alarm/configuration/" + threshold, this.configuration)
-			const lastArchived =
-				(await this.lastArchived) && (await this.state.storage.get((await this.lastArchived) ?? ""))
-					? await this.lastArchived
-					: undefined
+			let lastArchived = await this.lastArchived
+			lastArchived = lastArchived && (await this.state.storage.get(lastArchived ?? "")) ? lastArchived : undefined
 			stored = await this.store(threshold, lastArchived)
 			await this.removeArchived(threshold, lastArchived)
 			await this.removeStatuses(threshold)
