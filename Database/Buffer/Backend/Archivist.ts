@@ -28,18 +28,17 @@ export class Archivist {
 		const threshold = isoly.DateTime.previousSecond(now, this.configuration.retention)
 		let stored: Document[] | undefined
 		try {
-			const lastArchived = await this.lastArchived
+			await this.state.storage.put<Record<string, any>>("alarm/configuration/" + threshold, this.configuration)
+			let lastArchived = await this.lastArchived
+			lastArchived = lastArchived && (await this.state.storage.get(lastArchived ?? "")) ? lastArchived : undefined
 			stored = await this.store(threshold, lastArchived)
 			await this.removeArchived(threshold, lastArchived)
-			await this.removeStaleKeys(threshold)
+			await this.removeStatuses(threshold)
 		} catch (error) {
+			console.log("Archivist error message", error.message)
 			await this.state.storage.put("error", {
 				timestamp: now,
 				message: error.message,
-				status: {
-					changed: Object.fromEntries((await this.state.storage.list({ prefix: "changed/" })).entries()),
-					lastArchived: await this.lastArchived,
-				},
 			})
 		}
 		return stored
@@ -66,12 +65,13 @@ export class Archivist {
 		}
 		return result
 	}
-	private async removeStaleKeys(threshold: string): Promise<void> {
+	private async removeStatuses(threshold: string): Promise<void> {
 		const removeTime = isoly.DateTime.previousHour(threshold, 1)
 		await this.storage.remove(
 			[
 				...Array.from((await this.state.storage.list<string[]>({ prefix: "listed/changed/" })).keys()),
 				...Array.from((await this.state.storage.list<string[]>({ prefix: "stale/keys/" })).keys()),
+				...Array.from((await this.state.storage.list<string[]>({ prefix: "alarm/configuration/" })).keys()),
 			].filter(k => (Key.getTime(k) ?? "") < removeTime)
 		)
 	}
