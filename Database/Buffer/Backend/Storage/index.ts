@@ -96,15 +96,17 @@ export class Storage {
 		const oldIdIndices = Object.fromEntries(
 			(await this.portion.get<string>(Object.values(documents).map(document => "id/" + document.id))).entries()
 		)
+		const now = isoly.DateTime.now()
 		const { newDocuments, idIndices, indices } = Object.entries(documents).reduce(
 			(
 				r: { newDocuments: Record<string, T>; idIndices: Record<string, string>; indices: Record<string, string> },
 				[key, document]
 			) => ({
-				indices: index
-					? { ...r.indices, [index + "/" + isoly.DateTime.now() + "/" + Identifier.generate(4)]: key }
-					: r.idIndices,
-				newDocuments: { ...r.newDocuments, [oldIdIndices["id/" + document.id] ?? key]: document },
+				indices: index ? { ...r.indices, [index + "/" + now + "/" + Identifier.generate(4)]: key } : r.idIndices,
+				newDocuments: {
+					...r.newDocuments,
+					[oldIdIndices["id/" + document.id] ?? key]: { ...document, changed: now },
+				},
 				idIndices: { ...r.idIndices, ["id/" + document.id]: key },
 			}),
 			{ newDocuments: {}, idIndices: {}, indices: {} }
@@ -116,7 +118,7 @@ export class Storage {
 			...idIndices,
 			...changedIndex,
 		})
-		const result = Object.values(documents)
+		const result = Object.values(newDocuments)
 		return result.length == 1 ? result[0] : result
 	}
 
@@ -144,19 +146,18 @@ export class Storage {
 		const old = temp ?? archived
 		let response
 		let updated
-		if (!amendment.applyTo || old?.changed == amendment.applyTo || !old) {
-			delete amendment.applyTo
-			updated = Document[type]<T>(old ?? ({} as any as T), {
-				...amendment,
-				changed:
-					amendment.changed == old?.changed ? isoly.DateTime.nextMillisecond(amendment.changed) : amendment.changed,
-			})
+		if (!amendment.changed || old?.changed == amendment.changed || !old) {
+			updated = Document[type]<T>(old ?? ({} as any as T), amendment)
 			response = updated
-				? await this.storeDocuments({ [key ?? `${prefix}${updated.created}/${updated.id}`]: updated }, index, unlock)
+				? ((await this.storeDocuments(
+						{ [key ?? `${prefix}${updated.created}/${updated.id}`]: updated },
+						index,
+						unlock
+				  )) as T)
 				: undefined
 		}
 		return response && updated
-			? updated
+			? response
 			: error(
 					type,
 					`failed to ${type} the document due to ${!updated ? "updated" : "response"} is undefined.`,

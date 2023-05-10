@@ -161,20 +161,7 @@ export class Buffer<T = any> {
 					Object.entries(shards).map(([shard, keys]) =>
 						this.backend.open(this.partitions + shard)[type == "update" ? "put" : "patch"]<((T & Document) | Error)[]>(
 							`/buffer/documents`,
-							keys.reduce(
-								(r, id) => [
-									...r,
-									[
-										{
-											...amendments[id],
-											changed: !this.configuration.retainChanged ? isoly.DateTime.now() : amendments[id].changed,
-											applyTo: amendments[id].changed,
-										},
-										archived?.[id],
-									],
-								],
-								[]
-							),
+							keys.reduce((r, id) => [...r, [amendments[id], archived?.[id]]], []),
 							{
 								...this.header,
 								...(unlock ? { unlock: unlock.toString() } : {}),
