@@ -97,7 +97,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		} = []
 		let limit = cursor?.limit ?? Selection.standardLimit
 		let newCursor: string | undefined
-		for (const prefix of Cursor.prefix(cursor)) {
+		for (const prefix of Cursor.dates(cursor)) {
 			const loaded =
 				(await this.backend.index?.[cursor.type]?.list({
 					prefix: this.partitions + prefix,
@@ -129,7 +129,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		} = []
 		let limit = cursor?.limit ?? Selection.standardLimit
 		let newCursor: string | undefined
-		for (const prefix of Cursor.prefix(cursor)) {
+		for (const prefix of Cursor.dates(cursor)) {
 			const loaded = await this.backend.doc.list({
 				prefix: this.partitions + prefix,
 				limit,
@@ -163,7 +163,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 		const newCursor: Cursor = { type: "changed", limit: cursor?.limit }
 		let usedChangeKeys = 0
 		let prefix
-		for (prefix of Cursor.prefix(cursor)) {
+		for (prefix of Cursor.dates(cursor)) {
 			let breakMe = false
 			do {
 				newCursor.cursor = cursor.cursor

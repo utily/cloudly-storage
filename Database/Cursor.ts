@@ -17,7 +17,7 @@ export namespace Cursor {
 		return cursor && JSON.parse(new cryptly.TextDecoder().decode(cryptly.Base64.decode(cursor, "url")))
 	}
 
-	export function prefix(cursor?: Cursor): isoly.Date[] {
+	export function dates(cursor?: Cursor): isoly.Date[] {
 		const result: isoly.Date[] = []
 		let start = cursor?.range?.start && isoly.DateTime.getDate(cursor?.range?.start)
 		const end = cursor?.range?.end && isoly.DateTime.getDate(cursor?.range?.end)

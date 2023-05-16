@@ -32,6 +32,7 @@
 		"start": "(rollup --config rollup.dev.config.js --watch) & (node --experimental-vm-modules --inspect ./node_modules/miniflare/dist/src/cli.js dist/_worker.js --wrangler-env miniflare --watch --live-reload -B 'while [ ! -f dist/_worker.js ]; do sleep 0.1; done' && kill $!)",
 		"start:wrangler": "wrangler dev --env wrangler",
 		"clean": "rimraf dist node_modules coverage",
+		"restart": "rm -rf .mf/durableobjects/DatabaseBuffer/ .mf/kv/archive/users/ && npm run start",
 		"forge": "cd .. && rm -rf dist/ && npm run build && cd test-worker/",
 		"kill": "(grep port wrangler.toml | awk '{print $3}' | xargs -i lsof -i :{} | awk '{if (NR!=1) {print $2}}' | xargs kill 2>/dev/null) && (ps -aux | grep rollup | grep watch | awk '{print $2}' | xargs kill 2>/dev/null)"
 	},

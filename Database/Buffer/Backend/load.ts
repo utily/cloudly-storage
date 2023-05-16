@@ -9,21 +9,16 @@ export async function load(request: http.Request, context: Context): Promise<htt
 	let result: (Document & Record<string, any>) | (Document & Record<string, any>)[] | Error
 	const storage = context.storage
 	const body = await request.body
-	const ids: { prefix: string[]; limit?: number } | string[] | string | undefined =
-		request.parameter.id ?? (body ? body : undefined)
+	const ids: { prefix: string[]; limit?: number } | string[] | string | undefined = request.parameter.id ?? body
 	const lock: isoly.DateTime | undefined = isoly.DateTime.is(request.header.lock) ? request.header.lock : undefined
 	if (
 		!(
-			!ids ||
 			typeof ids == "string" ||
 			(Array.isArray(ids) && ids.every(e => typeof e == "string")) ||
-			("prefix" in ids && ids.prefix.every(e => typeof e == "string"))
+			(ids && "prefix" in ids && ids.prefix.every(e => typeof e == "string"))
 		)
 	)
-		result = error(
-			"load",
-			"Ids in buffer must be of type { prefix: string[], limit?: number } | string[] | string | undefined"
-		)
+		result = error("load", "Ids in buffer must be of type { prefix: string[], limit?: number } | string[] | string")
 	else if (lock && !isoly.DateTime.is(lock)) {
 		result = error("load", "Header lock must be of type isoly.Timespan | undefined.")
 	} else if (!storage)

@@ -45,8 +45,8 @@ export class Buffer<T = any> {
 		return `${this.backend.partitions}doc/${this.partitions}${document.created}/${document.id}`
 	}
 
-	private generatePrefix(prefix?: string, index?: string): string {
-		return index ? index + "/" + prefix : this.backend.partitions + "doc/" + this.partitions + (prefix ?? "")
+	private generatePrefix(date = "", index?: string): string {
+		return index == "doc" || !index ? this.backend.partitions + "doc/" + this.partitions + date : index + "/" + date
 	}
 
 	async status(
@@ -91,7 +91,7 @@ export class Buffer<T = any> {
 			)
 		} else if (cursor != null && typeof cursor == "object") {
 			const body = {
-				prefix: Cursor.prefix(cursor).map(p => this.generatePrefix(p)),
+				prefix: Cursor.dates(cursor).map(d => this.generatePrefix(d, cursor.type)),
 				limit: cursor?.limit,
 			}
 			response = await Promise.all(
