@@ -380,7 +380,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 								? {
 										[k]: KeyValueStore.partition(
 											KeyValueStore.OnlyMeta.create<string>(backend),
-											{ k } + "/",
+											k + "/",
 											completeConfiguration.retention
 										),
 								  }
