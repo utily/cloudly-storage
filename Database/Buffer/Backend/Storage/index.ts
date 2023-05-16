@@ -54,37 +54,39 @@ export class Storage {
 
 	async load<T extends Document & Record<string, any>>(id: string[], lock?: isoly.DateTime): Promise<T[]>
 	async load<T extends Document & Record<string, any>>(
-		id?: string | string[] | { prefix?: string[]; limit?: number },
+		id: string | string[] | { prefix: string[]; limit?: number },
 		lock?: isoly.DateTime
 	): Promise<T | T[] | undefined>
 	async load<T extends Document & Record<string, any>>(
-		id?: string | string[] | { prefix?: string[]; limit?: number },
+		selection: string | string[] | { prefix: string[]; limit?: number },
 		lock?: isoly.DateTime
 	): Promise<T | T[] | Error> {
 		let result: T | T[] | Error
-		if (typeof id == "string") {
-			id = await this.locked(id, lock)
-			if (id == "locked")
+		if (typeof selection == "string") {
+			selection = await this.locked(selection, lock)
+			if (selection == "locked")
 				result = error("load", "document is locked")
 			else {
-				const key = await this.state.storage.get<string>("id/" + id)
+				const key = await this.state.storage.get<string>("id/" + selection)
 				result = key
 					? (await this.state.storage.get<T>(key)) ?? error("load", "document not found")
 					: error("load", "key for document not found")
 			}
-		} else if (Array.isArray(id)) {
-			id = await this.locked(id, lock)
-			const listed = Object.fromEntries((await this.portion.get<T>(id)).entries())
+		} else if (Array.isArray(selection)) {
+			selection = await this.locked(selection, lock)
+			const listed = Object.fromEntries((await this.portion.get<T>(selection)).entries())
 			result = Object.values(listed)
 		} else {
-			const limit = id?.limit
-			result = (
+			const limit = selection.limit
+			const listed: string[] | T[] = (
 				await Promise.all(
-					(id && Array.isArray(id.prefix) ? id.prefix : [undefined])?.map(p =>
-						this.state.storage.list<T>({ prefix: p, limit }).then(r => Array.from(r.values()))
-					)
+					selection.prefix.map(p => this.state.storage.list({ prefix: p, limit }).then(r => Array.from(r.values())))
 				)
-			).flat()
+			).flat() as string[] | T[]
+			if (typeof listed[0] != "string")
+				result = listed as T[]
+			else
+				result = Array.from((await this.portion.get<T>(listed as string[])).values())
 		}
 		return result
 	}

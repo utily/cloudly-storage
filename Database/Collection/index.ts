@@ -66,9 +66,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 					const cursor: Cursor | undefined = Cursor.from(selection)
 					bufferList = !cursor?.cursor ? await this.buffer.load(cursor) : []
 					if (!Error.is(bufferList)) {
-						const limit =
-							(cursor && "limit" in cursor && cursor.limit ? cursor.limit : Selection.standardLimit) -
-							bufferList?.length
+						const limit = (cursor?.limit ?? Selection.standardLimit) - bufferList?.length
 						archiveList =
 							limit > 1
 								? await this.archive.load({
