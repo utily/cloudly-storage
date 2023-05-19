@@ -132,7 +132,6 @@ export class Storage {
 	): Promise<(Document & Record<string, any>) | (Document & Record<string, any>)[] | Error> {
 		const keys = await this.state.storage.get<string>(updates.map(c => "id/" + c.id))
 		const oldDocuments = keys ? await this.state.storage.get<T>(Array.from(keys.values())) : undefined
-		let response
 		let toBeStored: Record<string, T> = {}
 		for (const update of updates) {
 			const old = oldDocuments?.get(keys.get("id/" + update.id) ?? "")
@@ -141,8 +140,8 @@ export class Storage {
 					...toBeStored,
 					[`${prefix}${update.created}/${update.id}`]: update,
 				}
-			response = await this.storeDocuments(toBeStored, index, unlock)
 		}
+		const response = await this.storeDocuments(toBeStored, index, unlock)
 		return (
 			response ?? error("update", `failed to update the document.`, updates.length == 1 ? updates[0].id : undefined)
 		)
