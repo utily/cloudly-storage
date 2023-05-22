@@ -196,7 +196,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 			changes[amendment.id] = {
 				...amendment,
 				created: old?.created ?? allocated?.created ?? amendment.created ?? isoly.DateTime.now(),
-				changed: (this.configuration.retainChanged && amendment.changed) ?? isoly.DateTime.now(),
+				changed: amendment.changed ?? "",
 			}
 			await this.archive.index(changes[amendment.id], index)
 		}

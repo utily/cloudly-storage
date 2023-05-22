@@ -37,8 +37,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			document = { id: document }
 		if (document.created == undefined)
 			document = { ...document, created: isoly.DateTime.now() }
-		if (document.changed == undefined || !this.configuration.retainChanged)
-			document = { ...document, changed: isoly.DateTime.now() }
+		document = { ...document, changed: isoly.DateTime.now() }
 		let result =
 			(document.id != undefined && !Identifier.is(document.id, this.configuration.idLength)) ||
 			!isoly.DateTime.is(document.created) ||
@@ -217,8 +216,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 	): Promise<(T & Document) | undefined | ((T & Document) | undefined)[]> {
 		let result: (T & Document) | undefined | (T & Document)[] = Array.isArray(documents) ? [] : undefined
 		for (let document of Array.isArray(documents) ? documents : [documents]) {
-			if (!this.configuration.retainChanged)
-				document = { ...document, changed: isoly.DateTime.now() }
+			document = { ...document, changed: isoly.DateTime.now() }
 			if (!Document.is(document) || (await this.getKey(document.id)) != this.generateKey(document)) {
 				const toBeStored = { ...document, ...(await this.allocateId(document)) } as T & Document
 				Array.isArray(result) ? result.push(toBeStored) : (result = toBeStored)
@@ -239,7 +237,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				? {
 						...amendment,
 						created: archived.created,
-						changed: (this.configuration.retainChanged && amendment.changed) ?? isoly.DateTime.now(),
+						changed: isoly.DateTime.now(),
 				  }
 				: undefined
 			document && updated.push(document)
