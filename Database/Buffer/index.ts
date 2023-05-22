@@ -168,7 +168,7 @@ export class Buffer<T = any> {
 						)
 					)
 				)
-			).reduce((r: any[], e) => {
+			).reduce((r: (Error | (T & Document))[], e) => {
 				return Error.is(e) ? [e, ...r] : [...(Array.isArray(e) ? e : [e]), ...r]
 			}, [])
 			result = response

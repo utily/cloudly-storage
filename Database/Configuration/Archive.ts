@@ -4,7 +4,6 @@ import { Identifier } from "../Identifier"
 export interface Archive {
 	idLength?: Identifier.Length
 	retention?: isoly.TimeSpan
-	retainChanged?: boolean
 	index?: string[]
 	partitions?: { [key: string]: Archive }
 }
@@ -15,6 +14,5 @@ export namespace Archive {
 	export const Complete = {}
 	export const standard: Complete = {
 		idLength: Identifier.Length.standard,
-		retainChanged: false,
 	}
 }
