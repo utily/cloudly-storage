@@ -111,7 +111,7 @@ describe("Archive create, load, list", () => {
 		expect(listedFromCursor).toEqual([item5])
 	})
 	it("update, append, loadAll", async () => {
-		const firstAmendment = {
+		const update = {
 			level: 0,
 			id: "qqaa",
 			groups: ["group4"],
@@ -127,37 +127,8 @@ describe("Archive create, load, list", () => {
 				},
 			},
 		}
-		const secondAmendment = {
-			level: 0,
-			id: "qqaa",
-			groups: ["group5"],
-			name: "Lars",
-			created: "2022-08-01T15:50:03.649Z",
-			address: {
-				street: "Torsgatan",
-				zip: 7777,
-				region: {
-					city: "Uppsala",
-					country: "Sweden",
-					county: "Uppland",
-				},
-			},
-		}
-		const item5Updated = {
-			...item5,
-			...firstAmendment,
-			created: item5.created,
-			groups: [...item5.groups, ...firstAmendment.groups],
-		}
-		const item5Appended = {
-			...item5Updated,
-			...secondAmendment,
-			created: item5Updated.created,
-			groups: [...item5Updated.groups, ...secondAmendment.groups],
-		}
-		expect(await partition?.items.update(firstAmendment)).toEqual(item5Updated)
-		expect(await partition?.items.append(secondAmendment)).toEqual(item5Appended)
-		expect(await partition?.items.load()).toEqual([item, item2, item3, item4, item5Appended])
+		expect(await partition?.items.update(update)).toEqual(update)
+		expect(await partition?.items.load()).toEqual([item, item2, item3, item4, update])
 	})
 	it("remove", async () => {
 		expect(await partition?.items.remove(item.id)).toEqual(true)

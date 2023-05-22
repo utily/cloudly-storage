@@ -46,6 +46,12 @@
 		"preset": "ts-jest",
 		"testMatch": null
 	},
+	"overridesComments": {
+		"yaml": "github:utily/prettierx#utily-20221229 depends on vulnerable version of yaml"
+	},
+	"overrides": {
+		"yaml": "^2.2.2"
+	},
 	"scripts": {
 		"lint": "eslint --max-warnings=0 '**/*.{ts,tsx}'",
 		"fix": "eslint '**/*.{ts,tsx}' --fix",

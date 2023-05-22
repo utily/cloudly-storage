@@ -120,7 +120,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		return result
 	}
 
-	allocateId(document: T & Partial<Document>): Promise<Document & T>
+	allocateId(document: T & Partial<Document>): Promise<(Document & T) | undefined>
 	allocateId(documents: (T & Partial<Document>)[]): Promise<(Document & T)[]>
 	allocateId(
 		documents: (T & Partial<Document>) | (T & Partial<Document>)[]
@@ -138,7 +138,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 				  }
 				: undefined
 		} else
-			result = (await Promise.all(documents.map(d => this.allocateId(d)))).filter(e => e)
+			result = (await Promise.all(documents.map(d => this.allocateId(d)))).filter(e => !!e) as (Document & T)[]
 		return result
 	}
 	error(point: Error.Point, error?: any, id?: string): Error {
@@ -158,77 +158,49 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 		}
 		return result
 	}
-	async update(
-		amendment: Partial<T & Document> & Pick<Document, "id">,
+	update(
+		document: T & Partial<Document> & Pick<Document, "id">,
 		index?: string,
 		unlock?: true
 	): Promise<(T & Document) | Error>
-	async update(
-		amendments: (Partial<T & Document> & Pick<Document, "id">)[],
+	update(
+		documents: (T & Partial<Document> & Pick<Document, "id">)[],
 		index?: string,
 		unlock?: true
 	): Promise<(T & Document)[] | Error>
 	async update(
-		amendments: (Partial<T & Document> & Pick<Document, "id">) | (Partial<T & Document> & Pick<Document, "id">)[],
+		documents: (T & Partial<Document> & Pick<Document, "id">) | (T & Partial<Document> & Pick<Document, "id">)[],
 		index?: string,
 		unlock?: true
-	): Promise<(T & Document) | Error | ((T & Document) | Error)[]> {
+	): Promise<((T & Document) | Error)[] | (T & Document) | Error> {
 		let result: (T & Document) | Error | ((T & Document) | Error)[]
 		try {
-			result = await this.change(amendments, "update", index, unlock)
+			result = await this.change(documents, index, unlock)
 		} catch (e) {
 			result = this.error("update", e)
 		}
 		return result
 	}
-	async append(
-		amendment: Partial<T & Document> & Pick<Document, "id">,
-		index?: string,
-		unlock?: true
-	): Promise<(T & Document) | Error>
-	async append(
-		amendments: (Partial<T & Document> & Pick<Document, "id">)[],
-		index?: string,
-		unlock?: true
-	): Promise<(T & Document)[] | Error>
-	async append(
-		amendments: (Partial<T & Document> & Pick<Document, "id">) | (Partial<T & Document> & Pick<Document, "id">)[],
-		index?: string,
-		unlock?: true
-	): Promise<(T & Document) | Error | ((T & Document) | Error)[]> {
-		let result: (T & Document) | Error | ((T & Document) | Error)[]
-		try {
-			result = await this.change(amendments, "append", index, unlock)
-		} catch (e) {
-			result = this.error("append", e)
-		}
-		return result
-	}
+
 	private async change(
-		amendments: (Partial<T & Document> & Pick<Document, "id">) | (Partial<T & Document> & Pick<Document, "id">)[],
-		type: "append" | "update",
+		amendments: (T & Partial<Document> & Pick<Document, "id">) | (T & Partial<Document> & Pick<Document, "id">)[],
 		index?: string,
 		unlock?: true
 	): Promise<(T & Document) | Error | ((T & Document) | Error)[]> {
 		let result: Error | ((T & Document) | Error)[] = []
 		const changeList = Array.isArray(amendments) ? amendments : [amendments]
 		const changes: Record<string, Partial<T & Document> & Pick<Document, "id">> = {}
-		const archived: Record<string, (T & Document) | undefined> = {}
 		for await (const amendment of changeList) {
-			const loaded = await this.archive.load(amendment.id)
-			if (Error.is(loaded)) {
-				result = loaded
-				break
-			} else {
-				changes[amendment.id] = {
-					...((loaded ? amendment : await this.allocateId(amendment as any as T & Document)) ?? amendment),
-					changed: amendment.changed,
-				}
-				await this.archive.index(changes[amendment.id], index)
-				archived[amendment.id] = loaded ? loaded : undefined
+			const allocated = await this.allocateId(amendment)
+			const old = await this.archive.load(amendment.id)
+			changes[amendment.id] = {
+				...amendment,
+				created: old?.created ?? allocated?.created ?? amendment.created ?? isoly.DateTime.now(),
+				changed: (this.configuration.retainChanged && amendment.changed) ?? isoly.DateTime.now(),
 			}
+			await this.archive.index(changes[amendment.id], index)
 		}
-		result = Error.is(result) ? result : await this.buffer.change(changes, archived, type, index, unlock)
+		result = Error.is(result) ? result : await this.buffer.update(changes, index, unlock)
 		return !Array.isArray(amendments) && !Error.is(result) ? result[0] : result
 	}
 	remove(id: Identifier): Promise<boolean>
