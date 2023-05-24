@@ -10,7 +10,7 @@ describe("Database Document", () => {
 		split: ["this", "should", "be", "in", "the", "second", "element"],
 	}
 	it("split", () => {
-		expect(Document.split()(document)).toEqual([
+		expect(Document.split(document)).toEqual([
 			{ id: document.id, changed: document.changed, created: document.created },
 			{ test: document.test, split: document.split },
 		])

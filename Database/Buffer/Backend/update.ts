@@ -23,9 +23,8 @@ export async function update(request: http.Request, context: Context): Promise<h
 	else {
 		try {
 			result =
-				(await context.state.blockConcurrencyWhile(() =>
-					storage.update<[Record<string, any> & Document, Record<string, any>]>(body, prefix, index, unlock)
-				)) ?? error("update", "Document not found")
+				(await context.state.blockConcurrencyWhile(() => storage.update(body, prefix, index, unlock))) ??
+				error("update", "Document not found")
 			context.state.waitUntil(context.setAlarm())
 		} catch (e) {
 			result = error("update", e)

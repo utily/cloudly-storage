@@ -4,6 +4,7 @@ import { Configuration } from "./Configuration"
 import { Cursor } from "./Cursor"
 import { Document } from "./Document"
 import { Identifier } from "./Identifier"
+import { Item } from "./Item"
 import { Key } from "./Key"
 import { Selection } from "./Selection"
 import { Silo } from "./Silo"
@@ -336,7 +337,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				{
 					doc: KeyValueStore.partition(
 						KeyValueStore.InMeta.create<T, Document>(
-							Document.split<T, Document>(configuration.meta),
+							Item.tuple(configuration.meta),
 							KeyValueStore.Json.create(backend)
 						),
 						"doc/",

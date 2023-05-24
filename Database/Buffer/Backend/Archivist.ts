@@ -1,7 +1,8 @@
 import * as isoly from "isoly"
 import * as platform from "@cloudflare/workers-types"
-import { Document } from "../../../Database/Document"
 import { KeyValueStore } from "../../../KeyValueStore"
+import { Document } from "../../Document"
+import { Item } from "../../Item"
 import { Key } from "../../Key"
 import { Configuration } from "./Configuration"
 import { Storage } from "./Storage"
@@ -35,7 +36,6 @@ export class Archivist {
 			await this.removeArchived(threshold, lastArchived)
 			await this.removeStatuses(threshold)
 		} catch (error) {
-			console.log("Archivist error message", error.message)
 			await this.state.storage.put("error", {
 				timestamp: now,
 				message: error.message,
@@ -48,10 +48,10 @@ export class Archivist {
 		const result: Document[] = []
 		const { documents, changed } = await this.getStale(threshold, lastArchived)
 		if (documents.length > 0) {
-			for (const [, document] of documents) {
-				const [meta, value] = Array.isArray(document)
+			for (const document of documents) {
+				const { meta, value } = Item.is(document)
 					? document
-					: Document.split<Record<string, any>, Document>()(document)
+					: (([m, v]) => ({ meta: m, value: v }))(Document.split(document))
 				promises.push(
 					this.backend.doc.set(this.generateKey(meta), value, { retention: this.configuration.timeToLive, meta })
 				)
@@ -121,7 +121,7 @@ export class Archivist {
 		threshold: string,
 		lastArchived?: string
 	): Promise<{
-		documents: ([Document, Record<string, any>] | Document)[]
+		documents: (Item | Document)[]
 		changed: string
 	}> {
 		const changes = Array.from(
@@ -150,7 +150,7 @@ export class Archivist {
 		}
 		return (
 			{
-				documents: Array.from((await this.storage.portion.get<[Document, Record<string, any>]>(staleKeys)).values()),
+				documents: Array.from((await this.storage.portion.get<Item | Document>(staleKeys)).values()),
 				changed: staleKeys.join("\n"),
 			} ?? {}
 		)

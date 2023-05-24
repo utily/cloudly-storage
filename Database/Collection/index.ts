@@ -196,7 +196,7 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 	): Promise<(T & Document) | Error | ((T & Document) | Error)[]> {
 		let result: Error | ((T & Document) | Error)[] = []
 		const changeList = Array.isArray(amendments) ? amendments : [amendments]
-		const changes: Record<string, Partial<T & Document> & Pick<Document, "id">> = {}
+		const changes: Record<string, T & Document & { created?: isoly.DateTime }> = {}
 		for await (const amendment of changeList) {
 			const allocated = await this.allocateId(amendment)
 			const old = await this.archive.load(amendment.id)

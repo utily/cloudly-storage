@@ -18,14 +18,10 @@ export namespace Document {
 			(value.purged == undefined || isoly.DateTime.is(value.purged))
 		)
 	}
-	export function split<T extends Record<string, any>, D extends Document | Partial<Document>>(
-		splitter?: (document: D & T) => { meta: any; value: any }
-	): (document: D & T) => [D, T] {
-		return (document: D & T) => {
-			const { meta, value } = splitter ? splitter(document) : { meta: undefined, value: undefined }
-			const { id, created, changed, purged, ...remainder } = value ?? document
-			const result: [D, T] = [{ id, created, changed, purged, ...meta }, remainder as T]
-			return result
-		}
+	export function split<T = Record<string, any>>(document: Document): [Document, T]
+	export function split<T = Record<string, any>>(document: Partial<Document>): [Partial<Document>, T]
+	export function split<T = Record<string, any>>(document: Partial<Document>): [Partial<Document>, T] {
+		const { id, created, changed, purged, ...remainder } = document
+		return [{ id, created, changed, purged }, remainder as T]
 	}
 }

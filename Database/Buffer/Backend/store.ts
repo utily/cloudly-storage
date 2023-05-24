@@ -16,8 +16,8 @@ export async function store(request: http.Request, context: Context): Promise<ht
 		try {
 			result = await context.state.blockConcurrencyWhile(() => storage.storeDocuments(document))
 			context.state.waitUntil(context.setAlarm())
-		} catch (error) {
-			result = error("store", error)
+		} catch (e) {
+			result = error("store", e)
 		}
 	}
 	return result
