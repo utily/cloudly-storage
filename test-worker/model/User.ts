@@ -9,6 +9,9 @@ export interface User {
 }
 
 export namespace User {
+	type MetaKeys = "name" | "created" | "id"
+	export type Meta = Pick<User, MetaKeys>
+	export type Value = Omit<User, MetaKeys>
 	export function is(value: User | any): value is User {
 		return !!(
 			value &&
@@ -22,5 +25,9 @@ export namespace User {
 			typeof value.name == "string" &&
 			(value.created == undefined || isoly.DateTime.is(value.created))
 		)
+	}
+	export function split(user: User): { meta: Meta; value: Value } {
+		const { name, created, id, ...value } = user
+		return { meta: { name, created, id }, value }
 	}
 }
