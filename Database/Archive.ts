@@ -337,7 +337,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				{
 					doc: KeyValueStore.partition(
 						KeyValueStore.InMeta.create<T, Document>(
-							Item.tuple(configuration.meta),
+							Item.toTuple(configuration.meta),
 							KeyValueStore.Json.create(backend)
 						),
 						"doc/",

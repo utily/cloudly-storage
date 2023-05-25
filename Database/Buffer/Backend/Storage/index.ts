@@ -121,6 +121,7 @@ export class Storage {
 			...idIndices,
 			...changedIndex,
 		})
+		console.log("newDocuments, ", newDocuments)
 		const result = Object.values(newDocuments).map(d => ({ ...d.meta, ...d.value }))
 		return result.length == 1 ? result[0] : result
 	}

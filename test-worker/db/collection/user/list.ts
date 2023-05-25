@@ -46,9 +46,13 @@ export async function list(request: http.Request, context: Context): Promise<htt
 		)
 	else {
 		const partitioned = partition ? database.partition(partition) : database
-		const listed = await partitioned.users.load(
-			cursor ? cursor : start && end && queryType ? { index, [queryType]: { start, end }, limit, onlyMeta } : { limit }
-		)
+		const selection = cursor
+			? cursor
+			: start && end && queryType
+			? { index, [queryType]: { start, end }, limit, onlyMeta }
+			: { limit }
+		console.log("selection: ", selection)
+		const listed = await partitioned.users.load(selection)
 		const response = gracely.success.ok(listed) ?? gracely.server.databaseFailure()
 		result = { ...response, header: { ...response.header, cursor: "cursor" in listed ? listed.cursor : undefined } }
 	}

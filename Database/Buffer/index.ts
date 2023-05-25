@@ -22,7 +22,7 @@ type Loaded<T> =
 
 export class Buffer<T = any> {
 	private header: Record<string, string>
-	private readonly split: ReturnType<typeof Item.split>
+	private readonly split: ReturnType<typeof Item.to>
 	private constructor(
 		private readonly backend: DurableObject.Namespace,
 		private readonly configuration: Configuration.Buffer.Complete,
@@ -37,7 +37,7 @@ export class Buffer<T = any> {
 			retention: JSON.stringify(this.configuration.retention),
 			index: JSON.stringify(this.configuration.index),
 		}
-		this.split = Item.split(configuration.meta)
+		this.split = Item.to(configuration.meta)
 	}
 	partition(...partition: string[]): Buffer<T> {
 		return new Buffer<T>(
@@ -103,9 +103,9 @@ export class Buffer<T = any> {
 						return Error.is(e)
 							? []
 							: Array.isArray(e)
-							? e.map(d => (Item.is(d) ? { ...d.value, ...d.meta } : d))
+							? e.map(d => (Item.is(d) ? Item.concat<Item<Document, T>>(d.meta, d.value) : d))
 							: Item.is(e)
-							? { ...e.value, ...e.meta }
+							? Item.concat<Item<Document, T>>(e.meta, e.value)
 							: e
 				  })
 				: response
@@ -123,9 +123,9 @@ export class Buffer<T = any> {
 					const result = Error.is(e)
 						? []
 						: Array.isArray(e)
-						? e.map(d => (Item.is(d) ? { ...d.value, ...d.meta } : d))
+						? e.map(d => (Item.is(d) ? Item.concat<Item<Document, T>>(d.meta, d.value) : d))
 						: Item.is(e)
-						? { ...e.value, ...e.meta }
+						? Item.concat<Item<Document, T>>(e.meta, e.value)
 						: e
 					return result
 				})
@@ -142,9 +142,9 @@ export class Buffer<T = any> {
 					return Error.is(e)
 						? []
 						: Array.isArray(e)
-						? e.map(d => (Item.is(d) ? { ...d.value, ...d.meta } : d))
+						? e.map(d => (Item.is(d) ? Item.concat<Item<Document, T>>(d.meta, d.value) : d))
 						: Item.is(e)
-						? { ...e.value, ...e.meta }
+						? Item.concat<Item<Document, T>>(e.meta, e.value)
 						: e
 				})
 			)

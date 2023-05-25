@@ -28,6 +28,10 @@ export namespace User {
 	}
 	export function split(user: User): { meta: Meta; value: Value } {
 		const { name, created, id, ...value } = user
+		console.log("user.name", name)
+		console.log("user.created", created)
+		console.log("user.id", id)
+		console.log("user.value", value)
 		return { meta: { name, created, id }, value }
 	}
 }
