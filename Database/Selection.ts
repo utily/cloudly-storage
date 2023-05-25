@@ -10,8 +10,8 @@ export type Selection =
 					created?: isoly.DateRange
 			  }
 			| {
-					index?: string
 					onlyMeta?: boolean
+					created?: isoly.DateRange
 			  }
 			| {
 					changed: isoly.DateRange

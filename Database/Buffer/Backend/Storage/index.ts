@@ -105,7 +105,7 @@ export class Storage {
 				r: { newDocuments: Record<string, T>; idIndices: Record<string, string>; indices: Record<string, string> },
 				[key, item]
 			) => ({
-				indices: index ? { ...r.indices, [index + "/" + now + "/" + Identifier.generate(4)]: key } : r.idIndices,
+				indices: index ? { ...r.indices, [index + "/" + now + "/" + Identifier.generate(4)]: key } : r.indices,
 				newDocuments: {
 					...r.newDocuments,
 					[oldIdIndices["id/" + item.meta.id] ?? key]: { meta: { ...item.meta, changed: now }, value: item.value },
