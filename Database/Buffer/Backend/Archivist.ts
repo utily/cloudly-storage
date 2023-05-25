@@ -19,7 +19,7 @@ export class Archivist {
 		private readonly storage: Storage,
 		private readonly state: platform.DurableObjectState,
 		private readonly configuration: Configuration.Complete,
-		public readonly limit = 600
+		public readonly limit = 60
 	) {}
 	private generateKey(document: Pick<Document, "id" | "created">): string {
 		return `${this.configuration.partitions}${document.created}/${document.id}`
