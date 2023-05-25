@@ -5,12 +5,13 @@ export interface User {
 	id: string
 	groups: string[]
 	name: string
+	card: { iin: string; last4: string; csc: string }
 	created: isoly.DateTime
 }
 
 export namespace User {
 	type MetaKeys = "name" | "created" | "id"
-	export type Meta = Pick<User, MetaKeys>
+	export type Meta = Pick<User, MetaKeys> & { card: Pick<User["card"], "iin" | "last4"> }
 	export type Value = Omit<User, MetaKeys>
 	export function is(value: User | any): value is User {
 		return !!(
@@ -27,11 +28,8 @@ export namespace User {
 		)
 	}
 	export function split(user: User): { meta: Meta; value: Value } {
+		const card = { iin: user.card.iin, last4: user.card.last4 }
 		const { name, created, id, ...value } = user
-		console.log("user.name", name)
-		console.log("user.created", created)
-		console.log("user.id", id)
-		console.log("user.value", value)
-		return { meta: { name, created, id }, value }
+		return { meta: { name, created, id, card }, value }
 	}
 }

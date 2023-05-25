@@ -84,7 +84,7 @@ export class Buffer<T = any> {
 						? { lock: isoly.DateTime.create(Date.now() + isoly.TimeSpan.toMilliseconds(options?.lock), "milliseconds") }
 						: {}),
 				})
-				.then(r => (Item.is(r) ? { ...r.meta, ...r.value } : r))
+				.then(r => (Item.is(r) ? Item.concat(r.meta, r.value) : r))
 		} else if (Array.isArray(cursor)) {
 			response = await this.backend.open(this.partitions).post<Loaded<T>>(
 				`/buffer/prefix`,

@@ -12,7 +12,7 @@ export namespace Item {
 		)
 	}
 	export function concat<I extends Item>(meta: I["meta"], value: I["value"]): I["meta"] & I["value"] {
-		return { ...value, ...meta }
+		return { ...meta, ...value }
 	}
 	export function to<M extends Document, V extends Record<string, any>>(
 		splitter?: (item: M & V) => Item<M, V>
