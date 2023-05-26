@@ -11,10 +11,12 @@ export interface Buffer {
 	superimposeFor?: isoly.TimeSpan //time documents should be stored in buffer after its beem archived.
 	retention?: isoly.TimeSpan
 	index?: string[] // indices to query listing
+	meta?: (value: any) => { meta: any; value: any }
 }
 
 export namespace Buffer {
-	export type Complete = Required<Omit<Buffer, "index" | "retention">> & Pick<Buffer, "index" | "retention">
+	export type Complete = Required<Omit<Buffer, "index" | "retention" | "meta">> &
+		Pick<Buffer, "index" | "retention" | "meta">
 	export const standard: Complete = {
 		shards: 4,
 		reconciliationInterval: { seconds: 30 },
@@ -42,8 +44,7 @@ export namespace Buffer {
 				result[shard] = result[shard]?.concat(i) ?? [i]
 			}
 		} else {
-			const bitsUsed = Math.log2({ ...standard, ...configuration }.shards)
-			const mask = 2 ** bitsUsed - 1
+			const mask = { ...standard, ...configuration }.shards - 1
 			const binary = typeof id == "string" ? cryptly.Identifier.toBinary(id)[0] : id
 			result = cryptly.Identifier.fromBinary(new Uint8Array([(binary ?? 0) & mask]))
 		}

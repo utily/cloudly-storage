@@ -10,7 +10,7 @@ export namespace Archive {
 	export function create(environment: Environment): Archive | undefined {
 		return storage.Database.create<Layout>(
 			{
-				silos: { users: { type: "archive", idLength: 4, retainChanged: false } },
+				silos: { users: { type: "archive", idLength: 4 } },
 			},
 			environment.archive
 		)

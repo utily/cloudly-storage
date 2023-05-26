@@ -5,6 +5,7 @@ import { Configuration } from "../Configuration"
 import { Cursor } from "../Cursor"
 import { Document } from "../Document"
 import { Identifier } from "../Identifier"
+import { Item } from "../Item"
 import { Backend as BufferBackend } from "./Backend"
 import { Status } from "./Status"
 
@@ -12,10 +13,16 @@ export type Backend = BufferBackend
 export const Backend = BufferBackend
 
 type Key = `${string}${isoly.DateTime}/${Identifier}`
-type Loaded<T> = (T & Document) | undefined | ((Document & T) | undefined)[]
+type Loaded<T> =
+	| (T & Document)
+	| Item<Document & T, T>
+	| undefined
+	| ((Document & T) | undefined)[]
+	| Item<Document & T, T>[]
 
 export class Buffer<T = any> {
 	private header: Record<string, string>
+	private readonly split: ReturnType<typeof Item.to>
 	private constructor(
 		private readonly backend: DurableObject.Namespace,
 		private readonly configuration: Configuration.Buffer.Complete,
@@ -30,6 +37,7 @@ export class Buffer<T = any> {
 			retention: JSON.stringify(this.configuration.retention),
 			index: JSON.stringify(this.configuration.index),
 		}
+		this.split = Item.to(configuration.meta)
 	}
 	partition(...partition: string[]): Buffer<T> {
 		return new Buffer<T>(
@@ -70,12 +78,13 @@ export class Buffer<T = any> {
 		if (typeof cursor == "string") {
 			response = await this.backend
 				.open(this.partitions + Configuration.Buffer.getShard(this.configuration, cursor))
-				.get<Loaded<T>>(`/buffer/${encodeURIComponent(cursor)}`, {
+				.get<(T & Document) | Item<Document & T, T> | undefined>(`/buffer/${encodeURIComponent(cursor)}`, {
 					...this.header,
 					...(options?.lock
 						? { lock: isoly.DateTime.create(Date.now() + isoly.TimeSpan.toMilliseconds(options?.lock), "milliseconds") }
 						: {}),
 				})
+				.then(r => (Item.is(r) ? Item.concat(r.meta, r.value) : r))
 		} else if (Array.isArray(cursor)) {
 			response = await this.backend.open(this.partitions).post<Loaded<T>>(
 				`/buffer/prefix`,
@@ -89,6 +98,17 @@ export class Buffer<T = any> {
 						: {}),
 				}
 			)
+			response = Array.isArray(response)
+				? response.flatMap(e => {
+						return Error.is(e)
+							? []
+							: Array.isArray(e)
+							? e.map(d => (Item.is(d) ? Item.concat<Item<Document, T>>(d.meta, d.value) : d))
+							: Item.is(e)
+							? Item.concat<Item<Document, T>>(e.meta, e.value)
+							: e
+				  })
+				: response
 		} else if (cursor != null && typeof cursor == "object") {
 			const body = {
 				prefix: Cursor.dates(cursor).map(d => this.generatePrefix(d, cursor.type)),
@@ -98,7 +118,18 @@ export class Buffer<T = any> {
 				Configuration.Buffer.getShard(this.configuration).map(s =>
 					this.backend.open(this.partitions + s).post<Loaded<T>>("/buffer/prefix", body, this.header)
 				)
-			).then(r => r.flatMap(e => (Error.is(e) ? [] : e)))
+			).then(r =>
+				r.flatMap(e => {
+					const result = Error.is(e)
+						? []
+						: Array.isArray(e)
+						? e.map(d => (Item.is(d) ? Item.concat<Item<Document, T>>(d.meta, d.value) : d))
+						: Item.is(e)
+						? Item.concat<Item<Document, T>>(e.meta, e.value)
+						: e
+					return result
+				})
+			)
 		} else
 			response = await Promise.all(
 				Configuration.Buffer.getShard(this.configuration).map(shard =>
@@ -106,7 +137,17 @@ export class Buffer<T = any> {
 						.open(this.partitions + shard)
 						.post<Loaded<T>>("/buffer/prefix", { prefix: this.generatePrefix() }, this.header)
 				)
-			).then(r => r.flatMap(e => (Error.is(e) ? [] : e)))
+			).then(r =>
+				r.flatMap(e => {
+					return Error.is(e)
+						? []
+						: Array.isArray(e)
+						? e.map(d => (Item.is(d) ? Item.concat<Item<Document, T>>(d.meta, d.value) : d))
+						: Item.is(e)
+						? Item.concat<Item<Document, T>>(e.meta, e.value)
+						: e
+				})
+			)
 		return response
 	}
 	async store(document: T & Document & { created?: isoly.DateTime }): Promise<(T & Document) | Error>
@@ -122,7 +163,7 @@ export class Buffer<T = any> {
 			if (!Array.isArray(document)) {
 				result = await this.backend
 					.open(this.partitions + Configuration.Buffer.getShard(this.configuration, document.id))
-					.post<T & Document>(`/buffer`, { [this.generateKey(document)]: document }, this.header)
+					.post<T & Document>(`/buffer`, { [this.generateKey(document)]: this.split(document) }, this.header)
 			} else {
 				result = (
 					await Promise.all(
@@ -132,14 +173,17 @@ export class Buffer<T = any> {
 								document.map(d => d.id)
 							)
 						).map(([shard, ids]) =>
-							this.backend.open(this.partitions + shard).post<((T & Document) | Error)[]>(
+							this.backend.open(this.partitions + shard).post<(T & Document) | ((T & Document) | Error)[]>(
 								`/buffer`,
-								document.reduce((r, d) => (ids.includes(d.id) ? { [this.generateKey(d)]: d, ...r } : r), {}),
+								document.reduce(
+									(r, d) => (ids.includes(d.id) ? { [this.generateKey(d)]: this.split(d), ...r } : r),
+									{}
+								),
 								this.header
 							)
 						)
 					)
-				).reduce((r: any[], e) => (Error.is(e) ? r : [...e, ...r]), [])
+				).reduce((r: any[], e) => (Error.is(e) ? r : Array.isArray(e) ? [...e, ...r] : [e, ...r]), [])
 			}
 		} catch (e) {
 			result = this.error("store", e)
@@ -147,7 +191,7 @@ export class Buffer<T = any> {
 		return result
 	}
 	async update(
-		amendments: Record<string, Partial<T & Document> & { id: Document["id"] }>,
+		amendments: Record<string, T & Document & { created?: isoly.DateTime }>,
 		index?: string,
 		unlock?: true
 	): Promise<((T & Document) | Error)[] | Error> {
@@ -159,7 +203,7 @@ export class Buffer<T = any> {
 					Object.entries(shards).map(([shard, keys]) =>
 						this.backend.open(this.partitions + shard).put<((T & Document) | Error)[]>(
 							`/buffer/documents`,
-							keys.reduce((r, id) => [...r, amendments[id]], []),
+							keys.reduce((r, id) => [...r, this.split(amendments[id])], []),
 							{
 								...this.header,
 								...(unlock ? { unlock: unlock.toString() } : {}),

@@ -7,6 +7,7 @@ export type Cursor = {
 	type: "doc" | "changed" | string
 	range?: isoly.TimeRange | isoly.DateRange
 	limit?: number
+	onlyMeta?: boolean
 }
 
 export namespace Cursor {
@@ -40,6 +41,7 @@ export namespace Cursor {
 					limit: limit(selection.limit),
 					range: selection.created,
 					type: selection.index ?? "doc",
+					onlyMeta: selection.onlyMeta,
 				}
 				break
 			case "changed":

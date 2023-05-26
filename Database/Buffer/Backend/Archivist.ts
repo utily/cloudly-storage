@@ -1,7 +1,8 @@
 import * as isoly from "isoly"
 import * as platform from "@cloudflare/workers-types"
-import { Document } from "../../../Database/Document"
 import { KeyValueStore } from "../../../KeyValueStore"
+import { Document } from "../../Document"
+import { Item } from "../../Item"
 import { Key } from "../../Key"
 import { Configuration } from "./Configuration"
 import { Storage } from "./Storage"
@@ -13,7 +14,7 @@ export class Archivist {
 	}
 	private constructor(
 		private readonly backend: {
-			doc: KeyValueStore<Record<string, any> & Document>
+			doc: KeyValueStore<Record<string, any>, Document & Record<string, any>>
 			changed: KeyValueStore<string>
 		},
 		private readonly storage: Storage,
@@ -35,7 +36,6 @@ export class Archivist {
 			await this.removeArchived(threshold, lastArchived)
 			await this.removeStatuses(threshold)
 		} catch (error) {
-			console.log("Archivist error message", error.message)
 			await this.state.storage.put("error", {
 				timestamp: now,
 				message: error.message,
@@ -49,14 +49,17 @@ export class Archivist {
 		const { documents, changed } = await this.getStale(threshold, lastArchived)
 		if (documents.length > 0) {
 			for (const document of documents) {
+				const { meta, value } = Item.is(document)
+					? document
+					: (([m, v]) => ({ meta: m, value: v }))(Document.split(document))
 				promises.push(
-					this.backend.doc.set(this.generateKey(document), document, { retention: this.configuration.timeToLive })
+					this.backend.doc.set(this.generateKey(meta), value, { retention: this.configuration.timeToLive, meta })
 				)
-				result.push(document)
+				result.push({ ...meta, ...value })
 			}
 			promises.push(
 				this.backend.changed.set(
-					`changed/${this.configuration.partitions}${isoly.DateTime.now()}/${documents[0].id}`,
+					`changed/${this.configuration.partitions}${isoly.DateTime.now()}/${result[0].id}`,
 					changed.replaceAll(this.configuration.documentType + "/doc/", ""),
 					{ retention: this.configuration.timeToLive }
 				)
@@ -117,7 +120,10 @@ export class Archivist {
 	private async getStale(
 		threshold: string,
 		lastArchived?: string
-	): Promise<{ documents: Document[]; changed: string }> {
+	): Promise<{
+		documents: (Item | Document)[]
+		changed: string
+	}> {
 		const changes = Array.from(
 			(
 				await this.state.storage.list<string>({
@@ -142,7 +148,12 @@ export class Archivist {
 			Archivist.#lastArchived = Promise.resolve(lastChanged)
 			await this.state.storage.put<string>("lastArchived", lastChanged)
 		}
-		return { documents: await this.storage.load<Document>(staleKeys), changed: staleKeys.join("\n") }
+		return (
+			{
+				documents: Array.from((await this.storage.portion.get<Item | Document>(staleKeys)).values()),
+				changed: staleKeys.join("\n"),
+			} ?? {}
+		)
 	}
 	static open(
 		keyValueNamespace: platform.KVNamespace | undefined,
@@ -155,10 +166,7 @@ export class Archivist {
 				(configuration?.documentType ?? "unknown") + "/"
 			)
 		)
-		const doc = KeyValueStore.partition(
-			KeyValueStore.InMeta.create<Record<string, any>, Document>(Document.split, kv),
-			"doc/"
-		)
+		const doc = KeyValueStore.partition<Record<string, any>, Document & Record<string, any>>(kv, "doc/")
 		return new Archivist({ doc, changed: kv }, Storage.open(state), state, configuration)
 	}
 }

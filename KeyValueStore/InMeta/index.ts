@@ -30,7 +30,7 @@ export namespace InMeta {
 				return (
 					response &&
 					response?.meta && {
-						value: { ...response.value, ...response.meta },
+						value: { ...response.meta, ...response.value },
 					}
 				)
 			},
