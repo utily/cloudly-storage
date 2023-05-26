@@ -74,21 +74,16 @@ export class Collection<T = any> extends Silo<T, Collection<T>> {
 					bufferList = !cursor?.cursor ? await this.buffer.load(cursor) : []
 					if (!Error.is(bufferList)) {
 						const limit = (cursor?.limit ?? Selection.standardLimit) - bufferList?.length
-						archiveList =
-							limit > 1
-								? await this.archive.load({
-										...selection,
-										limit,
-								  })
-								: []
+						archiveList = await this.archive.load({
+							...selection,
+							limit: limit > 3 ? limit : 3,
+						})
 						archiveRecord = archiveList.reduce<Record<string, Document & T>>(
 							(r, document) => (document ? { [document.id]: document, ...r } : r),
 							{}
 						)
-						if (this.configuration.index?.includes(cursor?.type ?? "")) {
-							const bufferUpdates = await this.buffer.load(Object.keys(archiveRecord))
-							!Error.is(bufferUpdates) && bufferList.concat(bufferUpdates)
-						}
+						const bufferUpdates = await this.buffer.load(Object.keys(archiveRecord))
+						!Error.is(bufferUpdates) && bufferList.concat(bufferUpdates)
 					}
 				}
 				if (Error.is(archiveList)) {

@@ -107,7 +107,6 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 			).then(l => l.reduce((r, d) => (d?.value ? [...r, d.value] : r), []))
 			limit -= listed.length
 			result.push(...listed)
-			cursor?.cursor && (cursor.cursor = loaded.cursor)
 			if (loaded.cursor) {
 				newCursor = Cursor.serialize({
 					...cursor,
@@ -116,6 +115,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				})
 				break
 			}
+			delete cursor.cursor
 		}
 		if (newCursor && result)
 			result.cursor = newCursor
