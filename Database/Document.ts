@@ -7,7 +7,6 @@ export interface Document {
 	changed: isoly.DateTime
 	purged?: isoly.Date
 }
-// type Key = ({ [k: string]: Key } | string)[]
 export namespace Document {
 	export function is(value: Document | any, idLength?: Identifier.Length): value is Document {
 		return (
