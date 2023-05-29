@@ -11,7 +11,7 @@ export interface Buffer {
 	superimposeFor?: isoly.TimeSpan //time documents should be stored in buffer after its beem archived.
 	retention?: isoly.TimeSpan
 	index?: string[] // indices to query listing
-	meta?: (value: any) => { meta: any; value: any }
+	meta?: { split: (value: any) => { meta: any; value: any }; is: (value: any) => boolean }
 }
 
 export namespace Buffer {
