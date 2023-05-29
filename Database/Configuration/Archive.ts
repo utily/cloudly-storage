@@ -6,7 +6,7 @@ export interface Archive {
 	retention?: isoly.TimeSpan
 	index?: string[]
 	partitions?: { [key: string]: Archive }
-	meta?: (value: any) => { meta: any; value: any }
+	meta?: { split: (value: any) => { meta: any; value: any }; is: (value: any) => boolean }
 }
 
 export namespace Archive {

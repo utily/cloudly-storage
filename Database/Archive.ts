@@ -132,7 +132,14 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				cursor: cursor?.cursor,
 				values: !cursor?.onlyMeta,
 			})
-			const listed = loaded.map(item => ({
+			const items = await Promise.all(
+				loaded.map(item =>
+					this.configuration.meta?.is(item.value)
+						? Promise.resolve({ meta: item.value, value: undefined })
+						: this.backend.doc.get(item.key).then(document => ({ meta: item.value, value: document?.value }))
+				)
+			)
+			const listed = items.map(item => ({
 				...(item.meta ?? {}),
 				...(item.value ?? {}),
 			})) as (T & Document)[]
@@ -337,7 +344,7 @@ export class Archive<T = any> extends Silo<T, Archive<T>> {
 				{
 					doc: KeyValueStore.partition(
 						KeyValueStore.InMeta.create<T, Document>(
-							Item.toTuple(configuration.meta),
+							Item.toTuple(configuration.meta?.split),
 							KeyValueStore.Json.create(backend)
 						),
 						"doc/",

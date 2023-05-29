@@ -27,6 +27,15 @@ export namespace User {
 			(value.created == undefined || isoly.DateTime.is(value.created))
 		)
 	}
+	export function isMeta(value: Meta | any): value is Meta {
+		return !!(
+			value &&
+			typeof value == "object" &&
+			typeof value.id == "string" &&
+			typeof value.name == "string" &&
+			(value.created == undefined || isoly.DateTime.is(value.created))
+		)
+	}
 	export function split(user: User): { meta: Meta; value: Value } {
 		const card = { iin: user.card.iin, last4: user.card.last4 }
 		const { name, created, id, ...value } = user

@@ -37,7 +37,7 @@ export class Buffer<T = any> {
 			retention: JSON.stringify(this.configuration.retention),
 			index: JSON.stringify(this.configuration.index),
 		}
-		this.split = Item.to(configuration.meta)
+		this.split = Item.to(configuration.meta?.split)
 	}
 	partition(...partition: string[]): Buffer<T> {
 		return new Buffer<T>(

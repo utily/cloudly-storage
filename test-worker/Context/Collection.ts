@@ -12,7 +12,7 @@ export namespace Collection {
 			{
 				silos: {
 					users: {
-						meta: model.User.split,
+						meta: { split: model.User.split, is: model.User.isMeta },
 						type: "collection",
 						idLength: 4,
 						shards: 2,
