@@ -7,4 +7,5 @@ export interface Environment
 	kvStore?: KVNamespace
 	archive?: KVNamespace
 	Do?: DurableObjectNamespace
+	itemNamespace?: DurableObjectNamespace
 }

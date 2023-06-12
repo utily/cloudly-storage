@@ -14,3 +14,4 @@ const worker: ExportedHandler<Environment> = { fetch }
 export default worker
 export { Backend } from "cloudly-storage"
 export { Do }
+export const ContextItem = Context.Item

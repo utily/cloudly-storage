@@ -8,6 +8,7 @@ import { Archive } from "./Archive"
 import { Collection } from "./Collection"
 import { Do, UserClient } from "./Do"
 export { Do }
+import { Items } from "./Items"
 import { Users } from "./Users"
 
 export class Context {
@@ -49,6 +50,16 @@ export class Context {
 				gracely.server.databaseFailure("Failed to open archive."))
 		)
 	}
+	#items?: Items | gracely.Error
+	get items(): Items | gracely.Error {
+		let namespace: storage.DurableObject.Namespace | undefined
+		return (
+			(this.#items ??=
+				this.environment.itemNamespace &&
+				(namespace = storage.DurableObject.Namespace.open(this.environment.itemNamespace)) &&
+				Items.open(namespace)) ?? gracely.server.misconfigured("itemNamespace", "Environment variable missing.")
+		)
+	}
 	constructor(public readonly environment: Environment) {}
 	async authenticate(request: http.Request): Promise<"admin" | undefined> {
 		return this.environment.adminSecret && request.header.authorization == `Basic ${this.environment.adminSecret}`
@@ -65,4 +76,8 @@ export class Context {
 		}
 		return http.Response.to(result)
 	}
+}
+
+export namespace Context {
+	export const Item = Items.Item
 }

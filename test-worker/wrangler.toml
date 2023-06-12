@@ -21,6 +21,7 @@ command = "npm install && npm run build"
 bindings = [
 	{ name = "DatabaseBuffer", class_name = "Backend" },
 	{ name = "Do", class_name = "Do" },
+	{ name = "itemNamespace", class_name = "Context" }
 ]
 
 [miniflare]
