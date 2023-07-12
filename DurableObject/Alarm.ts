@@ -79,7 +79,7 @@ export class Alarm {
 		occurring.forEach(o => (o.next = this.#nextRecurring(o.next, o.unit, o.interval)))
 		const notOccurring = this.recurringAlarms.filter(a => !occurring.includes(a))
 		const futureOccurring = occurring.concat(notOccurring)
-
+		this.recurringAlarms = undefined
 		futureOccurring.sort((t1, t2) => {
 			if (t1.next < t2.next)
 				return -1
@@ -90,14 +90,16 @@ export class Alarm {
 		if (futureOccurring.length > 0)
 			await this.storage.put("alarms|recurring", futureOccurring)
 
-		this.alarms.sort((t1, t2) => {
-			if (t1.time < t2.time)
-				return -1
-			if (t1.time > t2.time)
-				return 1
-			return 0
-		})
-		const next = this.alarms.filter(a => a.time > now)
+		const next = this.alarms
+			.filter(a => a.time > now)
+			.sort((t1, t2) => {
+				if (t1.time < t2.time)
+					return -1
+				if (t1.time > t2.time)
+					return 1
+				return 0
+			})
+		this.alarms = undefined
 		if (next.length > 0) {
 			await this.storage.put("alarms|", next)
 		} else {
@@ -113,6 +115,7 @@ export class Alarm {
 			await this.storage.setAlarm(isoly.DateTime.parse(next[0].time))
 		}
 	}
+
 	#nextRecurring(
 		now: isoly.DateTime,
 		unit: "years" | "months" | "days" | "hours" | "minutes" | "seconds" | "milliseconds",

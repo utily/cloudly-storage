@@ -29,7 +29,11 @@ export class Users {
 		return await client.patch<model.User>("/user/" + id + "/level", value)
 	}
 
-	async alarm(): Promise<string | gracely.Error> {
+	async alarmSet(): Promise<string | gracely.Error> {
+		const client = this.backend.open("test")
+		return client.post<string>("/alarm", {})
+	}
+	async alarmGet(): Promise<string | gracely.Error> {
 		const client = this.backend.open("test")
 		return client.get<string>("/alarm")
 	}

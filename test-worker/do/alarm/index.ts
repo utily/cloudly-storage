@@ -1,1 +1,2 @@
 import "./alarm"
+import "./fetch"

@@ -1,11 +1,11 @@
-//import * as isoly from "isoly"
+// import * as isoly from "isoly"
 import * as http from "cloudly-http"
 import { Context } from "../Context"
 import { router } from "../router"
 
-export async function set(request: http.Request, context: Context): Promise<http.Response.Like | any> {
-	await context.alarm.recurring("printAfter1", "minutes", 1)
-	await context.alarmTester5()
+export async function list(request: http.Request, context: Context): Promise<http.Response.Like | any> {
+	const a = await context.state.storage.get("alarms|")
+	console.log(a)
 	// const alarm = context.alarm
 	// const now = isoly.DateTime.now()
 	// await context.state.storage.put("alarms|", [{ time: isoly.DateTime.previousHour(now), action: "printEveryFifteen" }])
@@ -22,4 +22,4 @@ export async function set(request: http.Request, context: Context): Promise<http
 
 	return "success"
 }
-router.add("POST", "/alarm", set)
+router.add("GET", "/alarm", list)
