@@ -62,4 +62,19 @@ describe("KeyValueStore.Indexed", () => {
 			expect(await store.list({ index: "license" })).toEqual([])
 		}
 	})
+	it("get indexed", async () => {
+		const store = await create(joe, jane)
+		expect(store).toBeTruthy()
+		if (store) {
+			expect(await store.get("doe joe")).toEqual({
+				meta: undefined,
+				value: { email: "joe@example.com", name: { first: "Joe", last: "Doe" } },
+			})
+			expect(await store.get("joe@example.com", "email")).toEqual({
+				meta: undefined,
+				value: { email: "joe@example.com", name: { first: "Joe", last: "Doe" } },
+			})
+			expect(await store.get("doe joe", "email")).toEqual(undefined)
+		}
+	})
 })

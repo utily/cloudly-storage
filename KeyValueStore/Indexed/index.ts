@@ -21,8 +21,14 @@ export class Indexed<V, I extends string, M = any> implements KeyValueStore<V, M
 			await Promise.all((Object.values(this.indexes) as Index<V>[]).map(index => index.set(value, key, options)))
 		}
 	}
-	async get(key: string): Promise<{ value: V; meta?: M | undefined } | undefined> {
-		return this.data.get(key)
+	async get(key: string, index?: I): Promise<{ value: V; meta?: M | undefined } | undefined> {
+		let result: { value: V; meta?: M | undefined } | undefined
+		if (index) {
+			const indexKey = await this.indexes[index].get(key)
+			result = indexKey ? await this.data.get(indexKey) : undefined
+		} else
+			result = await this.data.get(key)
+		return result
 	}
 	async list(options?: string | (ListOptions & { index?: I }) | undefined): Promise<Continuable<ListItem<V, M>>> {
 		return typeof options == "object" && options?.index
@@ -59,6 +65,9 @@ class Index<V> {
 			await this.backend.set(index, key, options)
 		else if (index)
 			await this.backend.set(index)
+	}
+	async get(key: string): Promise<string | undefined> {
+		return (await this.backend.get(key))?.value
 	}
 	async list(options?: string | ListOptions): Promise<Continuable<string>> {
 		return (await this.backend.list(options)).map(item => item.value ?? "")
