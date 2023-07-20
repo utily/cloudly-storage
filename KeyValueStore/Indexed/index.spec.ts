@@ -70,6 +70,10 @@ describe("KeyValueStore.Indexed", () => {
 				meta: undefined,
 				value: { email: "joe@example.com", name: { first: "Joe", last: "Doe" } },
 			})
+			expect(await store.get("joe@example.com", "email")).toEqual({
+				meta: undefined,
+				value: { email: "joe@example.com", name: { first: "Joe", last: "Doe" } },
+			})
 			expect(await store.get("doe joe", "email")).toEqual(undefined)
 		}
 	})
