@@ -29,6 +29,11 @@ export namespace Continuable {
 			const map = result.map
 			result.map = <U>(callbackfn: (value: T, index: number, array: T[]) => U, thisArg?: any): Continuable<U> =>
 				create(map.bind(result)(callbackfn, thisArg), cursor)
+			const flatMap = result.flatMap
+			result.flatMap = <U, This = undefined>(
+				callbackfn: (this: This, value: T, index: number, array: T[]) => U | ReadonlyArray<U>,
+				thisArg?: This
+			): Continuable<U> => create(flatMap.bind(result)(callbackfn, thisArg), cursor)
 			const filter = result.filter
 			result.filter = <S extends T>(
 				predicate: (value: T, index: number, array: T[]) => value is S,
