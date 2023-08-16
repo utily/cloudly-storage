@@ -43,6 +43,19 @@ describe("Continuable", () => {
 		)
 		expect((r2 as any).cursor).toEqual("abcd")
 	})
+	it("flat map", async () => {
+		const continuable = storage.Continuable.create(array, "abcd")
+		const r = continuable.flatMap(Math.sqrt)
+		expect(storage.Continuable.is(r)).toEqual(true)
+		expect(storage.Continuable.hasCursor(r)).toEqual(true)
+		expect(r.toString()).toEqual(
+			[
+				1, 1.4142135623730951, 1.7320508075688772, 2, 2.23606797749979, 2.449489742783178, 2.6457513110645907,
+				2.8284271247461903, 3,
+			].toString()
+		)
+		expect((r as any).cursor).toEqual("abcd")
+	})
 	it("filter", async () => {
 		const continuable = storage.Continuable.create(array, "abcd")
 		const r = continuable.filter(v => v % 2 == 0)
