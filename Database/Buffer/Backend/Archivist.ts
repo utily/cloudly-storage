@@ -150,7 +150,7 @@ export class Archivist {
 		}
 		return (
 			{
-				documents: Array.from((await this.storage.portion.get<Item | Document>(staleKeys)).values()),
+				documents: Array.from((await this.storage.storage.get<Item | Document>(staleKeys)).values()),
 				changed: staleKeys.join("\n"),
 			} ?? {}
 		)
