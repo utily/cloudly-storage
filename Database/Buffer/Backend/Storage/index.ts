@@ -1,11 +1,11 @@
 import * as isoly from "isoly"
 import * as platform from "@cloudflare/workers-types"
+import { Portion } from "../../../../DurableObject"
 import { Document } from "../../../Document"
 import { Identifier } from "../../../Identifier"
 import { Item } from "../../../Item"
 import { Status } from "../../Status"
 import { error } from "../error"
-import { Portion } from "./Portion"
 
 export class Storage {
 	private constructor(
