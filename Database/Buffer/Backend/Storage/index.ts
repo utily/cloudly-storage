@@ -1,6 +1,6 @@
 import * as isoly from "isoly"
 import * as platform from "@cloudflare/workers-types"
-import { Portion } from "../../../../DurableObject"
+import { Storage as StorageStorage } from "../../../../DurableObject"
 import { Document } from "../../../Document"
 import { Identifier } from "../../../Identifier"
 import { Item } from "../../../Item"
@@ -10,7 +10,7 @@ import { error } from "../error"
 export class Storage {
 	private constructor(
 		private readonly state: platform.DurableObjectState,
-		public readonly portion: Portion,
+		public readonly storage: StorageStorage,
 		public readonly changedPrecision: "seconds" | "minutes" | "hours"
 	) {}
 
@@ -75,7 +75,7 @@ export class Storage {
 			}
 		} else if (Array.isArray(selection)) {
 			selection = await this.locked(selection, lock)
-			const listed = Object.fromEntries((await this.portion.get<T>(selection)).entries())
+			const listed = Object.fromEntries((await this.storage.get<T>(selection)).entries())
 			result = Object.values(listed)
 		} else {
 			const limit = selection.limit
@@ -87,7 +87,7 @@ export class Storage {
 			if (typeof listed[0] != "string")
 				result = listed as T[]
 			else
-				result = Array.from((await this.portion.get<T>(listed as string[])).values())
+				result = Array.from((await this.storage.get<T>(listed as string[])).values())
 		}
 		return result
 	}
@@ -97,7 +97,7 @@ export class Storage {
 		unlock?: true
 	): Promise<(Document & Record<string, any>) | (Document & Record<string, any>)[]> {
 		const oldIdIndices = Object.fromEntries(
-			(await this.portion.get<string>(Object.values(items).map(document => "id/" + document.meta.id))).entries()
+			(await this.storage.get<string>(Object.values(items).map(document => "id/" + document.meta.id))).entries()
 		)
 		const now = isoly.DateTime.now()
 		const { newDocuments, idIndices, indices } = Object.entries(items).reduce(
@@ -115,7 +115,7 @@ export class Storage {
 			{ newDocuments: {}, idIndices: {}, indices: {} }
 		)
 		const changedIndex = await this.updateChangedIndex(newDocuments, unlock)
-		await this.portion.put({
+		await this.storage.put({
 			...indices,
 			...newDocuments,
 			...idIndices,
@@ -150,8 +150,8 @@ export class Storage {
 	}
 	async updateChangedIndex(documents: Record<string, Item<Document>>, unlock?: true): Promise<Record<string, string>> {
 		const ids = Object.keys(documents)
-		const oldDocuments = Array.from((await this.portion.get<Item<Document>>(ids)).values())
-		await this.portion.remove([
+		const oldDocuments = Array.from((await this.storage.get<Item<Document>>(ids)).values())
+		await this.storage.remove([
 			...oldDocuments.map(document => this.changedKey(document.meta)),
 			...(unlock ? oldDocuments.map(document => "lock/" + document.meta.id) : []),
 		])
@@ -173,10 +173,10 @@ export class Storage {
 		} else {
 			const idKey = ids.map(e => "id/" + e)
 			const lockKey = ids.map(e => "lock/" + e)
-			const key = Array.from((await this.portion.get<string>(idKey)).values())
-			const documents = Array.from((await this.portion.get<Record<string, any>>(key)).entries())
+			const key = Array.from((await this.storage.get<string>(idKey)).values())
+			const documents = Array.from((await this.storage.get<Record<string, any>>(key)).entries())
 			const changed = documents.map(document => this.changedKey(document))
-			const deleted = await this.portion.remove([...key, ...idKey, ...changed, ...lockKey])
+			const deleted = await this.storage.remove([...key, ...idKey, ...changed, ...lockKey])
 			result = deleted.slice(0)
 		}
 		return result
@@ -187,7 +187,7 @@ export class Storage {
 		if (typeof keys == "string")
 			result = !!keys && (await this.state.storage.delete(keys))
 		else
-			result = await this.portion.remove(keys)
+			result = await this.storage.remove(keys)
 		return result
 	}
 
@@ -206,9 +206,9 @@ export class Storage {
 			: Array.isArray(id)
 			? await this.state.blockConcurrencyWhile(async () => {
 					const ids = id as string[]
-					const locks = Object.fromEntries((await this.portion.get<string>(ids.map(i => "lock/" + i))).entries())
+					const locks = Object.fromEntries((await this.storage.get<string>(ids.map(i => "lock/" + i))).entries())
 					id = ids.filter(i => (locks["lock/" + i] ?? "") < isoly.DateTime.now())
-					await this.portion.put(
+					await this.storage.put(
 						id.reduce(
 							(r, k) => ({
 								...r,
@@ -231,6 +231,6 @@ export class Storage {
 		state: platform.DurableObjectState | undefined,
 		changedPrecision?: "seconds" | "minutes" | "hours"
 	): Storage | undefined {
-		return state ? new Storage(state, Portion.open(state.storage), changedPrecision ?? "seconds") : undefined
+		return state ? new Storage(state, StorageStorage.open(state.storage), changedPrecision ?? "seconds") : undefined
 	}
 }
