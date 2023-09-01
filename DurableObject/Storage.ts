@@ -1,8 +1,9 @@
 import * as platform from "@cloudflare/workers-types"
+import { Alarm } from "./Alarm"
 
 export class Storage {
 	private keyLimit = 128
-	private constructor(private readonly storage: platform.DurableObjectState["storage"]) {}
+	private constructor(private readonly storage: platform.DurableObjectState["storage"], public readonly alarm: Alarm) {}
 
 	async put<T = unknown>(
 		data: Record<string, T>,
@@ -66,9 +67,9 @@ export class Storage {
 	async deleteAlarm(options?: platform.DurableObjectSetAlarmOptions): Promise<void> {
 		return this.storage.deleteAlarm(options)
 	}
-	static open(storage: platform.DurableObjectState["storage"]): Storage
-	static open(storage: platform.DurableObjectState["storage"] | undefined): Storage | undefined
-	static open(storage: platform.DurableObjectState["storage"] | undefined): Storage | undefined {
-		return storage ? new Storage(storage) : undefined
+	static open(storage: platform.DurableObjectState["storage"], alarm?: Alarm): Storage
+	static open(storage: platform.DurableObjectState["storage"] | undefined, alarm?: Alarm): Storage | undefined
+	static open(storage: platform.DurableObjectState["storage"] | undefined, alarm?: Alarm): Storage | undefined {
+		return storage ? new Storage(storage, alarm ?? new Alarm(storage)) : undefined
 	}
 }
