@@ -4,6 +4,7 @@ import { Error } from "../Error"
 
 export class Client<E = Error> {
 	onError?: (request: http.Request, response: http.Response) => Promise<boolean>
+	toError?: (request: http.Request, response: http.Response) => Promise<E>
 	get id(): string {
 		return this.stub.id.toString()
 	}
@@ -29,9 +30,13 @@ export class Client<E = Error> {
 				(await http.Request.to(request)) as unknown as platform.RequestInit<platform.RequestInitCfProperties>
 			)) as unknown as Response
 		)
-		return response.status >= 300 && this.onError && (await this.onError(request, response))
-			? await this.fetch<R>(path, method, body, header)
-			: ((await response.body) as R | E)
+		return (
+			(response.status >= 300 &&
+				((await this.onError?.(request, response))
+					? await this.fetch<R>(path, method, body, header)
+					: await this.toError?.(request, response))) ||
+			((await response.body) as R | E)
+		)
 	}
 	async get<R>(path: string, header?: http.Request.Header): Promise<R | E> {
 		return await this.fetch<R>(path, "GET", undefined, header)
