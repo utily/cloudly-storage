@@ -1,13 +1,10 @@
-import * as platform from "@cloudflare/workers-types";
+import { Blob as BucketBlob } from "./Blob"
 
-export abstract class Bucket<V extends unknown, M extends Record<string, string>> {
-	protected constructor(protected readonly backend: platform.R2Bucket) {
+export namespace Bucket {
+	export type Blob = BucketBlob
+	export const Blob = BucketBlob
+	export namespace Blob {
+		export type Result<M extends Record<string, string> | undefined> = BucketBlob.Result<M>
 	}
-	abstract store(key: string, value: V): Promise<platform.R2Object | undefined> 
-
-	abstract get(key: string): Promise<{ value: V; meta?: M } | undefined>
-
-	abstract remove(): Promise<V>
-
-	abstract list(): Promise<V[]> 
+	export type Result<M extends Record<string, string> | undefined> = BucketBlob.Result<M>
 }
