@@ -2,21 +2,20 @@
 	// Update search.exclude if you add a pattern to files.exclude
 	"files.exclude": {
 		".*": true,
+		"*.code-workspace": true,
 		"*.json": true,
 		"CODEOWNERS": true,
 		"dist": true,
-		"README.md": true,
 		"LICENSE": true,
-		"tsconfig.*": true,
 		"node_modules": true,
-		"*.code-workspace": true,
+		"README.md": true,
 		"test-worker/.*": true,
 		"test-worker/*.json": true,
-		"test-worker/rollup.config.js": true,
-		"test-worker/wrangler.toml": true,
 		"test-worker/dist": true,
-		"test-worker/tsconfig.*": true,
 		"test-worker/node_modules": true,
+		"test-worker/rollup.config.js": true,
+		"test-worker/tsconfig.*": true,
+		"tsconfig.*": true
 	},
 	// Make it possible to open excluded files with Ctrl + P
 	"search.exclude": {

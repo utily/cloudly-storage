@@ -12,6 +12,8 @@ kv_namespaces = [
 	{ binding = "kvStore", id = "429fa89f123548ddaf4fba0591b367e8", preview_id = "429fa89f123548ddaf4fba0591b367e8" },
 ]
 
+r2_buckets = [{bindings: "bucket", bucket_name: exampleBucket}]
+
 vars = { }
 
 [build]

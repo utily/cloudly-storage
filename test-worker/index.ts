@@ -4,6 +4,7 @@ import { Environment } from "./Environment"
 import "./db"
 import "./do"
 import "./kv"
+import "./report"
 import "./version"
 
 export async function fetch(request: Request, environment: Environment) {

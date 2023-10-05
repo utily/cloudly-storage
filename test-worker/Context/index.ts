@@ -8,6 +8,7 @@ import { Archive } from "./Archive"
 import { Collection } from "./Collection"
 import { Do, UserClient } from "./Do"
 export { Do }
+import { Reports } from "./Reports"
 import { Users } from "./Users"
 
 export class Context {
@@ -49,6 +50,12 @@ export class Context {
 				gracely.server.databaseFailure("Failed to open archive."))
 		)
 	}
+	#reports?: Reports | gracely.Error
+	get reports(): Reports | gracely.Error {
+		return (this.#reports ??=
+			Reports.open(this.environment) ?? gracely.server.databaseFailure("Failed to open reports."))
+	}
+
 	constructor(public readonly environment: Environment) {}
 	async authenticate(request: http.Request): Promise<"admin" | undefined> {
 		return this.environment.adminSecret && request.header.authorization == `Basic ${this.environment.adminSecret}`
