@@ -1,6 +1,6 @@
 {
 	"name": "cloudly-storage",
-	"version": "0.9.10",
+	"version": "0.9.11",
 	"description": "Library to simplify usage of Cloudflare Workers Storage.",
 	"author": "Simon Mika",
 	"license": "MIT",
