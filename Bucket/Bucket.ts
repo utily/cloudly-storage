@@ -1,7 +1,7 @@
 import * as platform from "@cloudflare/workers-types"
 
 export abstract class Bucket<
-	V extends platform.Blob | ArrayBuffer | File,
+	V extends platform.Blob | platform.File | ArrayBuffer | string,
 	M extends Record<string, string> | undefined = undefined
 > {
 	protected constructor(protected readonly backend: platform.R2Bucket) {}
@@ -15,7 +15,7 @@ export namespace Bucket {
 	export type GetOptions = platform.R2GetOptions
 	export type ListOptions = platform.R2ListOptions & { values?: boolean }
 	export interface Result<
-		V extends platform.Blob | ArrayBuffer | File,
+		V extends platform.Blob | platform.File | ArrayBuffer | string,
 		M extends Record<string, string> | undefined = undefined
 	> {
 		value: V
