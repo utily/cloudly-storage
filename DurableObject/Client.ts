@@ -56,11 +56,9 @@ export class Client<E = Error> {
 	async socket(path: string, header?: http.Request.Header): Promise<platform.WebSocket | undefined> {
 		return (
 			(
-				await this.stub.fetch(
-					new platform.Request(`https://${this.fakeDomain}${path}`, {
-						headers: new platform.Headers({ ...(header && http.Request.Header.to(header)), upgrade: "websocket" }),
-					})
-				)
+				await this.stub.fetch(`https://${this.fakeDomain}${path}`, {
+					headers: { ...(header && http.Request.Header.to(header)), upgrade: "websocket" },
+				})
 			).webSocket ?? undefined
 		)
 	}
