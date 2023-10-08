@@ -53,4 +53,18 @@ export class Client<E = Error> {
 	async put<R>(path: string, request: any, header?: http.Request.Header): Promise<R | E> {
 		return await this.fetch<R>(path, "PUT", request, header)
 	}
+	async socket(path: string, header?: http.Request.Header): Promise<platform.WebSocket | undefined> {
+		return (
+			(
+				await this.stub.fetch(
+					new platform.Request(`https://${this.fakeDomain}${path}`, {
+						headers: new platform.Headers({ ...(header && http.Request.Header.to(header)), upgrade: "websocket" }),
+					})
+				)
+			).webSocket ?? undefined
+		)
+	}
+	connect(address: platform.SocketAddress | string, options?: platform.SocketOptions): platform.Socket {
+		return this.stub.connect(address, options)
+	}
 }
