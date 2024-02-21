@@ -1,6 +1,6 @@
-import * as gracely from "gracely"
+import { gracely } from "gracely"
 import * as platform from "@cloudflare/workers-types"
-import * as http from "cloudly-http"
+import { http } from "cloudly-http"
 import { Environment } from "./Environment"
 import { router } from "./router"
 import { Storage } from "./Storage"

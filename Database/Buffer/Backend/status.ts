@@ -1,4 +1,4 @@
-import * as http from "cloudly-http"
+import { http } from "cloudly-http"
 import { Status } from "../Status"
 import { Context } from "./Context"
 import { error } from "./error"

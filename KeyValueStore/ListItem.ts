@@ -1,4 +1,4 @@
-import * as isoly from "isoly"
+import { isoly } from "isoly"
 
 export interface ListItem<V = any, M = Record<string, any>> {
 	key: string

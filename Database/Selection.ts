@@ -1,4 +1,4 @@
-import * as isoly from "isoly"
+import { isoly } from "isoly"
 
 export type Selection =
 	| { limit?: number } & (

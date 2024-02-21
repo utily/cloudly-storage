@@ -1,4 +1,4 @@
-import * as isoly from "isoly"
+import { isoly } from "isoly"
 import { Item } from "./Item"
 
 describe("Database Document", () => {

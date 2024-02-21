@@ -1,4 +1,4 @@
-import * as http from "cloudly-http"
+import { http } from "cloudly-http"
 export interface ListOptions {
 	prefix?: string
 	limit?: number

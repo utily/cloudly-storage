@@ -1,4 +1,4 @@
-import * as isoly from "isoly"
+import { isoly } from "isoly"
 import { Error } from "../../Error"
 import { Archive } from "../Archive"
 import { Buffer } from "../Buffer"

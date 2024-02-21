@@ -1,4 +1,4 @@
-import * as isoly from "isoly"
+import { isoly } from "isoly"
 import * as storage from "../../index"
 
 describe("KeyValueStore.open", () => {

@@ -1,5 +1,5 @@
-//import * as isoly from "isoly"
-import * as http from "cloudly-http"
+//import { isoly } from "isoly"
+import { http } from "cloudly-http"
 import { Context } from "../Context"
 import { router } from "../router"
 

@@ -1,4 +1,4 @@
-import * as isoly from "isoly"
+import { isoly } from "isoly"
 import { KeyValueStore } from "../KeyValueStore"
 import { Configuration } from "./Configuration"
 import { Cursor } from "./Cursor"

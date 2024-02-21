@@ -1,5 +1,5 @@
-import * as cryptly from "cryptly"
-import * as isoly from "isoly"
+import { cryptly } from "cryptly"
+import { isoly } from "isoly"
 import * as platform from "@cloudflare/workers-types"
 import { Continuable } from "./Continuable"
 import { KeyValueStore } from "./KeyValueStore"
