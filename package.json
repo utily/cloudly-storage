@@ -1,6 +1,6 @@
 {
 	"name": "cloudly-storage",
-	"version": "0.10.3",
+	"version": "0.10.4",
 	"description": "Library to simplify usage of Cloudflare Workers Storage.",
 	"author": "Simon Mika",
 	"license": "MIT",
@@ -10,7 +10,7 @@
 	},
 	"homepage": "https://github.com/utily",
 	"private": false,
-	"main": "dist/index.js",
+	"module": "dist/index.js",
 	"typings": "dist/index.d.ts",
 	"type": "module",
 	"git": {
