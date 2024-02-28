@@ -1,5 +1,5 @@
-import * as cryptly from "cryptly"
-import * as isoly from "isoly"
+import { cryptly } from "cryptly"
+import { isoly } from "isoly"
 import { Selection } from "./Selection"
 
 export type Cursor = {

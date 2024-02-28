@@ -1,4 +1,4 @@
-import * as cryptly from "cryptly"
+import { cryptly } from "cryptly"
 import { Continuable } from "./Continuable"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"

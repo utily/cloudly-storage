@@ -1,5 +1,5 @@
 import * as platform from "@cloudflare/workers-types"
-import * as http from "cloudly-http"
+import { http } from "cloudly-http"
 import { Error } from "../Error"
 
 export class Client<E = Error> {

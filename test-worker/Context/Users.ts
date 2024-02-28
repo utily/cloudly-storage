@@ -1,4 +1,4 @@
-//import * as isoly from "isoly"
+//import { isoly } from "isoly"
 import * as storage from "cloudly-storage"
 import * as model from "../model"
 

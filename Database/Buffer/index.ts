@@ -1,4 +1,4 @@
-import * as isoly from "isoly"
+import { isoly } from "isoly"
 import * as DurableObject from "../../DurableObject"
 import { Error } from "../../Error"
 import { Configuration } from "../Configuration"

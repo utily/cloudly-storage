@@ -1,5 +1,5 @@
-import * as cryptly from "cryptly"
-import * as isoly from "isoly"
+import { cryptly } from "cryptly"
+import { isoly } from "isoly"
 
 type ShardCount = 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256
 

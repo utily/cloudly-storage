@@ -1,4 +1,4 @@
-import * as isoly from "isoly"
+import { isoly } from "isoly"
 import * as platform from "@cloudflare/workers-types"
 
 export class Alarm {

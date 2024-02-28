@@ -1,4 +1,4 @@
-import * as isoly from "isoly"
+import { isoly } from "isoly"
 import { Continuable } from "../Continuable"
 import { KeyValueStore } from "../KeyValueStore"
 import { ListItem } from "../ListItem"

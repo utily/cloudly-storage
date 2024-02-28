@@ -27,7 +27,7 @@ The binding in the kv-namespaces and the name of the durable_objects bindings ca
 Lets say we want to open a transactional database that can store users with an interface User. A type Layout is required to configure the types of the database, in which you define what type of document you want to store, the name of the document type and the type of database you want. The type of the Layout can be found [here](Database/index.ts) as the type `Database`.
 ```ts
 import { User } from "../model/User"
-import * as gracely from "gracely"
+import { gracely } from "gracely"
 
 type Layout = { collection: { user: User } }
 

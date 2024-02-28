@@ -1,4 +1,4 @@
-import * as cryptly from "cryptly"
+import { cryptly } from "cryptly"
 export type Identifier = string
 
 export namespace Identifier {

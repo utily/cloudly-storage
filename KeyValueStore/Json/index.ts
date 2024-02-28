@@ -1,4 +1,4 @@
-import * as isoly from "isoly"
+import { isoly } from "isoly"
 import * as platform from "@cloudflare/workers-types"
 import { create as kvCreate } from "../create"
 import { KeyValueStore } from "../KeyValueStore"
