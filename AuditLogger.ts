@@ -1,0 +1,76 @@
+import { cryptly } from "cryptly"
+import { isoly } from "isoly"
+import * as platform from "@cloudflare/workers-types"
+import { KeyValueStore } from "./KeyValueStore"
+import { Continuable } from "./KeyValueStore/Continuable"
+
+export class AuditLogger<T extends Record<string, string>> {
+	private entry: AuditLogger.Entry<T> | undefined
+	private constructor(
+		private readonly store: KeyValueStore.Indexed<AuditLogger.Entry<T>, "resource">,
+		private readonly executionContext: platform.ExecutionContext
+	) {}
+	finalize(before?: unknown, after?: unknown): void {
+		if (this.entry) {
+			this.entry.resource.before = before
+			this.entry.resource.after = after
+			this.executionContext.waitUntil(
+				this.store.set(`${isoly.DateTime.invert(this.entry.created)}|${this.entry.id}`, this.entry)
+			)
+		} else
+			console.log("Failed in storage.AuditLogger.finalize(), no entry to finalize.")
+	}
+	initiate(resource: AuditLogger.Resource<T>, by?: string): void {
+		this.entry = {
+			id: cryptly.Identifier.generate(4),
+			created: isoly.DateTime.now(),
+			resource,
+			by: by ?? "unknown",
+			messages: [],
+		}
+	}
+	async list(resource?: Extract<keyof T, string>): Promise<Continuable<AuditLogger.Entry<T>>> {
+		const list = await this.store.list({ index: "resource", prefix: resource, limit: 200, values: true })
+		const result = list.reduce<Continuable<AuditLogger.Entry<T>>>((r: AuditLogger.Entry<T>[], e) => {
+			e.value && r.push(e.value)
+			return r
+		}, [])
+		result.cursor = list.cursor
+		return result
+	}
+	log(message: string): void {
+		this.entry
+			? this.entry.messages.push(message)
+			: console.log("Failed in storage.AuditLogger.log(), no entry to add messages to.")
+	}
+
+	static open<T extends Record<string, string>>(
+		store: KeyValueStore,
+		executionContext: platform.ExecutionContext
+	): AuditLogger<T> | undefined {
+		const partitioned = KeyValueStore.partition<AuditLogger.Entry<T>>(store, "audit|")
+		const indexed = KeyValueStore.Indexed.create(partitioned, {
+			resource: (entry: AuditLogger.Entry<T>) =>
+				`${entry.resource.type}|${isoly.DateTime.invert(entry.created)}|${entry.id}`,
+		})
+		return new this(indexed, executionContext)
+	}
+}
+export namespace AuditLogger {
+	export type Resource<T extends Record<string, string>> = {
+		[K in keyof T]: {
+			id: string
+			type: Extract<K, string>
+			action: T[K]
+			before?: unknown
+			after?: unknown
+		}
+	}[keyof T]
+	export interface Entry<T extends Record<string, string>> {
+		id: string
+		created: isoly.DateTime
+		resource: Resource<T>
+		by: string
+		messages: string[]
+	}
+}
