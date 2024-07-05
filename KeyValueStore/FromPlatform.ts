@@ -35,12 +35,7 @@ export class FromPlatform<
 	}
 	async get(key: string): Promise<{ value: V; meta?: M } | undefined> {
 		const data = await this.backend.getWithMetadata(key, { type: this.type as any })
-		return data.value != null
-			? {
-					value: data.value as V,
-					meta: data.metadata as M,
-			  }
-			: undefined
+		return data.value == null ? undefined : { value: data.value as V, meta: data.metadata as M }
 	}
 	async list(options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> {
 		let result: Continuable<ListItem<V, M>>
@@ -62,23 +57,14 @@ export class FromPlatform<
 			} else
 				result = await this.range(o)
 		else {
-			const data = await this.backend.list({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
+			const data = await this.backend.list<M>({ prefix: o.prefix, limit: o.limit, cursor: o.cursor })
 			result = await Promise.all(
-				data.keys
-					.map(async item => ({
-						key: item.name,
-						expires: item.expiration ? isoly.DateTime.create(item.expiration) : undefined,
-						meta: item.metadata as M,
-					}))
-					.map(
-						o.values
-							? i =>
-									i.then(async item => ({
-										...item,
-										value: await this.backend.get(item.key, { type: this.type as any }),
-									}))
-							: i => i
-					)
+				data.keys.map(async key => ({
+					key: key.name,
+					expires: key.expiration ? isoly.DateTime.create(key.expiration) : undefined,
+					meta: key.metadata,
+					value: !o.values ? undefined : (await this.backend.get<V>(key.name, { type: this.type as any })) ?? undefined,
+				}))
 			)
 			if (!data.list_complete && data.cursor)
 				result.cursor = data.cursor
