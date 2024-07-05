@@ -46,13 +46,6 @@
 		"preset": "ts-jest",
 		"testMatch": null
 	},
-	"overridesComments": {
-		"yaml": "github:utily/prettierx#utily-20221229 depends on vulnerable version of yaml"
-	},
-	"overrides": {
-		"yaml": "^2.2.2",
-		"semver": "7.5.3"
-	},
 	"scripts": {
 		"lint": "eslint --max-warnings=0 '**/*.{ts,tsx}'",
 		"fix": "eslint '**/*.{ts,tsx}' --fix",
@@ -63,24 +56,24 @@
 		"start": "npm --prefix test-worker run start"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20240208.0",
+		"@cloudflare/workers-types": "^4.20240620.0",
 		"@types/jest": "^29.5.12",
-		"@typescript-eslint/eslint-plugin": "7.0.2",
-		"@typescript-eslint/parser": "7.0.2",
-		"eslint": "^8.56.0",
+		"@typescript-eslint/eslint-plugin": "7.15.0",
+		"@typescript-eslint/parser": "7.15.0",
+		"eslint": "^8.57.0",
 		"eslint-plugin-prettierx": "github:utily/eslint-plugin-prettierx#utily-20231004",
-		"eslint-plugin-simple-import-sort": "^12.0.0",
+		"eslint-plugin-simple-import-sort": "^12.1.1",
 		"jest": "^29.7.0",
 		"prettierx": "github:utily/prettierx#utily-20231004",
-		"rimraf": "^5.0.5",
-		"ts-jest": "^29.1.2",
-		"typescript": "^5.3.3"
+		"rimraf": "^5.0.7",
+		"ts-jest": "^29.1.5",
+		"typescript": "^5.5.3"
 	},
 	"dependencies": {
 		"cloudly-http": "^0.1.7",
 		"cloudly-router": "^0.1.1",
-		"cryptly": "^4.0.4",
+		"cryptly": "^4.0.5",
 		"gracely": "^2.0.8",
-		"isoly": "^2.3.8"
+		"isoly": "^2.3.11"
 	}
 }
