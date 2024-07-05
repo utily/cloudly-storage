@@ -34,8 +34,8 @@ export class FromPlatform<
 			)
 	}
 	async get(key: string): Promise<{ value: V; meta?: M } | undefined> {
-		const data = await this.backend.getWithMetadata(key, { type: this.type as any })
-		return data.value == null ? undefined : { value: data.value as V, meta: data.metadata as M }
+		const data = await this.backend.getWithMetadata<M>(key, { type: this.type as any })
+		return !data.value ? undefined : { value: data.value as V, meta: data.metadata ?? undefined }
 	}
 	async list(options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> {
 		let result: Continuable<ListItem<V, M>>
