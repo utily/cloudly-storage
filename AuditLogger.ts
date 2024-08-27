@@ -21,7 +21,7 @@ export class AuditLogger<T extends Record<string, string>> {
 		this.entry = {
 			id: this.entry?.id ?? cryptly.Identifier.generate(4),
 			created: this.entry?.created ?? isoly.DateTime.now(),
-			resource: { type: "unknown", action: "unknown", ...this.entry, ...resource },
+			resource: { type: "unknown", action: "unknown", ...this.entry?.resource, ...resource },
 			by: by ?? this.entry?.by ?? "unknown",
 			messages: [],
 		}
