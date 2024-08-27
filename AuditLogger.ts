@@ -5,27 +5,34 @@ import { KeyValueStore } from "./KeyValueStore"
 import { Continuable } from "./KeyValueStore/Continuable"
 
 export class AuditLogger<T extends Record<string, string>> {
+	#before: unknown
+	set before(before: unknown) {
+		this.#before = before
+	}
+	#after: unknown
+	set after(after: unknown) {
+		this.#after = after
+	}
 	private entry: AuditLogger.Entry<T> | undefined
 	private constructor(
 		private readonly store: KeyValueStore.Indexed<AuditLogger.Entry<T>, "resource">,
 		private readonly executionContext: platform.ExecutionContext
 	) {}
-	finalize(before?: unknown, after?: unknown): void {
+	finalize(): void {
 		if (this.entry) {
-			this.entry.resource.before = before
-			this.entry.resource.after = after
+			this.entry.resource.before = this.#before ?? this.entry.resource.before
+			this.entry.resource.after = this.#after ?? this.entry.resource.after
 			this.executionContext.waitUntil(
 				this.store.set(`${isoly.DateTime.invert(this.entry.created)}|${this.entry.id}`, this.entry)
 			)
-		} else
-			console.log("Failed in storage.AuditLogger.finalize(), no entry to finalize.")
+		}
 	}
-	initiate(resource: AuditLogger.Resource<T>, by?: string): void {
+	configure(resource: Partial<AuditLogger.Resource<T>>, by?: string): void {
 		this.entry = {
-			id: cryptly.Identifier.generate(4),
-			created: isoly.DateTime.now(),
-			resource,
-			by: by ?? "unknown",
+			id: this.entry?.id ?? cryptly.Identifier.generate(4),
+			created: this.entry?.created ?? isoly.DateTime.now(),
+			resource: { type: "unknown", action: "unknown", ...this.entry, ...resource },
+			by: by ?? this.entry?.by ?? "unknown",
 			messages: [],
 		}
 	}
@@ -39,9 +46,7 @@ export class AuditLogger<T extends Record<string, string>> {
 		return result
 	}
 	log(message: string): void {
-		this.entry
-			? this.entry.messages.push(message)
-			: console.log("Failed in storage.AuditLogger.log(), no entry to add messages to.")
+		this.entry && this.entry.messages.push(message)
 	}
 
 	static open<T extends Record<string, string>>(
@@ -59,9 +64,9 @@ export class AuditLogger<T extends Record<string, string>> {
 export namespace AuditLogger {
 	export type Resource<T extends Record<string, string>> = {
 		[K in keyof T]: {
-			id: string
-			type: Extract<K, string>
-			action: T[K]
+			id?: string
+			type: Extract<K, string> | "unknown"
+			action: T[K] | "unknown"
 			before?: unknown
 			after?: unknown
 		}
