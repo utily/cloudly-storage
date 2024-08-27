@@ -5,14 +5,6 @@ import { KeyValueStore } from "./KeyValueStore"
 import { Continuable } from "./KeyValueStore/Continuable"
 
 export class AuditLogger<T extends Record<string, string>> {
-	#before: unknown
-	set before(before: unknown) {
-		this.#before = before
-	}
-	#after: unknown
-	set after(after: unknown) {
-		this.#after = after
-	}
 	private entry: AuditLogger.Entry<T> | undefined
 	private constructor(
 		private readonly store: KeyValueStore.Indexed<AuditLogger.Entry<T>, "resource">,
@@ -20,8 +12,6 @@ export class AuditLogger<T extends Record<string, string>> {
 	) {}
 	finalize(): void {
 		if (this.entry) {
-			this.entry.resource.before = this.#before ?? this.entry.resource.before
-			this.entry.resource.after = this.#after ?? this.entry.resource.after
 			this.executionContext.waitUntil(
 				this.store.set(`${isoly.DateTime.invert(this.entry.created)}|${this.entry.id}`, this.entry)
 			)
