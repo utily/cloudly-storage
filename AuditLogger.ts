@@ -30,12 +30,14 @@ export class AuditLogger<T extends Record<string, string>> {
 		resource?: Extract<keyof T, string>
 		limit?: number
 		cursor?: string
+		range?: [string, string]
 	}): Promise<Continuable<AuditLogger.Entry<T>>> {
 		const list = await this.store.list({
 			index: "resource",
 			prefix: options?.resource,
 			limit: options?.limit,
 			cursor: options?.cursor,
+			range: options?.range,
 			values: true,
 		})
 		const result = list.reduce<Continuable<AuditLogger.Entry<T>>>((r: AuditLogger.Entry<T>[], e) => {
