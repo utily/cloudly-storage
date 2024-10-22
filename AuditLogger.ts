@@ -26,8 +26,18 @@ export class AuditLogger<T extends Record<string, string>> {
 			messages: [],
 		}
 	}
-	async list(resource?: Extract<keyof T, string>): Promise<Continuable<AuditLogger.Entry<T>>> {
-		const list = await this.store.list({ index: "resource", prefix: resource, limit: 200, values: true })
+	async list(options?: {
+		resource?: Extract<keyof T, string>
+		limit?: number
+		cursor?: string
+	}): Promise<Continuable<AuditLogger.Entry<T>>> {
+		const list = await this.store.list({
+			index: "resource",
+			prefix: options?.resource,
+			limit: options?.limit,
+			cursor: options?.cursor,
+			values: true,
+		})
 		const result = list.reduce<Continuable<AuditLogger.Entry<T>>>((r: AuditLogger.Entry<T>[], e) => {
 			e.value && r.push(e.value)
 			return r
