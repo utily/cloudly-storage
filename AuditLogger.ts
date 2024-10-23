@@ -33,8 +33,8 @@ export class AuditLogger<T extends Record<string, string>> {
 		range?: [string, string]
 	}): Promise<Continuable<AuditLogger.Entry<T>>> {
 		const list = await this.store.list({
-			index: "resource",
-			prefix: options?.resource,
+			index: options?.resource && "resource",
+			prefix: options?.resource && options.resource + "|",
 			limit: options?.limit,
 			cursor: options?.cursor,
 			range: options?.range,
