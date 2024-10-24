@@ -1,4 +1,5 @@
 import { isoly } from "isoly"
+import { describe, expect, it } from "vitest"
 import { Document } from "./Document"
 
 describe("Database Document", () => {

@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest"
 import { Cursor } from "./Cursor"
 import { Selection } from "./Selection"
 
