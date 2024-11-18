@@ -56,7 +56,7 @@
 		"start": "npm --prefix test-worker run start"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20240620.0",
+		"@cloudflare/workers-types": "^4.20241112.0",
 		"@types/jest": "^29.5.12",
 		"@typescript-eslint/eslint-plugin": "7.15.0",
 		"@typescript-eslint/parser": "7.15.0",
@@ -72,7 +72,7 @@
 	"dependencies": {
 		"cloudly-http": "^0.1.7",
 		"cloudly-router": "^0.1.1",
-		"cryptly": "^4.0.5",
+		"cryptly": "^4.0.6",
 		"gracely": "^2.0.8",
 		"isoly": "^2.3.11"
 	}
