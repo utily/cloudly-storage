@@ -1,4 +1,5 @@
-import * as storage from "../index"
+import { describe, expect, it } from "vitest"
+import { storage } from "../index"
 
 describe("Continuable", () => {
 	const array = [1, 2, 3, 4, 5, 6, 7, 8, 9]

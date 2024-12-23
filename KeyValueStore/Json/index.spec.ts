@@ -1,4 +1,5 @@
-import * as storage from "../../index"
+import { describe, expect, it } from "vitest"
+import { storage } from "../../index"
 
 describe("KeyValueStore.Json", () => {
 	it("set get list", async () => {
