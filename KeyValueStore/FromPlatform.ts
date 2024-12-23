@@ -6,6 +6,9 @@ import { KeyValueStore } from "./KeyValueStore"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
 
+// ReadableStream.from is available in the workers runtime, but not they forgot to put it into worker types.
+declare type From<T> = (values: T[]) => platform.ReadableStream<T>
+
 export class FromPlatform<
 	V extends string | ArrayBuffer | ArrayBufferView | platform.ReadableStream = string,
 	M = Record<string, any>
@@ -36,6 +39,30 @@ export class FromPlatform<
 	async get(key: string): Promise<{ value: V; meta?: M } | undefined> {
 		const data = await this.backend.getWithMetadata<M>(key, { type: this.type as any })
 		return data.value == null ? undefined : { value: data.value as V, meta: data.metadata ?? undefined }
+	}
+	async stream(options?: ListOptions): Promise<platform.ReadableStream<ListItem<V, M>> & { cursor?: string }> {
+		const data = await this.backend.list<M>({ prefix: options?.prefix, limit: options?.limit, cursor: options?.cursor })
+		const stream: platform.ReadableStream<ListItem<V, M>> =
+			// They forgot to include the ReadableStream.from method in worker types. So we have to do some wacky casting. Ideally we get rid of it.
+			((platform.ReadableStream as any).from as From<ListItem<V, M>>)(
+				data.keys.map<ListItem<V, M>>(key => ({ key: key.name, meta: key.metadata, value: undefined }))
+			)
+		// controller.enqueue has it's own "this", so we need to capture the instance variables here to use them inside
+		const backend = this.backend
+		const type = this.type
+		const result: platform.ReadableStream<ListItem<V, M>> & { cursor?: string } = stream.pipeThrough(
+			new platform.TransformStream({
+				async transform(chunk, controller) {
+					controller.enqueue({
+						key: chunk.key,
+						meta: chunk.meta,
+						value: (await backend.get<V>(chunk.key, { type: type as any })) ?? undefined,
+					})
+				},
+			})
+		)
+		result.cursor = data.list_complete ? undefined : data.cursor
+		return result
 	}
 	async list(options?: string | ListOptions): Promise<Continuable<ListItem<V, M>>> {
 		let result: Continuable<ListItem<V, M>>
@@ -73,7 +100,7 @@ export class FromPlatform<
 	}
 
 	private async range(options: ListOptions): Promise<Continuable<ListItem<V, M>>> {
-		const firstKey = (options.prefix ?? "") + (options.range && (options.range[0] ?? "")) ?? ""
+		const firstKey = (options.prefix ?? "") + (options.range && (options.range[0] ?? ""))
 		const lastKey = options.range && options.range[1] ? (options.prefix ?? "") + options.range[1] : undefined
 		let search = firstKey.slice(0, -1)
 
