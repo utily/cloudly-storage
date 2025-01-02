@@ -6,7 +6,7 @@ import { KeyValueStore } from "./KeyValueStore"
 import { ListItem } from "./ListItem"
 import { ListOptions } from "./ListOptions"
 
-// ReadableStream.from is available in the workers runtime, but not they forgot to put it into worker types.
+// ReadableStream.from is available in the workers runtime, but they forgot to put it into worker types.
 declare type From<T> = (values: T[]) => platform.ReadableStream<T>
 
 export class FromPlatform<
@@ -45,9 +45,9 @@ export class FromPlatform<
 		const stream: platform.ReadableStream<ListItem<V, M>> =
 			// They forgot to include the ReadableStream.from method in worker types. So we have to do some wacky casting. Ideally we get rid of it.
 			((platform.ReadableStream as any).from as From<ListItem<V, M>>)(
-				data.keys.map<ListItem<V, M>>(key => ({ key: key.name, meta: key.metadata, value: undefined }))
+				data.keys.map<ListItem<V, M>>(key => ({ key: key.name, meta: key.metadata }))
 			)
-		// controller.enqueue has it's own "this", so we need to capture the instance variables here to use them inside
+		// controller.enqueue has its own "this", so we need to capture the instance variables here to use them inside
 		const backend = this.backend
 		const type = this.type
 		const result: platform.ReadableStream<ListItem<V, M>> & { cursor?: string } = stream.pipeThrough(
