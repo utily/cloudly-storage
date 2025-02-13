@@ -12,14 +12,11 @@ export class Indexed<V, I extends string, M = any> implements KeyValueStore<V, M
 	set(key: string, value: V, options?: { retention?: TimeSpan; meta?: M }): Promise<void>
 	async set(key: string, value?: V, options?: { retention?: TimeSpan; meta?: M }): Promise<void> {
 		const old = (await this.data.get(key))?.value
-		if (old) {
-			await this.data.set(key)
-			await Promise.all((Object.values(this.indexes) as Index<V>[]).map(index => index.set(old)))
-		}
-		if (value) {
+		if (value)
 			await this.data.set(key, value, options)
-			await Promise.all((Object.values(this.indexes) as Index<V>[]).map(index => index.set(value, key, options)))
-		}
+		else if (old)
+			await this.data.set(key)
+		await Promise.all(Object.values<Index<V>>(this.indexes).map(index => index.set(value, old, key, options)))
 	}
 	async get(key: string, index?: I): Promise<{ value: V; meta?: M | undefined } | undefined> {
 		let result: { value: V; meta?: M | undefined } | undefined
@@ -57,14 +54,18 @@ export class Indexed<V, I extends string, M = any> implements KeyValueStore<V, M
 
 class Index<V> {
 	constructor(private index: (value: V) => string | undefined, private backend: KeyValueStore<string>) {}
-	set(value: V): Promise<void>
-	set(value: V, key: string, options?: { retention?: TimeSpan | undefined }): Promise<void>
-	async set(value: V, key?: string, options?: { retention?: TimeSpan | undefined }): Promise<void> {
-		const index = this.index(value)
-		if (key && index)
+	async set(
+		value: V | undefined,
+		oldValue: V | undefined,
+		key: string,
+		options?: { retention?: TimeSpan | undefined }
+	): Promise<void> {
+		const index = value && this.index(value)
+		const oldIndex = oldValue && this.index(oldValue)
+		if (oldIndex && (!index || index !== oldIndex))
+			await this.backend.set(oldIndex)
+		if (index)
 			await this.backend.set(index, key, options)
-		else if (index)
-			await this.backend.set(index)
 	}
 	async get(key: string): Promise<string | undefined> {
 		return (await this.backend.get(key))?.value
