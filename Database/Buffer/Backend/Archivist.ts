@@ -148,12 +148,10 @@ export class Archivist {
 			Archivist.#lastArchived = Promise.resolve(lastChanged)
 			await this.state.storage.put<string>("lastArchived", lastChanged)
 		}
-		return (
-			{
-				documents: Array.from((await this.storage.storage.get<Item | Document>(staleKeys)).values()),
-				changed: staleKeys.join("\n"),
-			} ?? {}
-		)
+		return {
+			documents: Array.from((await this.storage.storage.get<Item | Document>(staleKeys)).values()),
+			changed: staleKeys.join("\n"),
+		}
 	}
 	static open(
 		keyValueNamespace: platform.KVNamespace | undefined,

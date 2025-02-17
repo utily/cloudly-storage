@@ -1,4 +1,4 @@
-import { TimeSpan } from "isoly"
+import { isoly } from "isoly"
 import { Continuable } from "../Continuable"
 import { KeyValueStore } from "../KeyValueStore"
 import { ListItem } from "../ListItem"
@@ -9,8 +9,8 @@ import { partition } from "../partition"
 export class Indexed<V, I extends string, M = any> implements KeyValueStore<V, M> {
 	private constructor(private data: KeyValueStore<V, M>, private indexes: Record<I, Index<V>>) {}
 	set(key: string, value?: undefined): Promise<void>
-	set(key: string, value: V, options?: { retention?: TimeSpan; meta?: M }): Promise<void>
-	async set(key: string, value?: V, options?: { retention?: TimeSpan; meta?: M }): Promise<void> {
+	set(key: string, value: V, options?: { retention?: isoly.TimeSpan; meta?: M }): Promise<void>
+	async set(key: string, value?: V, options?: { retention?: isoly.TimeSpan; meta?: M }): Promise<void> {
 		const old = (await this.data.get(key))?.value
 		if (value)
 			await this.data.set(key, value, options)
@@ -58,7 +58,7 @@ class Index<V> {
 		value: V | undefined,
 		oldValue: V | undefined,
 		key: string,
-		options?: { retention?: TimeSpan | undefined }
+		options?: { retention?: isoly.TimeSpan | undefined }
 	): Promise<void> {
 		const index = value && this.index(value)
 		const oldIndex = oldValue && this.index(oldValue)

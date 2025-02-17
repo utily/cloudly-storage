@@ -73,7 +73,7 @@ export class FromPlatform<
 	}
 
 	private async range(options: ListOptions): Promise<Continuable<ListItem<V, M>>> {
-		const firstKey = (options.prefix ?? "") + (options.range && (options.range[0] ?? "")) ?? ""
+		const firstKey = (options.prefix ?? "") + (options.range && (options.range[0] ?? ""))
 		const lastKey = options.range && options.range[1] ? (options.prefix ?? "") + options.range[1] : undefined
 		let search = firstKey.slice(0, -1)
 

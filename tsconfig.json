@@ -1,15 +1,41 @@
 {
-	"extends": "./tsconfig.test.json",
 	"compilerOptions": {
+		"lib": [
+			"ESNext",
+			"webworker"
+		],
+		"moduleResolution": "node10",
+		"module": "ESNext",
+		"outDir": "dist/mjs",
 		"declaration": true,
 		"sourceMap": true,
-		"sourceRoot": "${workspaceRoot}",
-		"outDir": "dist",
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"target": "ESNext",
+		"allowJs": true,
+		"resolveJsonModule": true,
+		// "strict": true,
+		"alwaysStrict": true,
 		"baseUrl": ".",
 		"allowSyntheticDefaultImports": true,
-		"types": []
+		"noImplicitAny": true,
+		"removeComments": true,
+		"preserveConstEnums": true,
+		"forceConsistentCasingInFileNames": true,
+		"noImplicitThis": true,
+		"strictNullChecks": true,
+		"types": [
+			"vitest/globals",
+			"@cloudflare/workers-types"
+		]
 	},
+	"include": [
+		"**/*.spec.ts",
+	],
 	"files": [
 		"index.ts"
-	]
+	],
+	"typeAcquisition": {
+		"enable": true
+	}
 }
