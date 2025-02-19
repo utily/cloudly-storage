@@ -41,6 +41,9 @@
 		"clean": "rimraf dist node_modules coverage",
 		"start": "npm --prefix test-worker run start"
 	},
+	"overrides": {
+		"esbuild": ">=0.25.0"
+	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20250214.0",
 		"@typescript-eslint/eslint-plugin": "7.15.0",
