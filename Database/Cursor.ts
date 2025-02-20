@@ -15,7 +15,7 @@ export namespace Cursor {
 		return cryptly.Base64.encode(JSON.stringify(cursor), "url")
 	}
 	export function parse(cursor?: string): Cursor | undefined {
-		return cursor && JSON.parse(new cryptly.TextDecoder().decode(cryptly.Base64.decode(cursor, "url")))
+		return cursor && JSON.parse(new TextDecoder().decode(cryptly.Base64.decode(cursor, "url")))
 	}
 
 	export function dates(cursor?: Cursor): isoly.Date[] {

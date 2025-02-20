@@ -58,7 +58,7 @@ export class InMemory<
 			}) + 1
 		if (o.cursor && start == 0) {
 			try {
-				const cursor = new cryptly.TextDecoder().decode(cryptly.Base64.decode(o.cursor, "url"))
+				const cursor = new TextDecoder().decode(cryptly.Base64.decode(o.cursor, "url"))
 				start =
 					partition.findIndex(([key, value]) => {
 						return key == cursor
