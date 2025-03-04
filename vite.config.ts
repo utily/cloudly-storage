@@ -1,5 +1,4 @@
-/// <reference types="vitest/config" />
-import { defineConfig } from "vite"
+import { defineConfig } from "vitest/config"
 
 export default defineConfig({
 	test: {
@@ -15,11 +14,6 @@ export default defineConfig({
 		include: ["**/*.spec.[tj]s"],
 		testTimeout: 20000,
 		isolate: false,
-		exclude: ["node_modules", "dist"],
-		server: {
-			deps: {
-				inline: ["isly", "cryptly", "isoly", "gracely", "cloudly-http", "cloudly-router", "@cloudflare/workers-types"],
-			},
-		},
+		server: { deps: { inline: true } },
 	},
 })
